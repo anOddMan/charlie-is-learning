@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Skills 学习报告 — Anthropic 技术博客精读</title>
+<style>
+  :root {
+    --bg: #f8f9fa;
+    --card: #ffffff;
+    --accent: #d4a843;
+    --accent-dark: #b8922e;
+    --text: #1a1a2e;
+    --text-secondary: #555;
+    --border: #e0e0e0;
+    --tag-bg: #fef3e2;
+    --tag-text: #8b6b1a;
+    --code-bg: #f4f4f4;
+    --shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 20px;
+  }
+  .container { max-width: 960px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #fff;
+    padding: 48px 40px;
+    border-radius: 16px;
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(212,168,67,0.15) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .header h1 { font-size: 28px; font-weight: 700; position: relative; z-index: 1; margin-bottom: 8px; }
+  .header .subtitle { font-size: 16px; color: rgba(255,255,255,0.75); position: relative; z-index: 1; }
+  .header .meta {
+    margin-top: 16px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.6);
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .header .meta span {
+    background: rgba(255,255,255,0.1);
+    padding: 4px 12px;
+    border-radius: 20px;
+  }
+
+  /* Layout */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 24px;
+  }
+  @media (max-width: 768px) {
+    .grid { grid-template-columns: 1fr; }
+    .header { padding: 32px 24px; }
+    .header h1 { font-size: 22px; }
+  }
+
+  /* TOC Sidebar */
+  .toc-wrap {
+    position: sticky;
+    top: 20px;
+    align-self: start;
+  }
+  .toc {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .toc h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+  .toc ol { list-style: none; counter-reset: toc; }
+  .toc li {
+    counter-increment: toc;
+    margin-bottom: 6px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.2s;
+    cursor: pointer;
+  }
+  .toc li:hover { background: var(--tag-bg); }
+  .toc li::before {
+    content: counter(toc);
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    line-height: 20px;
+    border-radius: 50%;
+    margin-right: 8px;
+  }
+  .toc a { color: var(--text); text-decoration: none; }
+  .toc a:hover { color: var(--accent-dark); }
+
+  /* Cards */
+  .card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+  .card h2 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card h2 .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: 50%;
+  }
+  .card h3 { font-size: 16px; font-weight: 600; margin: 16px 0 8px; color: #333; }
+  .card p { margin-bottom: 12px; color: #444; }
+  .card ul, .card ol { margin: 8px 0 12px 20px; }
+  .card li { margin-bottom: 6px; color: #444; }
+
+  /* Tags */
+  .tag {
+    display: inline-block;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 12px;
+  }
+
+  /* Highlight box */
+  .highlight {
+    background: #fef9e7;
+    border-left: 4px solid var(--accent);
+    padding: 16px 20px;
+    border-radius: 0 8px 8px 0;
+    margin: 16px 0;
+  }
+  .highlight strong { color: #333; }
+
+  /* Code block */
+  .code-block {
+    background: #1e1e2e;
+    color: #cdd6f4;
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    overflow-x: auto;
+    margin: 12px 0;
+    tab-size: 2;
+  }
+  .code-block .comment { color: #6c7086; }
+  .code-block .keyword { color: #cba6f7; }
+  .code-block .string { color: #a6e3a1; }
+  .code-block .yaml-key { color: #89b4fa; }
+
+  /* Info callout */
+  .callout {
+    display: flex;
+    gap: 12px;
+    padding: 16px 20px;
+    background: #e8f4fd;
+    border-radius: 8px;
+    margin: 12px 0;
+    font-size: 14px;
+  }
+  .callout .icon { font-size: 20px; flex-shrink: 0; }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 14px;
+  }
+  th, td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    background: #f5f5f5;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: var(--text-secondary);
+  }
+  tr:hover td { background: #fafafa; }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 13px;
+    padding: 24px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 24px;
+  }
+
+  /* Principle step */
+  .principle-steps {
+    display: flex;
+    gap: 12px;
+    margin: 16px 0;
+    flex-wrap: wrap;
+  }
+  .principle-step {
+    flex: 1;
+    min-width: 160px;
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+  .principle-step .level { font-size: 24px; font-weight: 700; color: var(--accent-dark); }
+  .principle-step .label { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+  .principle-step .tokens { font-size: 11px; color: #999; margin-top: 2px; }
+
+  /* Dir tree - structured tree view */
+  .dir-tree {
+    background: #1a1a2e;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 16px 0;
+    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+    font-size: 13px;
+    line-height: 2;
+    overflow-x: auto;
+  }
+  .dir-tree .tree-root {
+    color: #f0c674;
+    font-weight: 700;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .dir-tree .tree-root::before {
+    content: '\01F4C1';
+    font-size: 16px;
+  }
+  .dir-tree .tree-group {
+    display: flex;
+    align-items: stretch;
+    margin-left: 0;
+  }
+  .dir-tree .tree-guide {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 20px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .dir-tree .tree-guide .v-line {
+    width: 2px;
+    flex: 1;
+    min-height: 24px;
+    background: rgba(255,255,255,0.12);
+  }
+  .dir-tree .tree-guide .branch-mid {
+    width: 10px;
+    height: 2px;
+    background: rgba(255,255,255,0.12);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+  }
+  .dir-tree .tree-guide .branch-end {
+    width: 10px;
+    height: 2px;
+    background: rgba(255,255,255,0.12);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+  }
+  .dir-tree .tree-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 0;
+  }
+  .dir-tree .tree-icon {
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .dir-tree .folder-name { color: #f0c674; font-weight: 600; }
+  .dir-tree .file-name { color: #cdd6f4; }
+  .dir-tree .tree-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 8px;
+    border-radius: 10px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    margin-left: 4px;
+  }
+  .dir-tree .tree-badge.req {
+    background: rgba(231,76,60,0.2);
+    color: #fc7b6b;
+    border: 1px solid rgba(231,76,60,0.3);
+  }
+  .dir-tree .tree-badge.opt {
+    background: rgba(153,153,153,0.15);
+    color: #aaa;
+    border: 1px solid rgba(153,153,153,0.2);
+  }
+  .dir-tree .tree-comment {
+    color: rgba(255,255,255,0.35);
+    font-size: 11px;
+    margin-left: 8px;
+  }
+  .dir-tree .tree-leaf {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding-left: 20px;
+  }
+  .dir-tree .tree-leaf .ext {
+    color: rgba(255,255,255,0.25);
+  }
+
+  /* Branch-line connector for tree row */
+  .dir-tree .connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 20px;
+    flex-shrink: 0;
+  }
+  .dir-tree .connector .h-line {
+    width: 10px;
+    height: 2px;
+    background: rgba(255,255,255,0.2);
+    align-self: flex-end;
+  }
+  .dir-tree .connector .v-ext {
+    width: 2px;
+    flex: 1;
+    min-height: 24px;
+    background: rgba(255,255,255,0.12);
+  }
+  .dir-tree .connector .v-empty {
+    width: 2px;
+    flex: 1;
+    min-height: 24px;
+  }
+
+  /* ===== Annotated Code Display ===== */
+
+  /* YAML 前置元数据可视化展示 */
+  .yaml-display {
+    background: #1a1a2e;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 16px 0;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .yaml-display .yaml-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+  }
+  .yaml-display .yaml-header .delimiter {
+    font-family: "JetBrains Mono", "Consolas", monospace;
+    color: rgba(255,255,255,0.3);
+  }
+  .yaml-display .yaml-body {
+    padding: 16px 20px;
+    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+    font-size: 13px;
+    line-height: 2;
+  }
+  .yaml-display .yaml-body .yaml-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 2px 0;
+  }
+  .yaml-display .yaml-body .yaml-row .yaml-key {
+    color: #89b4fa;
+    min-width: 140px;
+    flex-shrink: 0;
+  }
+  .yaml-display .yaml-body .yaml-row .yaml-value {
+    color: #cdd6f4;
+    word-break: break-all;
+  }
+  .yaml-display .yaml-body .yaml-row .yaml-value.str {
+    color: #a6e3a1;
+  }
+  .yaml-display .yaml-body .yaml-row .yaml-value.bool {
+    color: #cba6f7;
+  }
+  .yaml-display .yaml-body .yaml-row .yaml-value.list {
+    color: #fab387;
+  }
+  .yaml-display .yaml-body .yaml-row .yaml-annotation {
+    color: rgba(255,255,255,0.3);
+    font-size: 11px;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+  .yaml-display .yaml-body .yaml-sep {
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    margin: 8px 0;
+  }
+  .yaml-display .yaml-body .yaml-section-title {
+    color: #f0c674;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 12px 0 6px;
+  }
+  .yaml-display .yaml-body .yaml-markdown {
+    color: rgba(255,255,255,0.7);
+    padding-left: 12px;
+    border-left: 2px solid rgba(255,255,255,0.12);
+    margin-top: 4px;
+  }
+  .yaml-display .yaml-body .yaml-markdown .md-line {
+    line-height: 1.8;
+  }
+
+  /* 带行号和注释的代码块 */
+  .code-annotated {
+    background: #1a1a2e;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 16px 0;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .code-annotated .code-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    font-size: 12px;
+  }
+  .code-annotated .code-topbar .code-lang {
+    color: #f0c674;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .code-annotated .code-topbar .code-filename {
+    color: rgba(255,255,255,0.4);
+  }
+  .code-annotated .code-content {
+    display: flex;
+    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+    font-size: 13px;
+    line-height: 1.9;
+  }
+  .code-annotated .code-content .line-nums {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 0;
+    min-width: 40px;
+    text-align: right;
+    color: rgba(255,255,255,0.2);
+    border-right: 1px solid rgba(255,255,255,0.08);
+    user-select: none;
+  }
+  .code-annotated .code-content .line-nums span {
+    padding: 0 12px;
+  }
+  .code-annotated .code-content .code-lines {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 0;
+    flex: 1;
+    overflow-x: auto;
+  }
+  .code-annotated .code-content .code-lines .cl {
+    display: flex;
+    align-items: flex-start;
+    padding: 0 12px;
+    white-space: pre;
+    color: #cdd6f4;
+  }
+  .code-annotated .code-content .code-lines .cl .code {
+    flex-shrink: 0;
+  }
+  .code-annotated .code-content .code-lines .cl .comment-right {
+    color: rgba(255,255,255,0.3);
+    font-size: 11px;
+    margin-left: 24px;
+    white-space: nowrap;
+  }
+  .code-annotated .code-content .code-lines .cl.highlight-line {
+    background: rgba(212,168,67,0.08);
+    border-left: 3px solid var(--accent);
+  }
+
+  /* 语法高亮色在标注代码块中 */
+  .code-annotated .kw { color: #cba6f7; }
+  .code-annotated .str { color: #a6e3a1; }
+  .code-annotated .cm { color: #6c7086; }
+  .code-annotated .fn { color: #89b4fa; }
+  .code-annotated .bu { color: #fab387; }
+  .code-annotated .op { color: #cdd6f4; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<!-- ==================== HEADER ==================== -->
+<div class="header">
+  <h1>Agent Skills 学习报告</h1>
+  <div class="subtitle">"Equipping agents for the real world with Agent Skills" — Anthropic Engineering Blog 精读</div>
+  <div class="meta">
+    <span>&#x1F4C5; 原文发布：2025-10-16</span>
+    <span>&#x1F504; 更新：2025-12-18（开放标准）</span>
+    <span>&#x270D;&#xFE0F; 作者：Barry Zhang, Keith Lazuka, Mahesh Murag</span>
+  </div>
+</div>
+
+<!-- ==================== GRID ==================== -->
+<div class="grid">
+
+<!-- MAIN CONTENT -->
+<div>
+
+<!-- ==================== 1. ==================== -->
+<div class="card">
+  <h2><span class="num">1</span> 背景与核心问题</h2>
+
+  <div class="highlight">
+    <strong>核心主张：</strong>与其为每个用例从零构建一个 monolithic AI Agent，不如构建可组合、可复用的 Skills，让通用 Agent 按需加载领域专长。
+  </div>
+
+  <p>文章开篇指出当前 AI Agent 开发中的普遍误区：团队投入大量精力为每个业务场景构建独立的 Agent 系统，却忽视了这些系统之间的共通性。结果就是大量重复造轮子，每个 Agent 都从零学习领域知识，维护成本高且难以规模化。</p>
+
+  <p>Anthropic 的观察是：<strong>瓶颈不在于 Agent 的推理能力，而在于 Agent 缺乏在真实世界中操作所需的领域知识和流程规范</strong>。如果你需要 Agent 理解公司政策、遵循特定工作流程、使用专有工具——这些都是 Skills 要解决的问题。</p>
+
+  <div class="callout">
+    <div class="icon">&#x1F4A1;</div>
+    <div><strong>核心洞察：</strong>Agent 是推理引擎，Skills 是知识库。两者分离，各自独立演进。</div>
+  </div>
+
+  <p>文章引用了 AI 社区中流行的说法："Don't build agents, build skills." ——与其构建更多 Agent，不如构建 Skills，让一个通用 Agent 通过 Skills 获得无限扩展的能力。</p>
+</div>
+
+<!-- ==================== 2. ==================== -->
+<div class="card">
+  <h2><span class="num">2</span> 什么是 Agent Skill</h2>
+
+  <p>Agent Skill 是一个<strong>目录结构</strong>，包含指令、脚本和资源文件，Agent 可以动态发现并按需加载。文章将其比喻为"新员工的入职培训手册"——把领域专长打包成可组合的资源包。</p>
+
+  <h3>目录结构</h3>
+  <p style="font-size:14px;color:#666;margin-bottom:12px;">每个 Skill 是一个独立的目录，以下为标准化布局：</p>
+  <div class="dir-tree">
+    <div class="tree-row">
+      <span class="tree-icon">&#x1F4C1;</span>
+      <span class="folder-name">my-skill/</span>
+    </div>
+
+    <div class="tree-row">
+      <span class="connector"><span class="h-line"></span></span>
+      <span class="tree-icon">&#x1F4C4;</span>
+      <span class="file-name">SKILL.md</span>
+      <span class="tree-badge req">必需</span>
+      <span class="tree-comment">YAML 前置元数据 + Markdown 指令</span>
+    </div>
+
+    <div class="tree-row">
+      <span class="connector"><span class="h-line"></span></span>
+      <span class="tree-icon">&#x1F4C4;</span>
+      <span class="file-name">reference.md</span>
+      <span class="tree-badge opt">可选</span>
+      <span class="tree-comment">引用文档，按需加载</span>
+    </div>
+
+    <div class="tree-row">
+      <span class="connector"><span class="v-ext"></span><span class="h-line"></span></span>
+      <span class="tree-icon">&#x1F4C1;</span>
+      <span class="folder-name">examples/</span>
+      <span class="tree-badge opt">可选</span>
+      <span class="tree-comment">示例文件</span>
+    </div>
+    <div class="tree-row">
+      <span class="connector"><span class="v-ext"></span><span class="v-empty"></span></span>
+      <span class="tree-leaf"><span class="ext">&#x2514;&#x2500;&#x2500;</span> <span class="file-name">sample-output.json</span></span>
+    </div>
+
+    <div class="tree-row">
+      <span class="connector"><span class="v-ext"></span><span class="h-line"></span></span>
+      <span class="tree-icon">&#x1F4C1;</span>
+      <span class="folder-name">references/</span>
+      <span class="tree-badge opt">可选</span>
+      <span class="tree-comment">参考资料目录</span>
+    </div>
+    <div class="tree-row">
+      <span class="connector"><span class="v-ext"></span><span class="v-empty"></span></span>
+      <span class="tree-leaf"><span class="ext">&#x2514;&#x2500;&#x2500;</span> <span class="file-name">policy-faq.md</span></span>
+    </div>
+
+    <div class="tree-row">
+      <span class="connector"><span class="v-ext"></span><span class="h-line"></span></span>
+      <span class="tree-icon">&#x1F4C1;</span>
+      <span class="folder-name">assets/</span>
+      <span class="tree-badge opt">可选</span>
+      <span class="tree-comment">模板和静态资源</span>
+    </div>
+    <div class="tree-row">
+      <span class="connector"><span class="v-ext"></span><span class="v-empty"></span></span>
+      <span class="tree-leaf"><span class="ext">&#x2514;&#x2500;&#x2500;</span> <span class="file-name">report-template.md</span></span>
+    </div>
+
+    <div class="tree-row">
+      <span class="connector"><span class="v-empty"></span><span class="h-line"></span></span>
+      <span class="tree-icon">&#x1F4C1;</span>
+      <span class="folder-name">scripts/</span>
+      <span class="tree-badge opt">可选</span>
+      <span class="tree-comment">可执行脚本</span>
+    </div>
+    <div class="tree-row">
+      <span class="connector"><span class="v-empty"></span><span class="v-empty"></span></span>
+      <span class="tree-leaf"><span class="ext">&#x2514;&#x2500;&#x2500;</span> <span class="file-name">helper.py</span></span>
+    </div>
+  </div>
+
+  <h3>SKILL.md 格式</h3>
+  <p style="font-size:14px;color:#666;margin-bottom:12px;">SKILL.md 由 <strong>YAML 前置元数据（Frontmatter）</strong>和 <strong>Markdown 指令体</strong>两部分组成，中间用 <code>---</code> 分隔：</p>
+  <div class="yaml-display">
+    <div class="yaml-header">
+      <span>SKILL.md</span>
+      <span class="delimiter">YAML Frontmatter + Markdown Body</span>
+    </div>
+    <div class="yaml-body">
+      <div class="yaml-section-title">&#x1F4CB; 前置元数据（Frontmatter）</div>
+      <div class="yaml-row">
+        <span class="yaml-key">name:</span>
+        <span class="yaml-value str">brand-guidelines</span>
+        <span class="yaml-annotation">&#x2190; 标识符，小写字母+连字符</span>
+      </div>
+      <div class="yaml-row">
+        <span class="yaml-key">description:</span>
+        <span class="yaml-value str">&gt;- 当需要应用 Acme 公司品牌规范时使用...</span>
+        <span class="yaml-annotation">&#x2190; 触发条件描述（Agent 据此判断）</span>
+      </div>
+      <div class="yaml-row">
+        <span class="yaml-key">allowed-tools:</span>
+        <span class="yaml-value list">[&quot;Read&quot;, &quot;Write&quot;, &quot;Edit&quot;]</span>
+        <span class="yaml-annotation">&#x2190; 允许 Agent 使用的工具</span>
+      </div>
+      <div class="yaml-row">
+        <span class="yaml-key">user-invocable:</span>
+        <span class="yaml-value bool">true</span>
+        <span class="yaml-annotation">&#x2190; 用户可手动触发</span>
+      </div>
+      <hr class="yaml-sep">
+      <div class="yaml-section-title">&#x1F4DD; Markdown 指令体（Body）</div>
+      <div class="yaml-markdown">
+        <div class="md-line"><span style="color:#6c7086;"># 品牌规范</span></div>
+        <div class="md-line" style="height:4px;"></div>
+        <div class="md-line"><span style="color:#f0c674;">## 配色</span></div>
+        <div class="md-line"><span style="color:#cdd6f4;">- 主色: <span style="color:#a6e3a1;">#FF6B35</span></span></div>
+        <div class="md-line"><span style="color:#cdd6f4;">- 辅助色: <span style="color:#a6e3a1;">#2D3436</span></span></div>
+        <div class="md-line" style="height:4px;"></div>
+        <div class="md-line"><span style="color:#f0c674;">## 字体</span></div>
+        <div class="md-line"><span style="color:#cdd6f4;">- 标题: Montserrat Bold</span></div>
+        <div class="md-line"><span style="color:#cdd6f4;">- 正文: Open Sans</span></div>
+        <div class="md-line" style="height:4px;"></div>
+        <div class="md-line"><span style="color:#f0c674;">## Logo 使用</span></div>
+        <div class="md-line"><span style="color:#cdd6f4;">- 浅色背景用全彩 Logo</span></div>
+        <div class="md-line"><span style="color:#cdd6f4;">- 深色背景用白色 Logo</span></div>
+      </div>
+    </div>
+  </div>
+
+  <table>
+    <tr><th>字段</th><th>必需</th><th>说明</th></tr>
+    <tr><td><code>name</code></td><td>是（Claude.ai）/ 否（Claude Code）</td><td>小写字母+连字符，最长 64 字符</td></tr>
+    <tr><td><code>description</code></td><td>推荐</td><td>Agent 据此判断是否触发该 Skill，最长 1024 字符</td></tr>
+    <tr><td><code>allowed-tools</code></td><td>否</td><td>允许 Agent 使用的工具列表</td></tr>
+    <tr><td><code>user-invocable</code></td><td>否</td><td>false = 仅 Agent 可自动触发</td></tr>
+    <tr><td><code>disable-model-invocation</code></td><td>否</td><td>true = 仅用户可手动触发</td></tr>
+    <tr><td><code>context</code></td><td>否</td><td><code>fork</code> 表示在子 Agent 中运行</td></tr>
+    <tr><td><code>paths</code></td><td>否</td><td>Glob 模式，限定 Skill 在哪些路径下激活</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 3. ==================== -->
+<div class="card">
+  <h2><span class="num">3</span> 渐进式披露（Progressive Disclosure）</h2>
+
+  <p>这是文章强调的<strong>核心设计原则</strong>。Skill 分阶段加载信息，优化 Token 使用：</p>
+
+  <div class="principle-steps">
+    <div class="principle-step">
+      <div class="level">L1</div>
+      <div class="label">元数据</div>
+      <div class="tokens">~30-100 tokens</div>
+      <div style="font-size:11px;color:#999;margin-top:4px;">name + description<br>始终加载到系统提示词</div>
+    </div>
+    <div class="principle-step">
+      <div class="level">L2</div>
+      <div class="label">完整指令</div>
+      <div class="tokens">&lt; 5,000 tokens</div>
+      <div style="font-size:11px;color:#999;margin-top:4px;">SKILL.md 正文<br>触发时加载</div>
+    </div>
+    <div class="principle-step">
+      <div class="level">L3</div>
+      <div class="label">参考资料</div>
+      <div class="tokens">按需</div>
+      <div style="font-size:11px;color:#999;margin-top:4px;">references/ 等附属文件<br>按需读取</div>
+    </div>
+    <div class="principle-step">
+      <div class="level">L4</div>
+      <div class="label">脚本执行</div>
+      <div class="tokens">不占上下文</div>
+      <div style="font-size:11px;color:#999;margin-top:4px;">scripts/ 可执行代码<br>通过工具调用执行</div>
+    </div>
+  </div>
+
+  <div class="highlight">
+    <strong>设计意图：</strong>就像一本组织良好的手册——先看目录，再读具体章节，最后查阅附录。Agent 只在必要时才加载更多信息，始终保持上下文窗口的精简。
+  </div>
+
+  <p><strong>为什么重要？</strong>在大语言模型的应用中，上下文窗口是宝贵的资源。如果每个 Skill 的全部内容都加载到上下文中，几十个 Skill 就会迅速耗尽可用 Token。渐进式披露使得系统可以管理数百个 Skill，而上下文仅包含它们的 name + description。只有当 Agent 判断某个 Skill 与当前任务相关时，才会加载其完整内容。</p>
+</div>
+
+<!-- ==================== 4. ==================== -->
+<div class="card">
+  <h2><span class="num">4</span> 代码执行</h2>
+
+  <p>Skills 可以包含<strong>预编写的可执行脚本</strong>（Python、JS、Shell 等），这些脚本通过工具调用运行，<strong>不占用上下文窗口</strong>。这意味着 Agent 可以执行确定性操作而无需理解脚本的每一行细节。</p>
+
+  <p>这对需要<strong>精确性、可重复性、可审计性</strong>的操作场景非常关键。Agent 不必"猜测"如何执行某个操作，而是直接运行经过测试的脚本。</p>
+
+  <h3>脚本执行示例</h3>
+  <p style="font-size:14px;color:#666;margin-bottom:12px;">以下是一个 NL2SQL 分析 Skill 中的 Python 辅助脚本，实现 <strong>自然语言 → SQL 执行</strong> 的闭环：</p>
+  <div class="code-annotated">
+    <div class="code-topbar">
+      <span class="code-lang">Python</span>
+      <span class="code-filename">scripts/execute_sql.py</span>
+    </div>
+    <div class="code-content">
+      <div class="line-nums">
+        <span>1</span>
+        <span>2</span>
+        <span>3</span>
+        <span>4</span>
+        <span>5</span>
+        <span>6</span>
+        <span>7</span>
+        <span>8</span>
+      </div>
+      <div class="code-lines">
+        <div class="cl"><span class="code"><span class="kw">import</span> subprocess, sys, json</span><span class="comment-right"># 引入子进程和 JSON 模块</span></div>
+        <div class="cl" style="height:4px;"></div>
+        <div class="cl highlight-line"><span class="code"><span class="kw">def</span> <span class="fn">run_query</span>(<span class="bu">sql</span>: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">list</span>:</span><span class="comment-right"># 核心函数：接收 SQL 返回结果集</span></div>
+        <div class="cl"><span class="code">    result <span class="op">=</span> subprocess.run(</span></div>
+        <div class="cl"><span class="code">        [<span class="str">&quot;mysql&quot;</span>, <span class="str">&quot;-e&quot;</span>, sql],</span><span class="comment-right"># 通过 mysql CLI 执行</span></div>
+        <div class="cl"><span class="code">        capture_output<span class="op">=</span><span class="bu">True</span>, text<span class="op">=</span><span class="bu">True</span>, timeout<span class="op">=</span><span class="num">30</span></span><span class="comment-right"># 30 秒超时保护</span></div>
+        <div class="cl"><span class="code">    )</span></div>
+        <div class="cl"><span class="code">    <span class="kw">return</span> json.loads(result.stdout)</span><span class="comment-right"># 解析 JSON 格式查询结果</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="code-block" style="margin:16px 0;">
+    <div class="code-header" style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.08);border-radius:12px 12px 0 0;font-size:12px;">
+      <span style="color:#f0c674;font-weight:600;">Skill 目录</span>
+      <span style="color:rgba(255,255,255,0.4);">nl2sql-skill/</span>
+    </div>
+    <div style="background:#1e1e2e;padding:16px;border-radius:0 0 12px 12px;">
+      <div style="display:flex;flex-direction:column;gap:6px;font-family:'JetBrains Mono','Fira Code','Consolas',monospace;font-size:13px;color:#cdd6f4;line-height:1.6;">
+        <div style="color:#89b4fa;">nl2sql-skill/</div>
+        <div style="padding-left:20px;display:flex;align-items:center;gap:8px;">
+          <span style="color:#6c7086;">&#9500;&#9472;</span><span style="color:#f0c674;">&#128196;</span><a href="nl2sql-skill/SKILL.md" style="color:#89b4fa;text-decoration:none;">SKILL.md</a>
+          <span style="color:rgba(255,255,255,0.3);font-size:11px;">— Skill 元数据与指令</span>
+        </div>
+        <div style="padding-left:20px;display:flex;align-items:center;gap:8px;">
+          <span style="color:#6c7086;">&#9492;&#9472;</span><span style="color:#a6e3a1;">&#128193;</span><span style="color:#cdd6f4;">scripts/</span>
+        </div>
+        <div style="padding-left:40px;display:flex;align-items:center;gap:8px;">
+          <span style="color:#6c7086;">&#9492;&#9472;</span><span style="color:#a6e3a1;">&#128187;</span><a href="nl2sql-skill/scripts/execute_sql.py" style="color:#a6e3a1;text-decoration:none;">execute_sql.py</a>
+          <span style="color:rgba(255,255,255,0.3);font-size:11px;">— SQL 查询执行器</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <table>
+    <tr><th>支持语言</th><th>执行方式</th><th>安全要求</th></tr>
+    <tr><td>Python、JavaScript、Shell、PowerShell、C#</td><td>子进程运行器（生产环境沙箱化）</td><td>沙箱隔离、资源限制、输入校验、审计日志</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 5. ==================== -->
+<div class="card">
+  <h2><span class="num">5</span> Skills vs MCP vs CLAUDE.md</h2>
+
+  <p>文章澄清了 Skills 与 Anthropic 其他扩展机制的关系：</p>
+
+  <table>
+    <tr><th>机制</th><th>最佳用途</th><th>加载时机</th></tr>
+    <tr><td><strong>CLAUDE.md</strong></td><td>全局行为引导（始终生效的规则）</td><td>始终加载</td></tr>
+    <tr><td><strong>Agent Skills</strong></td><td>可复用的 SOP、领域知识、流程规范</td><td>按需加载（渐进式披露）</td></tr>
+    <tr><td><strong>MCP（Model Context Protocol）</strong></td><td>连接外部工具和数据源</td><td>工具调用时</td></tr>
+  </table>
+
+  <p><strong>Skills 和 MCP 是互补关系：</strong>Skills 编码了<strong>流程性知识</strong>（怎么做），MCP 提供了<strong>外部工具接入</strong>（用什么做）。一个 Skill 可以指示 Agent 通过 MCP 工具来执行具体操作。</p>
+</div>
+
+<!-- ==================== 6. ==================== -->
+<div class="card">
+  <h2><span class="num">6</span> 最佳实践</h2>
+
+  <p>文章总结了以下实践建议：</p>
+
+  <table>
+    <tr><th>实践</th><th>说明</th></tr>
+    <tr><td><strong>范围聚焦</strong></td><td>一个 Skill 只做一件事。互斥的行为拆分成不同 Skill</td></tr>
+    <tr><td><strong>激活条件清晰</strong></td><td>用 "Use this when..." 风格写 description，包含正面 + 反面示例</td></tr>
+    <tr><td><strong>渐进式设计</strong></td><td>SKILL.md 保持在 500 行以内，长规则移到 references/ 目录</td></tr>
+    <tr><td><strong>评估驱动</strong></td><td>维护能力评估 + 回归测试，自动化 CI 集成</td></tr>
+    <tr><td><strong>与 Claude 迭代</strong></td><td>让 Claude 帮你写和优化 Skill，形成人机协作循环</td></tr>
+    <tr><td><strong>从 Claude 视角思考</strong></td><td>写 description 时考虑 Claude 何时/如何判断是否触发</td></tr>
+    <tr><td><strong>安全优先</strong></td><td>仅从可信来源安装，审计代码依赖和网络连接，沙箱化脚本执行</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 7. ==================== -->
+<div class="card">
+  <h2><span class="num">7</span> 开放标准与生态系统</h2>
+
+  <p>Anthropic 将 Agent Skills 作为一个<strong>开放标准</strong>发布在 <a href="https://agentskills.io" target="_blank">agentskills.io</a>，允许多平台兼容。目前已被广泛采用：</p>
+
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;">
+    <span class="tag">Claude Code</span>
+    <span class="tag">Claude.ai</span>
+    <span class="tag">Claude API / SDK</span>
+    <span class="tag">OpenAI Codex CLI</span>
+    <span class="tag">ChatGPT</span>
+    <span class="tag">GitHub Copilot</span>
+    <span class="tag">Cursor</span>
+    <span class="tag">VS Code</span>
+    <span class="tag">Gemini CLI</span>
+    <span class="tag">JetBrains Junie</span>
+    <span class="tag">AWS Kiro</span>
+    <span class="tag">Block Goose</span>
+    <span class="tag">Microsoft Agent Framework</span>
+  </div>
+
+  <p>这种跨平台的标准化意味着：<strong>一次编写 Skill，随处可用</strong>。开发团队可以为内部工具和流程编写一套 Skills，然后在不同 AI 工具之间共享。</p>
+
+  <div class="highlight">
+    <strong>文章愿景：</strong>未来 Agent 能够自主创建、编辑、评估和分享 Skills。Skills 将成为 AI Agent 的"应用商店"——一个由社区驱动的知识生态系统。
+  </div>
+</div>
+
+<!-- ==================== 8. ==================== -->
+<div class="card">
+  <h2><span class="num">8</span> 核心观点提炼</h2>
+
+  <ol>
+    <li><strong>不要构建 Agent，构建 Skills。</strong> 通用 Agent + 领域 Skills 的组合优于为每个场景构建独立的 Agent 系统。</li>
+    <li><strong>渐进式披露是技能架构的根基。</strong> 它使数百个 Skills 可以共存于同一个 Agent 系统中而不会耗尽上下文窗口。</li>
+    <li><strong>Skills 让知识可复用、可共享、可版本管理。</strong> 团队可以将领域知识编码为 Skills，像管理代码一样管理知识。</li>
+    <li><strong>Skills 补全了 MCP 的定位。</strong> MCP 解决的是"工具接入"问题，Skills 解决的是"流程知识"问题。两者结合，Agent 既知道用什么工具，也知道怎么用。</li>
+    <li><strong>开放标准是生态繁荣的基础。</strong> agentskills.io 标准确保了 Skills 可以在不同平台的 Agent 之间移植。</li>
+    <li><strong>Agent 自主创建 Skills 是终极形态。</strong> 当 Agent 能自己写、自己优化自己的 Skills 时，人与 AI 的协作将进入新阶段。</li>
+  </ol>
+</div>
+
+<!-- ==================== 9. ==================== -->
+<div class="card">
+  <h2><span class="num">9</span> 评价与启示</h2>
+
+  <h3>这篇文章为什么重要？</h3>
+  <p>Agent Skills 的提出回应了当前 AI Agent 领域的一个根本矛盾：一方面，通用大语言模型的推理能力在飞速提升；另一方面，在实际业务中部署 Agent 时，真正决定成败的往往是领域知识和操作流程的覆盖度。Skills 提供了一种<strong>系统化的知识封装方案</strong>，将"Agent 知道什么"从 Agent 本身解耦出来。</p>
+
+  <h3>对我个人的启示</h3>
+  <ul>
+    <li><strong>从"提示词工程"到"技能工程"：</strong>Skills 将提示词工程提升为软件工程实践——有结构、有版本、有测试、有生命周期管理。</li>
+    <li><strong>知识复用的标准化方案：</strong>团队积累的领域知识不再散落在文档或个人提示词中，而是以标准化 Skills 形式被系统化管理和复用。</li>
+    <li><strong>与我的项目关联：</strong>在 AI-learning 项目中，可以将学习路线、框架使用指南、调试流程等封装为 Skills，让学习过程本身也能得到 Agent 的辅助。</li>
+    <li><strong>开放生态带来的机遇：</strong>agentskills.io 标准意味着 Skills 社区可能像 npm/GitHub 一样繁荣，会出现大量可复用的高质量 Skills。</li>
+  </ul>
+</div>
+
+</div>
+
+<!-- ==================== SIDEBAR ==================== -->
+<div class="toc-wrap">
+  <div class="toc">
+    <h3>&#x1F4D1; 目录</h3>
+    <ol>
+      <li><a href="#">背景与核心问题</a></li>
+      <li><a href="#">什么是 Agent Skill</a></li>
+      <li><a href="#">渐进式披露</a></li>
+      <li><a href="#">代码执行</a></li>
+      <li><a href="#">Skills vs MCP vs CLAUDE.md</a></li>
+      <li><a href="#">最佳实践</a></li>
+      <li><a href="#">开放标准与生态</a></li>
+      <li><a href="#">核心观点提炼</a></li>
+      <li><a href="#">评价与启示</a></li>
+    </ol>
+
+    <hr style="margin:16px 0;border:none;border-top:1px solid var(--border);">
+
+    <h3>&#x1F517; 参考链接</h3>
+    <ul style="list-style:none;font-size:13px;">
+      <li style="margin-bottom:6px;">&#x1F4C4; <a href="https://claude.com/blog/equipping-agents-for-the-real-world-with-agent-skills" target="_blank" style="color:var(--accent-dark);">原文（英文）</a></li>
+      <li style="margin-bottom:6px;">&#x1F310; <a href="https://agentskills.io" target="_blank" style="color:var(--accent-dark);">开放标准规范</a></li>
+      <li style="margin-bottom:6px;">&#x1F4D8; <a href="https://code.claude.com/docs/en/skills" target="_blank" style="color:var(--accent-dark);">Claude Code Skills 文档</a></li>
+    </ul>
+  </div>
+</div>
+
+</div><!-- /grid -->
+
+<div class="footer">
+  学习报告生成于 2026-05-26 &nbsp;|&nbsp; 基于 Anthropic Engineering Blog 文章分析
+</div>
+
+</div><!-- /container -->
+
+</body>
+</html>

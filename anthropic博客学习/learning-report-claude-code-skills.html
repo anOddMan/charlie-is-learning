@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学习报告：Anthropic 构建 Claude Code 的经验 — Skills 技能体系</title>
+<style>
+  :root {
+    --bg: #1e1e2e;
+    --surface: #181825;
+    --overlay: #313244;
+    --text: #cdd6f4;
+    --subtext: #a6adc8;
+    --accent: #89b4fa;
+    --green: #a6e3a1;
+    --red: #f38ba8;
+    --yellow: #f9e2af;
+    --mauve: #cba6f7;
+    --peach: #fab387;
+    --blue: #89b4fa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    min-height: 100vh;
+    line-height: 1.7;
+  }
+  /* 侧边栏 TOC */
+  .sidebar {
+    position: sticky; top: 0;
+    width: 280px; min-width: 280px; height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--overlay);
+    padding: 24px 20px;
+    overflow-y: auto;
+    font-size: 14px;
+  }
+  .sidebar h2 {
+    font-size: 16px; color: var(--accent); margin-bottom: 16px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--overlay);
+  }
+  .sidebar a {
+    display: block; color: var(--subtext); text-decoration: none;
+    padding: 4px 0; transition: color 0.15s;
+  }
+  .sidebar a:hover, .sidebar a.active { color: var(--text); }
+  .sidebar .toc-section { margin-top: 12px; }
+  .sidebar .toc-l2 { padding-left: 16px; font-size: 13px; }
+
+  /* 主内容 */
+  .main {
+    flex: 1; max-width: 960px; padding: 40px 48px 80px;
+  }
+  .main h1 { font-size: 28px; color: var(--accent); margin-bottom: 4px; }
+  .main .meta { color: var(--subtext); font-size: 14px; margin-bottom: 32px; }
+  .main h2 {
+    font-size: 22px; color: var(--mauve); margin: 48px 0 16px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--overlay);
+  }
+  .main h3 { font-size: 18px; color: var(--green); margin: 28px 0 12px; }
+  .main p { margin-bottom: 14px; color: var(--text); }
+  .main ul, .main ol { margin: 0 0 16px 24px; }
+  .main li { margin-bottom: 6px; }
+  .main strong { color: var(--peach); }
+  .main code {
+    background: var(--overlay); color: var(--peach);
+    padding: 2px 6px; border-radius: 4px; font-size: 13px;
+  }
+
+  /* 信息卡片 */
+  .infobox {
+    background: var(--surface); border-left: 3px solid var(--accent);
+    padding: 16px 20px; margin: 20px 0; border-radius: 0 8px 8px 0;
+  }
+  .infobox.warn { border-left-color: var(--yellow); }
+  .infobox.tip { border-left-color: var(--green); }
+
+  /* 表格 */
+  .tbl-wrapper { overflow-x: auto; margin: 16px 0; }
+  table {
+    width: 100%; border-collapse: collapse; font-size: 14px;
+  }
+  th {
+    background: var(--overlay); color: var(--accent); text-align: left;
+    padding: 10px 14px; font-weight: 600; white-space: nowrap;
+  }
+  td {
+    padding: 10px 14px; border-bottom: 1px solid var(--overlay);
+    vertical-align: top;
+  }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* Gotcha 引用块 */
+  .quote-block {
+    background: var(--surface); border-left: 3px solid var(--mauve);
+    padding: 16px 20px; margin: 16px 0; border-radius: 0 8px 8px 0;
+    font-style: italic; color: var(--subtext);
+  }
+  .quote-block code { font-style: normal; }
+
+  /* 标签徽章 */
+  .badge {
+    display: inline-block; padding: 2px 10px; border-radius: 12px;
+    font-size: 12px; font-weight: 600;
+  }
+  .badge-accent { background: rgba(137,180,250,0.15); color: var(--accent); }
+
+  /* 响应式 */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { padding: 24px 20px; }
+  }
+
+  /* 返回顶部 */
+  .back-top {
+    position: fixed; bottom: 24px; right: 24px;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--overlay); color: var(--text);
+    border: none; cursor: pointer; font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0.7; transition: opacity 0.2s;
+  }
+  .back-top:hover { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- 侧边栏 -->
+<nav class="sidebar">
+  <h2>📑 目录</h2>
+  <a href="#overview">概述</a>
+  <a href="#nine-categories">九大技能类别</a>
+  <div class="toc-section">
+    <a href="#cat1" class="toc-l2">1. 库与 API 参考</a>
+    <a href="#cat2" class="toc-l2">2. 产品验证</a>
+    <a href="#cat3" class="toc-l2">3. 数据获取与分析</a>
+    <a href="#cat4" class="toc-l2">4. 业务流程自动化</a>
+    <a href="#cat5" class="toc-l2">5. 代码脚手架</a>
+    <a href="#cat6" class="toc-l2">6. 代码质量与审查</a>
+    <a href="#cat7" class="toc-l2">7. CI/CD 与部署</a>
+    <a href="#cat8" class="toc-l2">8. Runbook（操作手册）</a>
+    <a href="#cat9" class="toc-l2">9. 基础设施运维</a>
+  </div>
+  <a href="#best-practices">最佳实践（7 条）</a>
+  <div class="toc-section">
+    <a href="#bp1" class="toc-l2">1. 不说显而易见的</a>
+    <a href="#bp2" class="toc-l2">2. Gotchas 陷阱记录</a>
+    <a href="#bp3" class="toc-l2">3. 文件系统与渐进披露</a>
+    <a href="#bp4" class="toc-l2">4. 为模型写描述</a>
+    <a href="#bp5" class="toc-l2">5. 帮助 Claude 记忆</a>
+    <a href="#bp6" class="toc-l2">6. 打包脚本</a>
+    <a href="#bp7" class="toc-l2">7. 按需 Hook</a>
+  </div>
+  <a href="#distribution">分发与度量</a>
+  <a href="#takeaways">核心启示</a>
+</nav>
+
+<!-- 主内容 -->
+<main class="main">
+
+<h1 id="overview">构建 Claude Code 的经验：Anthropic 如何运用 Skills 体系</h1>
+<p class="meta">
+  来源：<a href="https://claude.com/blog/lessons-from-building-claude-code-how-we-use-skills" style="color:var(--accent)">Anthropic 官方博客</a>
+  &nbsp;|&nbsp; 作者：Thariq Shihipar &nbsp;|&nbsp; 发布日期：2026-06-03
+  &nbsp;|&nbsp; 报告生成：2026-06-05
+</p>
+
+<div class="infobox">
+  <strong>一句话总结：</strong>Skill 是一个<strong>文件夹</strong>（而非单个 Markdown 文件），内含指令、脚本、资源、配置等，AI Agent 可自动发现并按需加载。Anthropic 内部已积累<strong>数百个</strong> Skill，覆盖从代码生成到运维的全流程。
+</div>
+
+<!-- ===== 九大类别 ===== -->
+<h2 id="nine-categories">九大技能类别</h2>
+<p>Anthropic 将内部使用的 Skill 归纳为 9 个类别：</p>
+
+<div class="tbl-wrapper">
+<table>
+<thead>
+<tr><th>#</th><th>类别</th><th>用途</th><th>典型示例</th></tr>
+</thead>
+<tbody>
+<tr id="cat1">
+  <td><span class="badge badge-accent">1</span></td>
+  <td><strong>库与 API 参考</strong></td>
+  <td>教 Claude 正确使用内部/外部库</td>
+  <td><code>billing-lib</code>、<code>internal-platform-cli</code></td>
+</tr>
+<tr id="cat2">
+  <td><span class="badge badge-accent">2</span></td>
+  <td><strong>产品验证</strong></td>
+  <td>测试和验证代码是否正常工作（常结合 Playwright、tmux）</td>
+  <td><code>signup-flow-driver</code>、<code>checkout-verifier</code></td>
+</tr>
+<tr id="cat3">
+  <td><span class="badge badge-accent">3</span></td>
+  <td><strong>数据获取与分析</strong></td>
+  <td>连接数据和监控栈</td>
+  <td><code>funnel-query</code>、<code>cohort-compare</code>、<code>grafana</code></td>
+</tr>
+<tr id="cat4">
+  <td><span class="badge badge-accent">4</span></td>
+  <td><strong>业务流程自动化</strong></td>
+  <td>自动化重复性工作流</td>
+  <td><code>standup-post</code>、<code>weekly-recap</code></td>
+</tr>
+<tr id="cat5">
+  <td><span class="badge badge-accent">5</span></td>
+  <td><strong>代码脚手架 / 模板</strong></td>
+  <td>为特定框架生成样板代码</td>
+  <td><code>new-&lt;framework&gt;-workflow</code>、<code>create-app</code></td>
+</tr>
+<tr id="cat6">
+  <td><span class="badge badge-accent">6</span></td>
+  <td><strong>代码质量与审查</strong></td>
+  <td>执行代码质量标准</td>
+  <td><code>adversarial-review</code>、<code>code-style</code></td>
+</tr>
+<tr id="cat7">
+  <td><span class="badge badge-accent">7</span></td>
+  <td><strong>CI/CD 与部署</strong></td>
+  <td>拉取、推送、部署代码</td>
+  <td><code>babysit-pr</code>、<code>deploy-&lt;service&gt;</code></td>
+</tr>
+<tr id="cat8">
+  <td><span class="badge badge-accent">8</span></td>
+  <td><strong>Runbook（操作手册）</strong></td>
+  <td>症状 → 多工具调查 → 结构化报告</td>
+  <td><code>&lt;service&gt;-debugging</code>、<code>oncall-runner</code></td>
+</tr>
+<tr id="cat9">
+  <td><span class="badge badge-accent">9</span></td>
+  <td><strong>基础设施运维</strong></td>
+  <td>带护栏的日常维护操作</td>
+  <td><code>&lt;resource&gt;-orphans</code>、<code>cost-investigation</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="infobox tip">
+  <strong>关键洞察：</strong>这并不是一个"完整"的清单——Anthropic 团队强调这 9 个类别只是他们<strong>目前观察到的最有用方向</strong>。Skill 的最佳实践仍在快速演进中。
+</div>
+
+<!-- ===== 最佳实践 ===== -->
+<h2 id="best-practices">七条最佳实践</h2>
+
+<h3 id="bp1">1. 不说显而易见的东西</h3>
+<p>Claude 已经知道如何编程。Skill 的价值在于提供<strong>将 Claude 推离常规思维路径</strong>的信息——即团队专属知识，而非通用的编码建议。</p>
+<div class="infobox warn">
+  <strong>反例：</strong>"写干净的代码，遵循语言惯例"——这对 Claude 是废话。<br>
+  <strong>正例：</strong>"这个项目用 <code>FooService</code> 而非 <code>BarService</code> 处理支付，因为我们 X 月迁移了"——这是 Claude 不知道的团队上下文。
+</div>
+
+<h3 id="bp2">2. 构建 "Gotchas"（陷阱/常见坑） 板块</h3>
+<p>这是整个 Skill 中<strong>信号密度最高</strong>的内容。记录 Claude 经常踩到的坑，随着新边界情况的发现持续更新。</p>
+<div class="quote-block">
+  "<code>subscriptions</code> 表是<strong>只追加（append-only）</strong>的。你需要的行是 <code>version</code> 最高的那一条，而不是 <code>created_at</code> 最新的那一条。"
+</div>
+
+<h3 id="bp3">3. 利用文件系统 &amp; 渐进式披露</h3>
+<p>Skill 是<strong>文件夹</strong>，不是单个文件。将详细参考文档拆分到 <code>references/api.md</code>，模板放到 <code>assets/</code>，Claude 按需读取，而非一次性加载全部内容。这利用了 Agent 的<strong>工具调用</strong>能力实现"渐进式信息披露"。</p>
+
+<h3 id="bp4">4. 为模型写描述，不为人写</h3>
+<p>Skill 的 <code>description</code> 字段是 Claude 用来判断"有没有匹配的 Skill"的——它的作用是描述<strong>何时触发</strong>这个 Skill，而非概括内容。</p>
+<div class="tbl-wrapper">
+<table>
+  <thead><tr><th>❌ 为人写的描述</th><th>✅ 为模型写的描述</th></tr></thead>
+  <tbody>
+    <tr><td>"帮助部署服务"</td><td>"当用户要求部署、推送或发布 &lt;service&gt; 到 &lt;env&gt; 时使用此 Skill"</td></tr>
+    <tr><td>"代码质量检查工具"</td><td>"当用户要求审查 PR、检查代码风格或在合并前审计代码时触发"</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3 id="bp5">5. 帮助 Claude 记住状态</h3>
+<p>在 Skill 内部存储数据（日志文件、JSON、SQLite）。例如，<code>standup-post</code> Skill 维护一个 <code>standups.log</code>，让 Claude 知道自上次运行以来发生了什么变化，避免重复劳动。</p>
+
+<h3 id="bp6">6. 打包脚本而非让 Claude 重写</h3>
+<p>把可执行脚本放入 Skill（Python、Bash 等），让 Claude 将算力花在<strong>编排与组合</strong>上，而非重复构建样板代码。这大幅减少了 token 消耗和出错概率。</p>
+
+<h3 id="bp7">7. 按需 Hook：护栏而非枷锁</h3>
+<p>Anthropic 实现了两个创新的按需 Hook：</p>
+<ul>
+  <li><code>/careful</code> — 阻断危险命令（<code>rm -rf</code>、<code>DROP TABLE</code>、<code>kubectl delete</code>）</li>
+  <li><code>/freeze</code> — 阻止对指定目录之外的任何编辑</li>
+</ul>
+<p>这两个 Hook 作为<strong>用户主动激活的安全开关</strong>，而非始终开启的限制，平衡了安全性与灵活性。</p>
+
+<!-- ===== 分发与度量 ===== -->
+<h2 id="distribution">分发与度量</h2>
+
+<h3>两种分发方式</h3>
+<ol>
+  <li><strong>仓库内检入</strong>：将 Skill 放入 <code>./.claude/skills</code>，随项目代码版本控制</li>
+  <li><strong>插件市场发布</strong>：通过插件系统分发给更广泛的用户群</li>
+</ol>
+
+<h3>内部策展流程</h3>
+<p>Skill 的生命周期遵循"有机生长"模式：</p>
+<ul>
+  <li>开发者将 Skill 放在<strong>沙盒文件夹</strong>中试用</li>
+  <li>获得团队认可后，自然扩散</li>
+  <li>成熟后通过 PR 合并到<strong>正式市场</strong></li>
+</ul>
+
+<h3>度量与数据驱动</h3>
+<p>Anthropic 使用 <code>PreToolUse</code> Hook 在公司范围内记录所有 Skill 的使用情况，识别：</p>
+<ul>
+  <li><strong>热门 Skill</strong>——被广泛采用，值得进一步优化</li>
+  <li><strong>触发不足的 Skill</strong>——描述可能不够精准，需要调整触发条件</li>
+</ul>
+
+<!-- ===== 核心启示 ===== -->
+<h2 id="takeaways">核心启示</h2>
+
+<div class="infobox">
+  <p style="margin-bottom:8px"><strong>原文关键引述：</strong></p>
+  <p style="font-style:italic; color:var(--subtext)">
+    "Skills best practices are still evolving. Most of our best skills began as a few lines and a single gotcha, then got better because people kept adding to them as Claude hit new edge cases."
+  </p>
+  <p style="margin-top:8px; color:var(--subtext); font-size:13px">
+    —— Skill 最佳实践仍在演进。我们最好的 Skill 大多始于几行文字和一个 Gotcha，然后因为人们不断在 Claude 遇到新边界情况时往里添加内容而变得更好。
+  </p>
+</div>
+
+<h3>五个关键结论</h3>
+<ol>
+  <li><strong>Skill 的本质是组织知识</strong>——不是教 Claude 编程，而是教它你的团队、代码库和业务的独特上下文。</li>
+  <li><strong>从最小化开始</strong>——最好的 Skill 不是一次性设计出来的，而是在使用中逐步演化成型的。几条指令 + 一个 Gotcha 就足以起步。</li>
+  <li><strong>描述字段是 Skill 的"搜索引擎优化"</strong>——写描述时思考"Claude 看到用户的什么请求时应该触发这个 Skill？"</li>
+  <li><strong>文件系统是天然的上下文管理工具</strong>——利用文件夹结构实现渐进式加载，避免一次性倾泻大量信息进入上下文窗口。</li>
+  <li><strong>用数据驱动迭代</strong>——通过 Hook 记录使用数据，发现哪些 Skill 真正被用起来了，哪些需要调整描述或内容。</li>
+</ol>
+
+<div class="infobox tip">
+  <strong>实践建议：</strong>如果你正在构建自己的 Skill，建议从<strong>第 2 类（产品验证）</strong>或<strong>第 8 类（Runbook）</strong>入手——这两类 ROI 最高，能最快看到 Claude 从"通用助手"变成"了解你系统的队友"。
+</div>
+
+<p style="margin-top:48px; color:var(--subtext); font-size:13px; border-top:1px solid var(--overlay); padding-top:16px;">
+  报告完毕。原始文章：
+  <a href="https://claude.com/blog/lessons-from-building-claude-code-how-we-use-skills" style="color:var(--accent)">Lessons from building Claude Code: How we use skills</a>
+  &nbsp;|&nbsp; 作者 Thariq Shihipar (Anthropic) &nbsp;|&nbsp; 2026-06-03
+</p>
+
+</main>
+
+<button class="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="返回顶部">↑</button>
+
+</body>
+</html>

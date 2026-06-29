@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code 操控指南 — 学习报告</title>
+<style>
+  :root {
+    --bg: #1e1e2e;
+    --surface: #181825;
+    --surface1: #1e1e2e;
+    --surface2: #313244;
+    --text: #cdd6f4;
+    --subtext: #a6adc8;
+    --muted: #6c7086;
+    --blue: #89b4fa;
+    --lavender: #b4befe;
+    --mauve: #cba6f7;
+    --green: #a6e3a1;
+    --peach: #fab387;
+    --red: #f38ba8;
+    --yellow: #f9e2af;
+    --teal: #94e2d5;
+    --border: #45475a;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ====== 侧边栏 ====== */
+  nav#sidebar {
+    width: 270px;
+    min-width: 270px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  nav#sidebar .logo {
+    padding: 0 20px 16px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--lavender);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+  nav#sidebar .logo small {
+    display: block;
+    font-weight: 400;
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  nav#sidebar a {
+    display: block;
+    padding: 7px 20px;
+    color: var(--subtext);
+    text-decoration: none;
+    font-size: 0.88rem;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+  }
+  nav#sidebar a:hover, nav#sidebar a.active {
+    color: var(--text);
+    background: rgba(255,255,255,0.04);
+    border-left-color: var(--mauve);
+  }
+  nav#sidebar .section-title {
+    padding: 16px 20px 6px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  /* ====== 主内容 ====== */
+  main {
+    flex: 1;
+    max-width: 960px;
+    padding: 32px 48px 80px;
+    overflow-x: hidden;
+  }
+  h1 { font-size: 2rem; color: var(--lavender); margin-bottom: 6px; }
+  h1 + p { color: var(--muted); margin-bottom: 32px; font-size: 0.9rem; }
+  h2 {
+    font-size: 1.45rem; color: var(--blue); margin: 40px 0 14px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+  h3 { font-size: 1.15rem; color: var(--teal); margin: 24px 0 10px; }
+  h4 { font-size: 1rem; color: var(--peach); margin: 16px 0 8px; }
+
+  p, li { margin-bottom: 8px; }
+  ul, ol { padding-left: 22px; margin-bottom: 14px; }
+  strong { color: var(--peach); }
+
+  /* 表格 */
+  table {
+    width: 100%; border-collapse: collapse; margin: 14px 0 20px;
+    font-size: 0.88rem;
+  }
+  th, td {
+    padding: 10px 14px; text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    background: var(--surface2); color: var(--lavender);
+    font-weight: 600; font-size: 0.82rem; text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* 高亮盒子 */
+  .box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 22px; margin: 16px 0;
+  }
+  .box.info { border-left: 4px solid var(--blue); }
+  .box.warn { border-left: 4px solid var(--yellow); }
+  .box.tip  { border-left: 4px solid var(--green); }
+
+  /* 代码块 */
+  .code-block {
+    background: #11111b; border-radius: var(--radius);
+    margin: 14px 0 20px; overflow: hidden;
+  }
+  .code-block .header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 16px;
+    background: rgba(255,255,255,0.04);
+    font-size: 0.75rem; color: var(--muted);
+  }
+  .code-block .header .lang {
+    background: var(--mauve); color: #11111b;
+    padding: 2px 10px; border-radius: 4px;
+    font-weight: 700; font-size: 0.7rem; letter-spacing: 0.05em;
+  }
+  .code-block pre {
+    padding: 16px; margin: 0; overflow-x: auto;
+    font-family: "Cascadia Code", "Fira Code", "JetBrains Mono", Consolas, monospace;
+    font-size: 0.82rem; line-height: 1.55; color: #cdd6f4;
+  }
+  .code-block code { color: var(--text); }
+
+  /* 标签 */
+  .tag {
+    display: inline-block; padding: 2px 10px; border-radius: 6px;
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.03em;
+    margin-right: 4px;
+  }
+  .tag.load     { background: #a6e3a120; color: var(--green); }
+  .tag.scope    { background: #89b4fa20; color: var(--blue); }
+  .tag.override { background: #f38ba820; color: var(--red); }
+  .tag.context  { background: #fab38720; color: var(--peach); }
+  .tag.event    { background: #cba6f720; color: var(--mauve); }
+
+  /* 对比卡片 */
+  .compare-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr));
+    gap: 14px; margin: 16px 0 24px;
+  }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+  }
+  .card h4 { margin-top: 0; color: var(--mauve); }
+  .card .emoji { font-size: 1.5rem; }
+
+  /* 流程图 */
+  .flowchart { text-align: center; margin: 24px 0; }
+
+  /* 响应式 */
+  @media (max-width: 900px) {
+    body { flex-direction: column; }
+    nav#sidebar {
+      width: 100%; min-width: unset; height: auto; position: relative;
+      border-right: none; border-bottom: 1px solid var(--border);
+    }
+    nav#sidebar a { display: inline-block; padding: 6px 14px; border-left: none; }
+    main { padding: 20px 24px 60px; max-width: 100%; }
+  }
+
+  @media (max-width: 560px) {
+    .compare-grid { grid-template-columns: 1fr; }
+    table { font-size: 0.78rem; }
+    th, td { padding: 6px 8px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ====== SIDEBAR TOC ====== -->
+<nav id="sidebar">
+  <div class="logo">
+    操控 Claude Code<br>
+    <small>Steering Claude Code 学习报告</small>
+  </div>
+  <div class="section-title">总览</div>
+  <a href="#overview">📋 概述</a>
+  <a href="#framework">🧭 决策框架</a>
+  <div class="section-title">七种方法</div>
+  <a href="#method1">① CLAUDE.md</a>
+  <a href="#method2">② Rules 规则</a>
+  <a href="#method3">③ Skills 技能</a>
+  <a href="#method4">④ Subagents 子代理</a>
+  <a href="#method5">⑤ Hooks 钩子</a>
+  <a href="#method6">⑥ Output Styles 输出风格</a>
+  <a href="#method7">⑦ Append System Prompt</a>
+  <div class="section-title">附录</div>
+  <a href="#compare">对照表</a>
+  <a href="#recap">总结</a>
+  <a href="#sources">参考来源</a>
+</nav>
+
+<!-- ====== MAIN CONTENT ====== -->
+<main>
+
+<h1>🎯 操控 Claude Code：七种自定义方式</h1>
+<p>来源：Anthropic 官方博客 &nbsp;|&nbsp; 日期：2026-06-18 &nbsp;|&nbsp; 报告生成：2026-06-23</p>
+
+<!-------------------------- 概述 -------------------------->
+<h2 id="overview">📋 概述</h2>
+
+<p>
+  Anthropic 于 2026 年 6 月 18 日发布官方博文
+  <em>"Steering Claude Code: skills, hooks, subagents and more"</em>，
+  系统性地阐述了操控 Claude Code 行为的<strong>七种核心机制</strong>。
+  这篇文章本质上是一份<strong>「如何让 AI 编码助手听话」的操作手册</strong>——
+  从项目级的 CLAUDE.md 到生命周期钩子 Hooks，构成了一套完整的分层指令体系。
+</p>
+
+<div class="box info">
+  <strong>核心思想：渐进式信息披露（Progressive Disclosure）</strong><br>
+  不是把所有指令塞进一个文件，而是按场景触发、按需加载，避免上下文膨胀和 token 浪费。
+</div>
+
+<!-------------------------- 决策框架 -------------------------->
+<h2 id="framework">🧭 决策框架</h2>
+
+<p>面对七种机制，<strong>选哪个？</strong> 官方提供了以下判断流程：</p>
+
+<!-- SVG 流程图 -->
+<div class="flowchart">
+<svg width="800" height="520" viewBox="0 0 800 520" style="max-width:100%;height:auto;">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#89b4fa"/>
+    </marker>
+    <linearGradient id="gDia" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#cba6f7"/>
+      <stop offset="100%" stop-color="#89b4fa"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#00000040"/>
+    </filter>
+  </defs>
+
+  <!-- START -->
+  <rect x="310" y="10" width="180" height="38" rx="19" fill="#313244" stroke="#45475a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="400" y="34" text-anchor="middle" fill="#cdd6f4" font-size="13" font-weight="600">我需要定制什么？</text>
+
+  <!-- Q1 -->
+  <rect x="50" y="80" width="160" height="50" rx="8" fill="#1e1e2e" stroke="#f38ba8" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="130" y="100" text-anchor="middle" fill="#f38ba8" font-size="11">必须确定性触发？</text>
+  <text x="130" y="118" text-anchor="middle" fill="#f38ba8" font-size="14" font-weight="700">Hooks / 权限规则</text>
+
+  <!-- Q2 -->
+  <rect x="250" y="80" width="160" height="50" rx="8" fill="#1e1e2e" stroke="#89b4fa" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="330" y="100" text-anchor="middle" fill="#89b4fa" font-size="11">连接外部系统？</text>
+  <text x="330" y="118" text-anchor="middle" fill="#89b4fa" font-size="14" font-weight="700">MCP 服务器</text>
+
+  <!-- Q3 -->
+  <rect x="450" y="80" width="160" height="50" rx="8" fill="#1e1e2e" stroke="#a6e3a1" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="530" y="100" text-anchor="middle" fill="#a6e3a1" font-size="11">始终需要的背景事实？</text>
+  <text x="530" y="118" text-anchor="middle" fill="#a6e3a1" font-size="14" font-weight="700">CLAUDE.md / Rules</text>
+
+  <!-- Q4 -->
+  <rect x="650" y="80" width="140" height="50" rx="8" fill="#1e1e2e" stroke="#fab387" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="720" y="100" text-anchor="middle" fill="#fab387" font-size="11">按需知识/流程？</text>
+  <text x="720" y="118" text-anchor="middle" fill="#fab387" font-size="14" font-weight="700">Skills</text>
+
+  <!-- Arrows from start to Qs -->
+  <line x1="350" y1="48" x2="130" y2="80" stroke="#89b4fa" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="380" y1="48" x2="330" y2="80" stroke="#89b4fa" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="420" y1="48" x2="530" y2="80" stroke="#89b4fa" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="450" y1="48" x2="720" y2="80" stroke="#89b4fa" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Bottom row -->
+  <!-- Q5 -->
+  <rect x="140" y="180" width="200" height="50" rx="8" fill="#1e1e2e" stroke="#cba6f7" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="240" y="200" text-anchor="middle" fill="#cba6f7" font-size="11">需要隔离上下文/并行？</text>
+  <text x="240" y="218" text-anchor="middle" fill="#cba6f7" font-size="14" font-weight="700">Subagents 子代理</text>
+
+  <!-- Q6 -->
+  <rect x="390" y="180" width="200" height="50" rx="8" fill="#1e1e2e" stroke="#94e2d5" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="490" y="200" text-anchor="middle" fill="#94e2d5" font-size="11">跨仓库/团队分发？</text>
+  <text x="490" y="218" text-anchor="middle" fill="#94e2d5" font-size="14" font-weight="700">Plugins 插件</text>
+
+  <!-- Arrows from top Qs to bottom -->
+  <line x1="130" y1="130" x2="240" y2="180" stroke="#89b4fa" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="330" y1="130" x2="240" y2="180" stroke="#89b4fa" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="530" y1="130" x2="490" y2="180" stroke="#89b4fa" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="720" y1="130" x2="490" y2="180" stroke="#89b4fa" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Final -->
+  <rect x="240" y="270" width="320" height="42" rx="21" fill="url(#gDia)" filter="url(#shadow)"/>
+  <text x="400" y="296" text-anchor="middle" fill="#11111b" font-size="14" font-weight="700">选型完毕 → 组合使用</text>
+
+  <line x1="340" y1="230" x2="380" y2="270" stroke="#89b4fa" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="460" y1="230" x2="420" y2="270" stroke="#89b4fa" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Footer -->
+  <text x="400" y="330" text-anchor="middle" fill="#6c7086" font-size="11">
+    优先级顺序：用户指令 &gt; Output Styles &gt; Subagents &gt; Skills &gt; CLAUDE.md &gt; Rules
+  </text>
+  <text x="400" y="355" text-anchor="middle" fill="#6c7086" font-size="11">
+    权限优先级：managed settings &gt; user settings.local.json &gt; user settings.json &gt; project settings.local.json &gt; project settings.json
+  </text>
+  <text x="400" y="380" text-anchor="middle" fill="#6c7086" font-size="11">
+    Hooks 优先级：managed &gt; user &gt; project (local) &gt; project &gt; plugin
+  </text>
+</svg>
+</div>
+
+<!-- 七种方法总览表 -->
+<table>
+  <thead>
+    <tr>
+      <th>方法</th>
+      <th>位置</th>
+      <th style="width:100px">加载时机</th>
+      <th>Token 成本</th>
+      <th>核心用途</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>CLAUDE.md</strong></td>
+      <td>项目根 / 子目录</td>
+      <td><span class="tag load">会话启动</span></td>
+      <td>中</td>
+      <td>项目背景、编码规范、构建命令</td>
+    </tr>
+    <tr>
+      <td><strong>Rules</strong></td>
+      <td><code>.claude/rules/*.md</code></td>
+      <td><span class="tag load">会话启动 / 路径匹配</span></td>
+      <td>低~中</td>
+      <td>路径/文件类型相关的条件规则</td>
+    </tr>
+    <tr>
+      <td><strong>Skills</strong></td>
+      <td><code>.claude/skills/*/SKILL.md</code></td>
+      <td><span class="tag load">描述启动时加载，正文触发时加载</span></td>
+      <td>低</td>
+      <td>按需调用的工作流程（部署、审查、发布）</td>
+    </tr>
+    <tr>
+      <td><strong>Subagents</strong></td>
+      <td><code>.claude/agents/*.md</code></td>
+      <td><span class="tag load">被委派时加载</span></td>
+      <td>隔离(各自独立窗口)</td>
+      <td>需要独立上下文的复杂并行任务</td>
+    </tr>
+    <tr>
+      <td><strong>Hooks</strong></td>
+      <td><code>settings.json</code></td>
+      <td><span class="tag load">生命周期事件</span></td>
+      <td>极低(仅触发)</td>
+      <td>格式化、阻止危险操作、通知</td>
+    </tr>
+    <tr>
+      <td><strong>Output Styles</strong></td>
+      <td><code>.claude/output-styles/*.md</code></td>
+      <td><span class="tag load">会话启动</span></td>
+      <td>高(替换系统提示)</td>
+      <td>改变 Claude 的交流风格/角色</td>
+    </tr>
+    <tr>
+      <td><strong>Append System Prompt</strong></td>
+      <td>CLI <code>--append-system-prompt</code></td>
+      <td><span class="tag load">单次调用</span></td>
+      <td>低</td>
+      <td>临时追加指令，覆盖默认行为</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-------------------------- 方法一 -------------------------->
+<h2 id="method1">① CLAUDE.md — 项目级背景文件</h2>
+
+<div class="compare-grid">
+  <div class="card">
+    <div class="emoji">📄</div>
+    <h4>是什么</h4>
+    <p>项目根目录或子目录下的 Markdown 文件，内容在每次会话启动时自动注入为上下文。用户级全局文件位于 <code>~/.claude/CLAUDE.md</code>。</p>
+  </div>
+  <div class="card">
+    <div class="emoji">🎯</div>
+    <h4>适合放什么</h4>
+    <ul>
+      <li>构建命令和测试命令</li>
+      <li>目录结构说明</li>
+      <li>编码规范和团队约定</li>
+      <li>项目架构概述</li>
+    </ul>
+  </div>
+</div>
+
+<div class="box warn">
+  <strong>⚠️ 关键建议：保持在 200 行以内。</strong><br>
+  过大的 CLAUDE.md 会导致上下文膨胀。事实性信息留在这里，过程性工作流迁移到 Skills。
+</div>
+
+<h3>加载机制</h3>
+<table>
+  <thead><tr><th>级别</th><th>位置</th><th>加载时机</th></tr></thead>
+  <tbody>
+    <tr><td>用户全局</td><td><code>~/.claude/CLAUDE.md</code></td><td>所有项目，会话启动</td></tr>
+    <tr><td>项目根</td><td><code>&lt;project&gt;/CLAUDE.md</code></td><td>会话启动</td></tr>
+    <tr><td>子目录</td><td><code>&lt;project&gt;/subdir/CLAUDE.md</code></td><td>当 Claude 工作在该目录时按需加载</td></tr>
+  </tbody>
+</table>
+
+<!-------------------------- 方法二 -------------------------->
+<h2 id="method2">② Rules — 路径作用域规则</h2>
+
+<p>
+  Rules 是 CLAUDE.md 的<strong>模块化替代方案</strong>。
+  通过 YAML frontmatter 中的 <code>paths:</code> 字段实现条件加载——
+  只有当 Claude 操作的文件匹配 glob 模式时，对应规则才会注入上下文。
+</p>
+
+<div class="code-block">
+  <div class="header">
+    <span class="lang">YAML</span>
+    <span>.claude/rules/api-endpoints.md</span>
+  </div>
+  <pre><code><span style="color:#6c7086">---</span>
+<span style="color:#89b4fa">paths</span><span style="color:#cdd6f4">:</span>
+<span style="color:#cdd6f4">  - </span><span style="color:#a6e3a1">"src/api/**/*.ts"</span>
+<span style="color:#cdd6f4">  - </span><span style="color:#a6e3a1">"src/routes/**/*.ts"</span>
+<span style="color:#6c7086">---</span>
+
+<span style="color:#6c7086"># API 端点开发规则</span>
+
+<span style="color:#cba6f7">- 所有端点必须使用 Zod 进行输入验证</span>
+<span style="color:#cba6f7">- 错误响应统一使用 `createErrorResponse()` 工具函数</span>
+<span style="color:#cba6f7">- 每个端点必须有对应的 OpenAPI 注释</span></code></pre>
+</div>
+
+<div class="box tip">
+  <strong>💡 优势：</strong>约 <strong>40% 的 token 节省</strong>——
+  只加载当前文件类型相关的规则，而非整个 CLAUDE.md。
+  无 <code>paths:</code> 字段的规则文件始终加载（等同 CLAUDE.md）。
+</div>
+
+<h3>Glob 模式示例</h3>
+<table>
+  <thead><tr><th>模式</th><th>匹配范围</th></tr></thead>
+  <tbody>
+    <tr><td><code>src/api/**/*.ts</code></td><td>src/api/ 下所有 .ts 文件（递归）</td></tr>
+    <tr><td><code>**/*.test.ts</code></td><td>项目中所有测试文件</td></tr>
+    <tr><td><code>src/components/*.tsx</code></td><td>src/components/ 直接子级（不递归）</td></tr>
+    <tr><td><code>**/*.{ts,tsx}</code></td><td>所有 TypeScript/TSX 文件</td></tr>
+    <tr><td><code>**/*.vue</code></td><td>所有 Vue 组件</td></tr>
+  </tbody>
+</table>
+
+<!-------------------------- 方法三 -------------------------->
+<h2 id="method3">③ Skills — 过程化工作流</h2>
+
+<p>
+  Skills 是 Claude Code 的<strong>核心扩展机制</strong>。
+  每个 Skill 是一个独立文件夹，内含 <code>SKILL.md</code>（必选）以及可选的
+  <code>workflows/</code>、<code>references/</code>、<code>templates/</code>、<code>scripts/</code> 子目录。
+</p>
+
+<h3>SKILL.md 最小结构</h3>
+<div class="code-block">
+  <div class="header"><span class="lang">Markdown</span><span>.claude/skills/deploy/SKILL.md</span></div>
+  <pre><code><span style="color:#6c7086">---</span>
+<span style="color:#89b4fa">name</span><span style="color:#cdd6f4">: deploy</span>
+<span style="color:#89b4fa">description</span><span style="color:#cdd6f4">: </span><span style="color:#a6e3a1">"Deploy to production. Use when: deploy, release, ship, publish"</span>
+<span style="color:#89b4fa">disable-model-invocation</span><span style="color:#cdd6f4">: </span><span style="color:#fab387">true</span><span style="color:#6c7086">  # 仅手动调用</span>
+<span style="color:#6c7086">---</span>
+
+<span style="color:#cba6f7">&lt;objective&gt;</span><span style="color:#cdd6f4">将当前分支部署到生产环境</span><span style="color:#cba6f7">&lt;/objective&gt;</span>
+
+<span style="color:#cba6f7">&lt;process&gt;</span>
+<span style="color:#cdd6f4">1. 确认当前分支已通过所有 CI 检查</span>
+<span style="color:#cdd6f4">2. 运行 `npm run build` 确认构建成功</span>
+<span style="color:#cdd6f4">3. 执行 `git push origin HEAD:production`</span>
+<span style="color:#cdd6f4">4. 等待部署 Webhook 返回 200</span>
+<span style="color:#cba6f7">&lt;/process&gt;</span>
+
+<span style="color:#cba6f7">&lt;success_criteria&gt;</span><span style="color:#cdd6f4">生产环境健康检查返回 200</span><span style="color:#cba6f7">&lt;/success_criteria&gt;</span></code></pre>
+</div>
+
+<h3>关键 Frontmatter 字段</h3>
+<table>
+  <thead><tr><th>字段</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td><code>name</code></td><td>Skill 名称，同时也是斜杠命令名（<code>/deploy</code>）</td></tr>
+    <tr><td><code>description</code></td><td><strong>关键！</strong> 用于自动发现——Claude 根据描述判断何时调用</td></tr>
+    <tr><td><code>disable-model-invocation</code></td><td><code>true</code> = 只能手动调用。适合部署、提交等有副作用操作</td></tr>
+    <tr><td><code>context: fork</code></td><td>在隔离子代理中运行，不污染主对话上下文</td></tr>
+    <tr><td><code>model</code></td><td>指定此 Skill 使用的模型（sonnet / opus / haiku）</td></tr>
+    <tr><td><code>allowed-tools</code></td><td>无需权限确认即可使用的工具列表</td></tr>
+    <tr><td><code>user-invocable</code></td><td><code>false</code> = 仅供 Claude 内部自动调用</td></tr>
+  </tbody>
+</table>
+
+<h3>调用方式</h3>
+<ul>
+  <li><strong>斜杠命令：</strong><code>/deploy</code> → 直接调用</li>
+  <li><strong>自动触发：</strong>Claude 加载 description 列表，当用户请求匹配时自动调用</li>
+  <li><strong>带参数：</strong><code>/deploy staging</code> → 使用 <code>$ARGUMENTS</code> 或 <code>$1</code> 接收</li>
+  <li><strong>@-mention：</strong><code>@deploy</code> 确保调用特定 Skill</li>
+</ul>
+
+<div class="box tip">
+  <strong>💡 最佳实践：</strong>保持 SKILL.md 在 500 行以内。将详细步骤移到 <code>workflows/</code>，
+  将领域知识移到 <code>references/</code>。使用 Router 模式（SKILL.md 作为入口，路由到具体工作流）。
+</div>
+
+<!-------------------------- 方法四 -------------------------->
+<h2 id="method4">④ Subagents — 隔离上下文代理</h2>
+
+<p>
+  Subagents 是<strong>拥有独立 200K-token 上下文窗口</strong>的专用 AI 实例。
+  它们在自己的沙盒中工作——中间的工具输出、堆栈追踪、grep 结果、错误的尝试都留在子代理内部，
+  <strong>只有最终结果</strong>返回给主会话。
+</p>
+
+<h3>子代理定义文件</h3>
+<div class="code-block">
+  <div class="header"><span class="lang">Markdown</span><span>.claude/agents/code-reviewer.md</span></div>
+  <pre><code><span style="color:#6c7086">---</span>
+<span style="color:#89b4fa">name</span><span style="color:#cdd6f4">: code-reviewer</span>
+<span style="color:#89b4fa">description</span><span style="color:#cdd6f4">: </span><span style="color:#a6e3a1">"Review code for bugs, security issues, and style."</span>
+<span style="color:#89b4fa">tools</span><span style="color:#cdd6f4">: Read, Grep, Glob, Bash</span>
+<span style="color:#89b4fa">model</span><span style="color:#cdd6f4">: opus</span>
+<span style="color:#6c7086">---</span>
+
+<span style="color:#cdd6f4">你是一个高级代码审查员。审查代码时检查：</span>
+
+<span style="color:#cba6f7">## 安全检查</span>
+<span style="color:#cba6f7">- SQL 注入、XSS、路径遍历</span>
+<span style="color:#cba6f7">- 权限验证和输入校验</span>
+
+<span style="color:#cba6f7">## 质量检查</span>
+<span style="color:#cba6f7">- 边界情况和错误处理</span>
+<span style="color:#cba6f7">- 性能和资源释放</span>
+
+<span style="color:#cba6f7">## 输出格式</span>
+<span style="color:#cba6f7">返回结构化 JSON：{ "issues": [...], "score": 0-10 }</span></code></pre>
+</div>
+
+<h3>核心特性</h3>
+<table>
+  <thead><tr><th>特性</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td><strong>上下文隔离</strong></td><td>每个子代理拥有独立的 200K 上下文窗口，中间过程不污染主会话</td></tr>
+    <tr><td><strong>最小权限</strong></td><td>通过 <code>tools</code> 字段显式授予工具，不给多余权限</td></tr>
+    <tr><td><strong>模型选择</strong></td><td>按任务选择：Haiku(机械任务) / Sonnet(日常工作) / Opus(深度推理)</td></tr>
+    <tr><td><strong>后台运行</strong></td><td><code>background: true</code> 使子代理异步执行</td></tr>
+    <tr><td><strong>Worktree 隔离</strong></td><td><code>isolation: worktree</code> 创建独立 git 工作树副本</td></tr>
+    <tr><td><strong>嵌套限制</strong></td><td>子代理不能再次生成子代理（一级深度），但支持最多 5 层动态工作流嵌套</td></tr>
+  </tbody>
+</table>
+
+<h3>调用方式</h3>
+<ul>
+  <li><strong>自动委派：</strong>Claude 根据 <code>description</code> 字段自动匹配任务</li>
+  <li><strong>自然语言：</strong>"用 code-reviewer 子代理审查这个 PR"</li>
+  <li><strong>@-mention：</strong><code>@agent-code-reviewer</code> 强制调用</li>
+  <li><strong>会话级：</strong><code>claude --agent code-reviewer</code> 整会话使用子代理配置</li>
+</ul>
+
+<div class="box info">
+  <strong>📐 设计原则：一个子代理只做一件事。</strong>
+  不要创建"万能"子代理。使用描述字段引导自动委派——
+  <em>"Use proactively after writing new code to check for common issues"</em>。
+</div>
+
+<!-------------------------- 方法五 -------------------------->
+<h2 id="method5">⑤ Hooks — 确定性生命周期触发器</h2>
+
+<p>
+  Hooks 是<strong>系统强制执行的确定性机制</strong>——
+  不依赖 AI 记忆，在指定生命周期事件发生时自动触发 shell 命令、HTTP 请求或 MCP 工具。
+</p>
+
+<h3>八种事件类型</h3>
+<table>
+  <thead><tr><th>事件</th><th>触发时机</th><th>典型用途</th></tr></thead>
+  <tbody>
+    <tr><td><code>PreToolUse</code></td><td>工具执行前</td><td>拦截危险操作（exit 2 = 阻止）</td></tr>
+    <tr><td><code>PostToolUse</code></td><td>工具执行成功后</td><td>自动格式化、运行测试、日志记录</td></tr>
+    <tr><td><code>PostToolUseFailure</code></td><td>工具执行失败后</td><td>错误日志记录、通知</td></tr>
+    <tr><td><code>PermissionRequest</code></td><td>请求用户授权时</td><td>自定义授权逻辑</td></tr>
+    <tr><td><code>SessionStart</code></td><td>会话开始/恢复时</td><td>加载环境配置、连接检查</td></tr>
+    <tr><td><code>PreCompact</code></td><td>上下文压缩前</td><td>保留关键信息</td></tr>
+    <tr><td><code>Stop</code></td><td>Claude 完成响应后</td><td>清理、通知、验证</td></tr>
+    <tr><td><code>UserPromptSubmit</code></td><td>用户提交提示词时</td><td>输入验证、上下文注入</td></tr>
+  </tbody>
+</table>
+
+<h3>配置示例</h3>
+
+<div class="code-block">
+  <div class="header"><span class="lang">JSON</span><span>.claude/settings.json</span></div>
+  <pre><code><span style="color:#cdd6f4">{</span>
+<span style="color:#cdd6f4">  </span><span style="color:#89b4fa">"hooks"</span><span style="color:#cdd6f4">: {</span>
+<span style="color:#cdd6f4">    </span><span style="color:#6c7086">// 1. 代码修改后自动格式化</span>
+<span style="color:#cdd6f4">    </span><span style="color:#89b4fa">"PostToolUse"</span><span style="color:#cdd6f4">: [</span>
+<span style="color:#cdd6f4">      {</span>
+<span style="color:#cdd6f4">        </span><span style="color:#89b4fa">"matcher"</span><span style="color:#cdd6f4">: </span><span style="color:#a6e3a1">"Write|Edit"</span><span style="color:#cdd6f4">,</span>
+<span style="color:#cdd6f4">        </span><span style="color:#89b4fa">"hooks"</span><span style="color:#cdd6f4">: [{</span>
+<span style="color:#cdd6f4">          </span><span style="color:#89b4fa">"type"</span><span style="color:#cdd6f4">: </span><span style="color:#a6e3a1">"command"</span><span style="color:#cdd6f4">,</span>
+<span style="color:#cdd6f4">          </span><span style="color:#89b4fa">"command"</span><span style="color:#cdd6f4">: </span><span style="color:#a6e3a1">"npx prettier --write \"$CLAUDE_TOOL_INPUT_FILE_PATH\""</span>
+<span style="color:#cdd6f4">        }]</span>
+<span style="color:#cdd6f4">      }</span>
+<span style="color:#cdd6f4">    ],</span>
+<span style="color:#cdd6f4">    </span><span style="color:#6c7086">// 2. 阻止危险命令</span>
+<span style="color:#cdd6f4">    </span><span style="color:#89b4fa">"PreToolUse"</span><span style="color:#cdd6f4">: [</span>
+<span style="color:#cdd6f4">      {</span>
+<span style="color:#cdd6f4">        </span><span style="color:#89b4fa">"matcher"</span><span style="color:#cdd6f4">: </span><span style="color:#a6e3a1">"Bash"</span><span style="color:#cdd6f4">,</span>
+<span style="color:#cdd6f4">        </span><span style="color:#89b4fa">"hooks"</span><span style="color:#cdd6f4">: [{</span>
+<span style="color:#cdd6f4">          </span><span style="color:#89b4fa">"type"</span><span style="color:#cdd6f4">: </span><span style="color:#a6e3a1">"command"</span><span style="color:#cdd6f4">,</span>
+<span style="color:#cdd6f4">          </span><span style="color:#89b4fa">"command"</span><span style="color:#cdd6f4">: </span><span style="color:#a6e3a1">"if echo \"$CLAUDE_TOOL_INPUT\" | grep -qE 'rm -rf /|DROP DATABASE|format c:'; then echo 'Blocked!' >&2; exit 2; fi"</span>
+<span style="color:#cdd6f4">        }]</span>
+<span style="color:#cdd6f4">      }</span>
+<span style="color:#cdd6f4">    ],</span>
+<span style="color:#cdd6f4">    </span><span style="color:#6c7086">// 3. 保护敏感文件</span>
+<span style="color:#cdd6f4">    </span><span style="color:#89b4fa">"PreToolUse"</span><span style="color:#cdd6f4">: [</span>
+<span style="color:#cdd6f4">      {</span>
+<span style="color:#cdd6f4">        </span><span style="color:#89b4fa">"matcher"</span><span style="color:#cdd6f4">: </span><span style="color:#a6e3a1">"Edit|Write"</span><span style="color:#cdd6f4">,</span>
+<span style="color:#cdd6f4">        </span><span style="color:#89b4fa">"hooks"</span><span style="color:#cdd6f4">: [{</span>
+<span style="color:#cdd6f4">          </span><span style="color:#89b4fa">"type"</span><span style="color:#cdd6f4">: </span><span style="color:#a6e3a1">"command"</span><span style="color:#cdd6f4">,</span>
+<span style="color:#cdd6f4">          </span><span style="color:#89b4fa">"command"</span><span style="color:#cdd6f4">: </span><span style="color:#a6e3a1">"python3 -c \"import json,sys;d=json.load(sys.stdin);sys.exit(2 if any(p in d.get('tool_input',{}).get('file_path','') for p in ['.env','package-lock.json','.git/','secrets']) else 0)\""</span>
+<span style="color:#cdd6f4">        }]</span>
+<span style="color:#cdd6f4">      }</span>
+<span style="color:#cdd6f4">    ]</span>
+<span style="color:#cdd6f4">  }</span>
+<span style="color:#cdd6f4">}</span></code></pre>
+</div>
+
+<h3>五种操作类型</h3>
+<table>
+  <thead><tr><th>类型</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td><code>command</code></td><td>执行 shell 命令。exit code 2 阻止操作</td></tr>
+    <tr><td><code>http</code></td><td>发送 HTTP 请求，可用于触发 Webhook</td></tr>
+    <tr><td><code>mcp_tool</code></td><td>调用 MCP 服务器的工具</td></tr>
+    <tr><td><code>prompt</code></td><td>向 Claude 注入提示词</td></tr>
+    <tr><td><code>agent</code></td><td>启动子代理处理事件</td></tr>
+  </tbody>
+</table>
+
+<div class="box warn">
+  <strong>⚠️ 安全关键：exit code 2 = 阻止操作。</strong>
+  任何其他非零退出码只记录错误但不阻止。
+  PostToolUse 无法撤销已执行的操作——需在 PreToolUse 中拦截。
+  输出上限 10,000 字符。多 Hook 冲突时，最严格的决策胜出（deny > defer > ask > allow）。
+</div>
+
+<!-------------------------- 方法六 -------------------------->
+<h2 id="method6">⑥ Output Styles — 输出风格 / 系统提示替换</h2>
+
+<p>
+  Output Styles <strong>替换 Claude 的系统提示词</strong>——这是七种方法中指令权重最高的机制。
+  它改变 Claude 的<strong>交流方式</strong>（语气、格式、详细程度），但不改变能力（工具仍然可用）。
+</p>
+
+<h3>内置风格</h3>
+<table>
+  <thead><tr><th>风格</th><th>行为</th><th>适用场景</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Default</strong></td><td>标准软件工程助手，简洁、任务导向</td><td>有经验的开发者</td></tr>
+    <tr><td><strong>Explanatory</strong></td><td>在编码任务间添加教育性解释，说明选择理由</td><td>学习代码库的新成员</td></tr>
+    <tr><td><strong>Learning</strong></td><td>协作式边做边学，使用 <code>TODO(human)</code> 标记</td><td>初学者</td></tr>
+  </tbody>
+</table>
+
+<h3>自定义风格</h3>
+<div class="code-block">
+  <div class="header"><span class="lang">Markdown</span><span>.claude/output-styles/academic.md</span></div>
+  <pre><code><span style="color:#6c7086">---</span>
+<span style="color:#89b4fa">name</span><span style="color:#cdd6f4">: Academic</span>
+<span style="color:#89b4fa">description</span><span style="color:#cdd6f4">: </span><span style="color:#a6e3a1">"Formal academic writing style"</span>
+<span style="color:#89b4fa">keep-coding-instructions</span><span style="color:#cdd6f4">: </span><span style="color:#fab387">false</span>
+<span style="color:#6c7086">---</span>
+
+<span style="color:#cba6f7"># 风格指令</span>
+<span style="color:#cdd6f4">以学术论文风格回应。使用第三人称，避免口语化。</span>
+<span style="color:#cdd6f4">每个观点需提供引用或逻辑推导。</span></code></pre>
+</div>
+
+<h3><code>keep-coding-instructions</code> 关键设置</h3>
+<table>
+  <thead><tr><th>值</th><th>效果</th></tr></thead>
+  <tbody>
+    <tr><td><code>false</code> (默认)</td><td>移除所有软件工程指导（测试、代码质量检查等）。工具仍然可用，但不再主动做 SE 检查</td></tr>
+    <tr><td><code>true</code></td><td>保留所有编码指令，风格内容追加在完整默认提示之上。适合只需调整语气的编码场景</td></tr>
+  </tbody>
+</table>
+
+<div class="box info">
+  <strong>📐 优先级最高：</strong>Output Styles 指令的遵循权重高于 CLAUDE.md 和任何其他机制。
+  切换方式：<code>/output-style Explanatory</code> 或通过 <code>/config</code> 交互选择。
+  更改效果在下一次会话开始时生效。
+</div>
+
+<!-------------------------- 方法七 -------------------------->
+<h2 id="method7">⑦ Append System Prompt — 单次调用追加指令</h2>
+
+<p>
+  <code>--append-system-prompt</code> 是 CLI 级别的追加机制——
+  <strong>追加式</strong>（不替换），仅对<strong>单次调用</strong>生效。
+  最适合轻量级临时指令。
+</p>
+
+<div class="code-block">
+  <div class="header"><span class="lang">Shell</span><span>--append-system-prompt 用法</span></div>
+  <pre><code><span style="color:#6c7086"># 单次调用时要求更详细的输出</span>
+<span style="color:#cba6f7">claude</span><span style="color:#cdd6f4"> --append-system-prompt </span><span style="color:#a6e3a1">"Be extra thorough today. Explain every step."</span>
+
+<span style="color:#6c7086"># 切换写作风格</span>
+<span style="color:#cba6f7">claude</span><span style="color:#cdd6f4"> --append-system-prompt </span><span style="color:#a6e3a1">"Write all responses in Traditional Chinese."</span>
+
+<span style="color:#6c7086"># 扮演特定角色</span>
+<span style="color:#cba6f7">claude</span><span style="color:#cdd6f4"> --append-system-prompt </span><span style="color:#a6e3a1">"You are a security auditor. Review code for OWASP Top 10."</span></code></pre>
+</div>
+
+<div class="box tip">
+  <strong>💡 适用场景：</strong>一次性任务需要的临时指令，不值得写入 CLAUDE.md 或创建 Skill。
+  与 Output Styles 不同，它是追加而非替换——不会移除原有的软件工程指导。
+</div>
+
+<!-------------------------- 总对照表 -------------------------->
+<h2 id="compare">📊 七种方法总对照</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>维度</th>
+      <th>CLAUDE.md</th>
+      <th>Rules</th>
+      <th>Skills</th>
+      <th>Subagents</th>
+      <th>Hooks</th>
+      <th>Output Styles</th>
+      <th>Append Prompt</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>类型</strong></td>
+      <td>背景知识</td>
+      <td>条件规则</td>
+      <td>过程工作流</td>
+      <td>隔离代理</td>
+      <td>系统触发</td>
+      <td>风格替换</td>
+      <td>临时追加</td>
+    </tr>
+    <tr>
+      <td><strong>加载方式</strong></td>
+      <td>全量</td>
+      <td>条件/全量</td>
+      <td>渐进式</td>
+      <td>按需隔离</td>
+      <td>事件驱动</td>
+      <td>全量替换</td>
+      <td>全量追加</td>
+    </tr>
+    <tr>
+      <td><strong>生命周期</strong></td>
+      <td>会话持久</td>
+      <td>按文件匹配</td>
+      <td>调用时激活</td>
+      <td>单次委派</td>
+      <td>按事件触发</td>
+      <td>会话持久</td>
+      <td>单次调用</td>
+    </tr>
+    <tr>
+      <td><strong>Token 代价</strong></td>
+      <td>中</td>
+      <td>低~中</td>
+      <td>低</td>
+      <td>隔离(独立)</td>
+      <td>极低</td>
+      <td>高</td>
+      <td>低</td>
+    </tr>
+    <tr>
+      <td><strong>确定性</strong></td>
+      <td>AI 解释</td>
+      <td>AI 解释</td>
+      <td>AI 执行</td>
+      <td>AI 执行</td>
+      <td>系统强制</td>
+      <td>AI 解释</td>
+      <td>AI 解释</td>
+    </tr>
+    <tr>
+      <td><strong>可共享</strong></td>
+      <td>✅ git</td>
+      <td>✅ git</td>
+      <td>✅ git</td>
+      <td>✅ git</td>
+      <td>⚠️ settings.json</td>
+      <td>✅ git</td>
+      <td>❌ 仅本地</td>
+    </tr>
+    <tr>
+      <td><strong>指令优先级</strong></td>
+      <td>低</td>
+      <td>低</td>
+      <td>中</td>
+      <td>高(隔离域)</td>
+      <td>最高(系统级)</td>
+      <td>最高(替换系统提示)</td>
+      <td>中</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>指令优先级总排序</h3>
+<div class="box info">
+  <strong>从高到低：</strong><br>
+  <strong>用户显式指令</strong> →
+  <strong>Hooks (PreToolUse 拦截)</strong> →
+  <strong>Output Styles</strong> →
+  <strong>Subagents (系统提示)</strong> →
+  <strong>Skills</strong> →
+  <strong>Append System Prompt</strong> →
+  <strong>CLAUDE.md</strong> ≈
+  <strong>Rules</strong>
+</div>
+
+<!-------------------------- 总结 -------------------------->
+<h2 id="recap">🔑 总结 &amp; 核心原则</h2>
+
+<div class="compare-grid">
+  <div class="card">
+    <h4>🧩 瘦身 CLAUDE.md</h4>
+    <p>事实留在 CLAUDE.md，过程迁移到 Skills，文件类型相关规则迁移到 Rules。目标是每个会话只加载真正需要的上下文。</p>
+  </div>
+  <div class="card">
+    <h4>🔒 安全用 Hooks</h4>
+    <p>PreToolUse 做拦截（exit 2），PostToolUse 做自动化（格式化、测试）。Hooks 是唯一<strong>不依赖 AI 记忆</strong>的确定性机制。</p>
+  </div>
+  <div class="card">
+    <h4>🏝️ 隔离用 Subagents</h4>
+    <p>复杂搜索、多文件分析、批量操作——用子代理处理。主会话只看到结果，上下文不膨胀。一个子代理只做一类任务。</p>
+  </div>
+  <div class="card">
+    <h4>📦 流程用 Skills</h4>
+    <p>部署、代码审查、发布检查清单等重复性过程工作流，封装为 Skills。有副作用的操作设置 <code>disable-model-invocation: true</code>。</p>
+  </div>
+</div>
+
+<div class="box warn" style="margin-top:20px;">
+  <strong>⚠️ 反模式提醒：不要把所有东西都塞进 CLAUDE.md。</strong><br>
+  这是官方博文最核心的建议。一个 500+ 行的 CLAUDE.md 导致：
+  上下文膨胀 → 响应变慢 → AI 注意力稀释 → 指令遵循度下降。
+  应该根据"何时需要"来分配内容到不同机制中。
+</div>
+
+<!-------------------------- 来源 -------------------------->
+<h2 id="sources">📚 参考来源</h2>
+<ol>
+  <li><a href="https://claude.com/blog/steering-claude-code-skills-hooks-rules-subagents-and-more" style="color:#89b4fa">Steering Claude Code: skills, hooks, subagents and more</a> — Anthropic 官方博客，2026-06-18</li>
+  <li><a href="https://code.claude.com/docs/en/output-styles" style="color:#89b4fa">Output Styles — Claude Code Docs</a> — 官方文档</li>
+  <li><a href="https://code.claude.com/docs/en/features-overview" style="color:#89b4fa">Extend Claude Code — Claude Code Docs</a> — 扩展机制总览</li>
+  <li><a href="https://hidekazu-konishi.com/entry/claude_code_extension_layers_decision_guide.html" style="color:#89b4fa">Claude Code Extension Layer Decision Guide</a> — 决策框架详解</li>
+  <li><a href="https://www.morphllm.com/claude-code-skills-mcp-plugins" style="color:#89b4fa">Claude Code Skills vs MCP vs Plugins: Complete Guide 2026</a></li>
+  <li><a href="https://www.guvi.in/blog/claude-code-hooks-how-to-configure-them/" style="color:#89b4fa">Claude Code Hooks: How to Configure Them</a> — Hooks 配置指南</li>
+  <li><a href="https://www.tembo.io/blog/claude-code-subagents" style="color:#89b4fa">Claude Code Subagents: A 2026 Practical Guide</a> — Subagents 实践指南</li>
+  <li><a href="https://claudefa.st/blog/guide/mechanics/rules-directory" style="color:#89b4fa">Claude Code Rules Directory: Modular Instructions That Scale</a> — Rules 目录详解</li>
+</ol>
+
+<p style="color:var(--muted);margin-top:40px;text-align:center;font-size:0.82rem;">
+  📅 报告生成日期：2026-06-23 &nbsp;|&nbsp; 工具：Claude Code 2.1.186 &nbsp;|&nbsp; 格式：HTML 单文件
+</p>
+
+</main>
+
+<!-- Active anchor highlight on scroll -->
+<script>
+(function() {
+  const nav = document.getElementById('sidebar');
+  const links = nav.querySelectorAll('a');
+  const sections = [...links].map(a => document.querySelector(a.getAttribute('href')));
+
+  window.addEventListener('scroll', () => {
+    let current = sections[0]?.id || '';
+    for (const s of sections) {
+      if (!s) continue;
+      const top = s.getBoundingClientRect().top;
+      if (top < 120) current = s.id;
+    }
+    links.forEach(a => {
+      a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

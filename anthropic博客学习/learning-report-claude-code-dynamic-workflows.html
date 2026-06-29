@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学习报告：Claude Code 动态工作流 — 为每个任务定制执行框架</title>
+<style>
+  :root {
+    --bg: #1e1e2e; --surface: #181825; --overlay: #313244;
+    --text: #cdd6f4; --subtext: #a6adc8; --accent: #89b4fa;
+    --green: #a6e3a1; --red: #f38ba8; --yellow: #f9e2af;
+    --mauve: #cba6f7; --peach: #fab387;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text); display: flex; min-height: 100vh; line-height: 1.7;
+  }
+  .sidebar {
+    position: sticky; top: 0; width: 280px; min-width: 280px; height: 100vh;
+    background: var(--surface); border-right: 1px solid var(--overlay);
+    padding: 24px 20px; overflow-y: auto; font-size: 14px;
+  }
+  .sidebar h2 { font-size: 16px; color: var(--accent); margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--overlay); }
+  .sidebar a { display: block; color: var(--subtext); text-decoration: none; padding: 5px 0; transition: color 0.15s; }
+  .sidebar a:hover, .sidebar a.active { color: var(--text); }
+  .sidebar .toc-l2 { padding-left: 16px; font-size: 13px; }
+
+  .main { flex: 1; max-width: 960px; padding: 40px 48px 80px; }
+  .main h1 { font-size: 28px; color: var(--accent); margin-bottom: 4px; }
+  .main .meta { color: var(--subtext); font-size: 14px; margin-bottom: 32px; }
+  .main h2 { font-size: 22px; color: var(--mauve); margin: 48px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--overlay); }
+  .main h3 { font-size: 18px; color: var(--green); margin: 28px 0 12px; }
+  .main h4 { font-size: 15px; color: var(--peach); margin: 20px 0 8px; }
+  .main p { margin-bottom: 14px; }
+  .main ul, .main ol { margin: 0 0 16px 24px; }
+  .main li { margin-bottom: 8px; }
+  .main strong { color: var(--peach); }
+  .main code {
+    background: var(--overlay); color: var(--peach); padding: 2px 6px; border-radius: 4px; font-size: 13px;
+  }
+
+  /* API 函数卡片 */
+  .fn-card {
+    background: var(--surface); border-radius: 10px; padding: 20px 24px; margin: 16px 0;
+    border-left: 3px solid var(--accent);
+  }
+  .fn-card h4 { margin-top: 0; font-size: 18px; }
+  .fn-card .sig {
+    background: var(--overlay); padding: 8px 14px; border-radius: 6px; font-family: "Fira Code", "Cascadia Code", monospace;
+    font-size: 13px; margin: 10px 0; overflow-x: auto;
+  }
+
+  /* 信息框 */
+  .infobox {
+    background: var(--surface); border-left: 3px solid var(--accent);
+    padding: 16px 20px; margin: 20px 0; border-radius: 0 8px 8px 0;
+  }
+  .infobox.warn { border-left-color: var(--yellow); }
+  .infobox.tip { border-left-color: var(--green); }
+  .infobox.danger { border-left-color: var(--red); }
+
+  /* 表格 */
+  .tbl-wrapper { overflow-x: auto; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { background: var(--overlay); color: var(--accent); text-align: left; padding: 10px 14px; font-weight: 600; }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--overlay); vertical-align: top; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* SVG 流程图容器 */
+  .diagram-box {
+    background: var(--surface); border-radius: 10px; padding: 20px; margin: 20px 0;
+    text-align: center; overflow-x: auto;
+  }
+
+  .badge {
+    display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;
+  }
+  .badge-accent { background: rgba(137,180,250,0.15); color: var(--accent); }
+  .badge-green { background: rgba(166,227,161,0.15); color: var(--green); }
+  .badge-red { background: rgba(243,139,168,0.15); color: var(--red); }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { padding: 24px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <h2>📑 目录</h2>
+  <a href="#overview">概述</a>
+  <a href="#why">为什么需要动态工作流</a>
+  <a href="#architecture">架构：JS 执行框架</a>
+  <div class="toc-l2"><a href="#fn-agent">agent()</a></div>
+  <div class="toc-l2"><a href="#fn-parallel">parallel()</a></div>
+  <div class="toc-l2"><a href="#fn-pipeline">pipeline()</a></div>
+  <a href="#patterns">六大工作流模式</a>
+  <div class="toc-l2"><a href="#pt-classify">1. 分类-执行</a></div>
+  <div class="toc-l2"><a href="#pt-fanout">2. 扇出-综合</a></div>
+  <div class="toc-l2"><a href="#pt-adversarial">3. 对抗验证</a></div>
+  <div class="toc-l2"><a href="#pt-generate">4. 生成-过滤</a></div>
+  <div class="toc-l2"><a href="#pt-tournament">5. 锦标赛</a></div>
+  <div class="toc-l2"><a href="#pt-loop">6. 循环至完成</a></div>
+  <a href="#usecases">实战用例</a>
+  <a href="#antipatterns">何时不用</a>
+  <a href="#tips">实操建议</a>
+  <a href="#takeaways">核心启示</a>
+</nav>
+
+<main class="main">
+
+<h1 id="overview">为每个任务定制执行框架：Claude Code 动态工作流</h1>
+<p class="meta">
+  来源：<a href="https://claude.com/blog/a-harness-for-every-task-dynamic-workflows-in-claude-code" style="color:var(--accent)">Anthropic 官方博客</a>
+  &nbsp;|&nbsp; 作者：Thariq Shihipar &amp; Sid Bidasaria
+  &nbsp;|&nbsp; 发布：2026-06-02 &nbsp;|&nbsp; 报告生成：2026-06-05
+</p>
+
+<div class="infobox">
+  <strong>一句话总结：</strong>Claude Code 的动态工作流让 AI <strong>自行编写并编排多 Agent 执行框架</strong>——针对每个任务动态生成定制化的 JS 脚本，调度多个子 Agent 并行或流水线协作，突破单上下文窗口的限制。
+</div>
+
+<!-- ===== WHY ===== -->
+<h2 id="why">为什么需要动态工作流</h2>
+
+<p>单上下文窗口模式在大多数编码任务中表现良好，但在面对<strong>复杂任务</strong>时会暴露三种失效模式：</p>
+
+<div class="tbl-wrapper">
+<table>
+<thead><tr><th style="width:28%">失效模式</th><th style="width:35%">表现</th><th style="width:37%">根因</th></tr></thead>
+<tbody>
+<tr>
+  <td><span class="badge badge-red">1. Agent 懒惰</span></td>
+  <td>完成部分进度后自行停止，声称"已完成"</td>
+  <td>模型倾向于"够好就行"而非彻底完成</td>
+</tr>
+<tr>
+  <td><span class="badge badge-red">2. 自我偏好偏见</span></td>
+  <td>被要求验证自身结果时，倾向于认可自己的输出</td>
+  <td>同一上下文中的模型缺乏真正独立的审查视角</td>
+</tr>
+<tr>
+  <td><span class="badge badge-red">3. 目标漂移</span></td>
+  <td>经过多轮交互后逐渐偏离原始目标</td>
+  <td>长对话中上下文衰减和信息过载</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="infobox">
+  <strong>核心洞察：</strong>这三种失效的共性根源是<strong>同一个上下文窗口承载了过多职责</strong>——既要理解任务、又要执行、还要自我审查。动态工作流通过<strong>职责分离</strong>来解决：让不同 Agent 各司其职，每个只关注自己的子任务。
+</div>
+
+<!-- ===== 架构 ===== -->
+<h2 id="architecture">架构：动态生成的 JS 执行框架</h2>
+
+<p>Claude 不是被固定配置驱动，而是<strong>动态编写一个 JavaScript 文件</strong>，该文件负责生成和协调多个子 Agent。每个子 Agent 拥有独立的上下文窗口、可选的独立模型和隔离的 Git worktree。</p>
+
+<div class="diagram-box">
+<svg viewBox="0 0 800 320" width="100%" style="max-width:800px">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#89b4fa"/></marker>
+    <filter id="shadow" x="-5%" y="-5%" width="115%" height="115%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.3"/></filter>
+  </defs>
+  <!-- User -->
+  <rect x="20" y="130" width="100" height="40" rx="8" fill="rgba(249,226,175,0.12)" stroke="var(--yellow)" stroke-width="1.5"/>
+  <text x="70" y="155" text-anchor="middle" fill="var(--yellow)" font-size="14">用户任务</text>
+  <!-- Harness -->
+  <rect x="180" y="100" width="180" height="100" rx="10" fill="rgba(137,180,250,0.1)" stroke="var(--accent)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="270" y="128" text-anchor="middle" fill="var(--accent)" font-size="14" font-weight="bold">动态 JS 执行框架</text>
+  <text x="270" y="148" text-anchor="middle" fill="var(--subtext)" font-size="11">agent() / parallel() / pipeline()</text>
+  <text x="270" y="168" text-anchor="middle" fill="var(--subtext)" font-size="11">模型选择 · Token 预算 · 上下文隔离</text>
+  <!-- Arrows from user to harness -->
+  <line x1="120" y1="150" x2="178" y2="150" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <!-- Subagents -->
+  <rect x="440" y="60" width="150" height="50" rx="6" fill="rgba(166,227,161,0.08)" stroke="var(--green)" stroke-width="1"/>
+  <text x="515" y="82" text-anchor="middle" fill="var(--green)" font-size="12">子 Agent A (分类)</text>
+  <text x="515" y="99" text-anchor="middle" fill="var(--subtext)" font-size="10">独立上下文 · 独立 worktree</text>
+  <rect x="440" y="130" width="150" height="50" rx="6" fill="rgba(166,227,161,0.08)" stroke="var(--green)" stroke-width="1"/>
+  <text x="515" y="152" text-anchor="middle" fill="var(--green)" font-size="12">子 Agent B (执行)</text>
+  <text x="515" y="169" text-anchor="middle" fill="var(--subtext)" font-size="10">独立上下文 · 独立 worktree</text>
+  <rect x="440" y="200" width="150" height="50" rx="6" fill="rgba(166,227,161,0.08)" stroke="var(--green)" stroke-width="1"/>
+  <text x="515" y="222" text-anchor="middle" fill="var(--green)" font-size="12">子 Agent C (验证)</text>
+  <text x="515" y="239" text-anchor="middle" fill="var(--subtext)" font-size="10">独立上下文 · 独立 worktree</text>
+  <!-- Arrows from harness to subagents -->
+  <line x1="360" y1="138" x2="438" y2="85" stroke="var(--accent)" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="360" y1="150" x2="438" y2="155" stroke="var(--accent)" stroke-width="1" marker-end="url(#arrow)"/>
+  <line x1="360" y1="162" x2="438" y2="225" stroke="var(--accent)" stroke-width="1" marker-end="url(#arrow)"/>
+  <!-- Synthesis result -->
+  <rect x="640" y="130" width="130" height="40" rx="8" fill="rgba(203,166,247,0.12)" stroke="var(--mauve)" stroke-width="1.5"/>
+  <text x="705" y="155" text-anchor="middle" fill="var(--mauve)" font-size="13">综合结果</text>
+  <line x1="590" y1="155" x2="638" y2="150" stroke="var(--accent)" stroke-width="1" marker-end="url(#arrow)"/>
+</svg>
+</div>
+
+<h3>三大核心 API</h3>
+
+<div class="fn-card" id="fn-agent">
+  <h4><code>agent(prompt, options)</code> — 单个子 Agent</h4>
+  <div class="sig">agent({ prompt: "分析这个文件", model: "sonnet", tokenBudget: "20k" })</div>
+  <p>创建一个子 Agent，拥有<strong>独立上下文窗口</strong>、可指定模型（Haiku/Sonnet/Opus）、Token 预算，可选独立 worktree 隔离文件变更。</p>
+</div>
+
+<div class="fn-card" id="fn-parallel">
+  <h4><code>parallel(tasks)</code> — 并行扇出</h4>
+  <div class="sig">parallel([taskA, taskB, taskC])</div>
+  <p>同时启动多个子 Agent，互不依赖。全部完成后聚合结果。适用于<strong>审查、搜索、多视角分析</strong>等可独立拆分的任务。</p>
+</div>
+
+<div class="fn-card" id="fn-pipeline">
+  <h4><code>pipeline(stages)</code> — 流水线串联</h4>
+  <div class="sig">pipeline([stage1, stage2, stage3])</div>
+  <p>按顺序执行阶段，每个阶段的输出流入下一阶段。适用于<strong>生成→审查→修订</strong>等有依赖关系的多步骤流程。</p>
+</div>
+
+<!-- ===== SIX PATTERNS ===== -->
+<h2 id="patterns">六大工作流模式</h2>
+<p>这些模式可<strong>自由组合</strong>，形成复杂的工作流编排：</p>
+
+<h3 id="pt-classify">1. 分类-执行 <span class="badge badge-accent">Classify-and-Act</span></h3>
+<p>先用一个廉价的分类 Agent 判断任务类型，再路由到对应专业的执行 Agent。</p>
+<div class="diagram-box">
+<svg viewBox="0 0 620 120" width="100%" style="max-width:620px">
+  <rect x="10" y="40" width="80" height="40" rx="6" fill="rgba(249,226,175,0.1)" stroke="var(--yellow)" stroke-width="1"/>
+  <text x="50" y="65" text-anchor="middle" fill="var(--yellow)" font-size="12">输入任务</text>
+  <rect x="150" y="30" width="100" height="60" rx="8" fill="rgba(137,180,250,0.1)" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="200" y="52" text-anchor="middle" fill="var(--accent)" font-size="12">分类 Agent</text>
+  <text x="200" y="72" text-anchor="middle" fill="var(--subtext)" font-size="10">Haiku / 低成本</text>
+  <line x1="90" y1="60" x2="148" y2="60" stroke="var(--accent)" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="310" y="10" width="90" height="35" rx="5" fill="rgba(166,227,161,0.08)" stroke="var(--green)" stroke-width="1"/>
+  <text x="355" y="33" text-anchor="middle" fill="var(--green)" font-size="11">Bug 修复 Agent</text>
+  <rect x="310" y="55" width="90" height="35" rx="5" fill="rgba(166,227,161,0.08)" stroke="var(--green)" stroke-width="1"/>
+  <text x="355" y="78" text-anchor="middle" fill="var(--green)" font-size="11">功能开发 Agent</text>
+  <rect x="310" y="100" width="90" height="35" rx="5" fill="rgba(166,227,161,0.08)" stroke="var(--green)" stroke-width="1"/>
+  <text x="355" y="123" text-anchor="middle" fill="var(--green)" font-size="11">问题排查 Agent</text>
+  <line x1="250" y1="45" x2="308" y2="27" stroke="var(--accent)" stroke-width="0.8" marker-end="url(#arrow)"/>
+  <line x1="250" y1="60" x2="308" y2="72" stroke="var(--accent)" stroke-width="0.8" marker-end="url(#arrow)"/>
+  <line x1="250" y1="75" x2="308" y2="117" stroke="var(--accent)" stroke-width="0.8" marker-end="url(#arrow)"/>
+  <rect x="450" y="40" width="80" height="40" rx="6" fill="rgba(203,166,247,0.1)" stroke="var(--mauve)" stroke-width="1"/>
+  <text x="490" y="65" text-anchor="middle" fill="var(--mauve)" font-size="12">聚合结果</text>
+  <line x1="400" y1="27" x2="448" y2="55" stroke="var(--accent)" stroke-width="0.8"/>
+  <line x1="400" y1="72" x2="448" y2="58" stroke="var(--accent)" stroke-width="0.8"/>
+  <line x1="400" y1="117" x2="448" y2="65" stroke="var(--accent)" stroke-width="0.8"/>
+</svg>
+</div>
+
+<h3 id="pt-fanout">2. 扇出-综合 <span class="badge badge-accent">Fan-out-and-Synthesize</span></h3>
+<p>将大任务拆分为互不依赖的子任务，并行分配给多个 Agent，最后汇总综合结果。这是<strong>最常用</strong>的模式。</p>
+<div class="diagram-box">
+<svg viewBox="0 0 620 150" width="100%" style="max-width:620px">
+  <rect x="10" y="55" width="80" height="40" rx="6" fill="rgba(249,226,175,0.1)" stroke="var(--yellow)" stroke-width="1"/>
+  <text x="50" y="80" text-anchor="middle" fill="var(--yellow)" font-size="12">复杂任务</text>
+  <rect x="160" y="10" width="120" height="35" rx="5" fill="rgba(166,227,161,0.08)" stroke="var(--green)" stroke-width="1"/>
+  <text x="220" y="33" text-anchor="middle" fill="var(--green)" font-size="11">Agent 1: 前端分析</text>
+  <rect x="160" y="55" width="120" height="35" rx="5" fill="rgba(166,227,161,0.08)" stroke="var(--green)" stroke-width="1"/>
+  <text x="220" y="78" text-anchor="middle" fill="var(--green)" font-size="11">Agent 2: 后端分析</text>
+  <rect x="160" y="100" width="120" height="35" rx="5" fill="rgba(166,227,161,0.08)" stroke="var(--green)" stroke-width="1"/>
+  <text x="220" y="123" text-anchor="middle" fill="var(--green)" font-size="11">Agent 3: 数据库分析</text>
+  <line x1="90" y1="60" x2="158" y2="27" stroke="var(--accent)" stroke-width="0.8" marker-end="url(#arrow)"/>
+  <line x1="90" y1="70" x2="158" y2="72" stroke="var(--accent)" stroke-width="0.8" marker-end="url(#arrow)"/>
+  <line x1="90" y1="85" x2="158" y2="117" stroke="var(--accent)" stroke-width="0.8" marker-end="url(#arrow)"/>
+  <rect x="340" y="55" width="100" height="40" rx="6" fill="rgba(203,166,247,0.1)" stroke="var(--mauve)" stroke-width="1"/>
+  <text x="390" y="80" text-anchor="middle" fill="var(--mauve)" font-size="12">综合 Agent</text>
+  <line x1="280" y1="27" x2="338" y2="68" stroke="var(--accent)" stroke-width="0.8"/>
+  <line x1="280" y1="72" x2="338" y2="73" stroke="var(--accent)" stroke-width="0.8"/>
+  <line x1="280" y1="117" x2="338" y2="78" stroke="var(--accent)" stroke-width="0.8"/>
+  <rect x="490" y="55" width="80" height="40" rx="6" fill="rgba(249,226,175,0.1)" stroke="var(--yellow)" stroke-width="1"/>
+  <text x="530" y="80" text-anchor="middle" fill="var(--yellow)" font-size="12">整合输出</text>
+  <line x1="440" y1="75" x2="488" y2="75" stroke="var(--accent)" stroke-width="0.8" marker-end="url(#arrow)"/>
+</svg>
+</div>
+
+<h3 id="pt-adversarial">3. 对抗验证 <span class="badge badge-accent">Adversarial Verification</span></h3>
+<p>一个 Agent 产出后，由<strong>另一个独立 Agent</strong> 专门找漏洞、挑错。两个 Agent 互相不了解对方的推理过程，实现了真正的独立审查——直接对抗<strong>自我偏好偏见</strong>。</p>
+
+<h3 id="pt-generate">4. 生成-过滤 <span class="badge badge-accent">Generate-and-Filter</span></h3>
+<p>先用多个 Agent 做头脑风暴自由生成，再用评分 Agent 按标准筛选。适合<strong>创意发散</strong>场景（命名、设计方向、架构方案）。</p>
+
+<h3 id="pt-tournament">5. 锦标赛 <span class="badge badge-accent">Tournament</span></h3>
+<p>多个 Agent 两两竞争，优胜者晋级下一轮，直到选出最佳方案。适合<strong>需要多轮比较</strong>的决策场景。</p>
+
+<h3 id="pt-loop">6. 循环至完成 <span class="badge badge-accent">Loop Until Done</span></h3>
+<p>Agent 反复迭代直到满足停止条件。配合 <code>/loop</code> 命令实现持续执行，适合<strong>大规模迁移、持续监控</strong>等需要反复推进的任务。</p>
+
+<!-- ===== 实战用例 ===== -->
+<h2 id="usecases">实战用例矩阵</h2>
+
+<div class="tbl-wrapper">
+<table>
+<thead><tr><th>场景</th><th>适用模式</th><th>解决了什么问题</th></tr></thead>
+<tbody>
+<tr>
+  <td><strong>代码迁移 / 重构</strong><br><span style="font-size:12px;color:var(--subtext)">例：Bun 的 Zig→Rust 改写</span></td>
+  <td>分类-执行 + 扇出-综合</td>
+  <td>大范围改动无法在单一上下文中完成，需要分模块并行推进</td>
+</tr>
+<tr>
+  <td><strong>深度研究</strong><br><span style="font-size:12px;color:var(--subtext)"><code>/deep-research</code></span></td>
+  <td>扇出-综合</td>
+  <td>多源信息采集后综合，每个源由一个独立 Agent 负责</td>
+</tr>
+<tr>
+  <td><strong>事实检查 / 深度验证</strong></td>
+  <td>对抗验证</td>
+  <td>独立审查 Agent 不受原 Agent 推理过程影响</td>
+</tr>
+<tr>
+  <td><strong>大规模排序分类</strong><br><span style="font-size:12px;color:var(--subtext)">例：1000+ 客服工单分类</span></td>
+  <td>分类-执行 + 扇出-综合</td>
+  <td>分类 → 分批评分 → 汇总排序，避免长列表导致的上下文溢出</td>
+</tr>
+<tr>
+  <td><strong>内存/规则遵守</strong><br><span style="font-size:12px;color:var(--subtext)">从会话中挖掘 CLAUDE.md 规则</span></td>
+  <td>生成-过滤</td>
+  <td>多 Agent 各自提取规则 → 去重合并 → 精炼</td>
+</tr>
+<tr>
+  <td><strong>根因调查</strong></td>
+  <td>循环至完成</td>
+  <td>持续收集线索直到找到根因，而非一次性分析浅层症状</td>
+</tr>
+<tr>
+  <td><strong>大规模分类处置</strong></td>
+  <td>分类-执行</td>
+  <td>低成本分类 Agent 先分流，高成本 Agent 只处理有价值的任务</td>
+</tr>
+<tr>
+  <td><strong>模型/智能路由</strong></td>
+  <td>分类-执行</td>
+  <td>简单任务路由给 Haiku，复杂任务路由给 Opus——按需消费</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<!-- ===== 何时不用 ===== -->
+<h2 id="antipatterns">何时不应该用动态工作流</h2>
+
+<div class="infobox danger">
+  <strong>重要警告：</strong>动态工作流的 Token 消耗<strong>显著高于</strong>单 Agent 模式。每个子 Agent 都有自己的上下文窗口，多 Agent 之间的协调也需要额外 Token。对于常规编码任务（单个 Bug 修复、简单功能添加），动态工作流是<strong>杀鸡用牛刀</strong>。
+</div>
+
+<div class="tbl-wrapper">
+<table>
+<thead><tr><th style="width:50%">✅ 适合动态工作流</th><th style="width:50%">❌ 适合单 Agent</th></tr></thead>
+<tbody>
+<tr>
+  <td>需要独立审查视角的任务</td><td>单文件小修改</td>
+</tr>
+<tr>
+  <td>跨越多个文件/模块的大范围改动</td><td>简单功能添加</td>
+</tr>
+<tr>
+  <td>需要并行处理的批量任务</td><td>代码片段解释</td>
+</tr>
+<tr>
+  <td>多步骤有依赖关系的复杂流程</td><td>配置调整</td>
+</tr>
+<tr>
+  <td>需要多轮迭代直到满足条件的任务</td><td>回答技术问题</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<!-- ===== 实操建议 ===== -->
+<h2 id="tips">实操建议</h2>
+
+<div class="tbl-wrapper">
+<table>
+<thead><tr><th style="width:18%">建议</th><th style="width:45%">说明</th><th style="width:37%">示例</th></tr></thead>
+<tbody>
+<tr>
+  <td><strong>详细 Prompt</strong></td>
+  <td>给子 Agent 的 prompt 越具体越好——它们无法看到你与主 Agent 的对话历史</td>
+  <td>不只是 "检查代码"，而是 "检查 <code>auth.js</code> 中 JWT 过期逻辑的边界情况"</td>
+</tr>
+<tr>
+  <td><strong>配合 /goal 和 /loop</strong></td>
+  <td>用 <code>/goal</code> 定义长期目标，<code>/loop</code> 驱动迭代执行</td>
+  <td><code>/goal 将整个项目迁移到 TypeScript</code>，然后让 Agent 循环推进</td>
+</tr>
+<tr>
+  <td><strong>设置 Token 预算</strong></td>
+  <td>为子 Agent 限定 Token 上限，避免成本失控</td>
+  <td><code>"用 10k token 分析这个模块"</code></td>
+</tr>
+<tr>
+  <td><strong>保存工作流</strong></td>
+  <td>用 <code>s</code> 命令保存有效的工作流，下次复用</td>
+  <td>保存到 <code>~/.claude/workflows</code> 目录</td>
+</tr>
+<tr>
+  <td><strong>共享为 Skill</strong></td>
+  <td>将成熟的工作流封装为 Skill，团队内分发</td>
+  <td><code>migrate-ts.skill</code> — 让任何成员直接运行团队验证过的迁移流程</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="infobox tip">
+  <strong>模型路由的经济学：</strong>动态工作流的一大价值在于<strong>智能模型选择</strong>——分类/预处理用廉价的 Haiku，核心分析用 Sonnet，需要极高压准确度的验证环节才用 Opus。一个设计良好的工作流可将总成本控制在纯 Opus 方案的 20-30%。
+</div>
+
+<!-- ===== 核心启示 ===== -->
+<h2 id="takeaways">核心启示</h2>
+
+<div class="infobox">
+  <p style="margin-bottom:6px"><strong>与 Skills 文章的内在联系：</strong></p>
+  <p>动态工作流是 <a href="https://claude.com/blog/lessons-from-building-claude-code-how-we-use-skills" style="color:var(--accent)">Skills 系统</a>的自然延伸——Skills 解决了<strong>"教 Claude 知道什么"</strong>，动态工作流解决了<strong>"教 Claude 怎么做"</strong>。两者结合形成完整的能力栈：Skills 提供领域知识，工作流提供执行编排。</p>
+</div>
+
+<h3>五个关键结论</h3>
+<ol>
+  <li><strong>上下文隔离是解决偏见的关键</strong>——让一个 Agent 独立审查另一个 Agent 的输出，是对抗"自我偏好偏见"最有效的手段。这本质上是一种<strong>结构化的同行评审</strong>。</li>
+  <li><strong>按需消费模型</strong>——不是所有任务都需要 Opus。动态工作流的核心价值之一就是让 Haiku 处理简单环节，Opus 只用于关键判断。这既是成本优化，也是性能优化。</li>
+  <li><strong>工作流是可以积累的资产</strong>——一次调试出的工作流可以保存、复用、共享为 Skill。团队的工作流积累就是组织的 AI 执行能力护城河。</li>
+  <li><strong>动态 > 静态编排</strong>——传统的固定流水线（CI/CD pipeline）无法适应多变任务；让 AI 根据任务特征自行设计执行框架，是更灵活的方式。</li>
+  <li><strong>别滥用</strong>——对于 90% 的日常编码任务，简单的单 Agent 模式仍然是最优解。动态工作流是为那 10% 的复杂任务准备的"重武器"。</li>
+</ol>
+
+<p style="margin-top:48px; color:var(--subtext); font-size:13px; border-top:1px solid var(--overlay); padding-top:16px;">
+  报告完毕。原始文章：
+  <a href="https://claude.com/blog/a-harness-for-every-task-dynamic-workflows-in-claude-code" style="color:var(--accent)">A harness for every task: dynamic workflows in Claude Code</a>
+  &nbsp;|&nbsp; 作者 Thariq Shihipar &amp; Sid Bidasaria (Anthropic) &nbsp;|&nbsp; 2026-06-02
+</p>
+
+</main>
+</body>
+</html>

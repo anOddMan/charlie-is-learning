@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECC 项目结构化分析报告</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e8e8e8;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 { font-size: 2.5em; color: #00d9ff; margin-bottom: 10px; }
+        .header .subtitle { color: #a0a0a0; font-size: 1.1em; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+        }
+        .stat-card {
+            background: rgba(0,217,255,0.1);
+            border: 1px solid rgba(0,217,255,0.3);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .stat-card .number { font-size: 2em; color: #00d9ff; font-weight: bold; }
+        .stat-card .label { color: #a0a0a0; margin-top: 5px; }
+
+        .section {
+            background: rgba(255,255,255,0.03);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .section h2 {
+            color: #ff6b6b;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(255,107,107,0.3);
+        }
+        .section h3 { color: #4ecdc4; margin: 15px 0 10px; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        th { background: rgba(0,217,255,0.1); color: #00d9ff; }
+        tr:hover { background: rgba(255,255,255,0.05); }
+
+        .component-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .component-card {
+            background: rgba(78,205,196,0.1);
+            border: 1px solid rgba(78,205,196,0.2);
+            padding: 20px;
+            border-radius: 12px;
+        }
+        .component-card h4 { color: #4ecdc4; margin-bottom: 10px; }
+        .component-card ul { list-style: none; padding-left: 0; }
+        .component-card li {
+            padding: 5px 0;
+            color: #c0c0c0;
+            position: relative;
+            padding-left: 15px;
+        }
+        .component-card li::before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: #4ecdc4;
+        }
+
+        .highlight-box {
+            background: rgba(255,107,107,0.1);
+            border: 1px solid rgba(255,107,107,0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        .highlight-box .title { color: #ff6b6b; font-weight: bold; margin-bottom: 8px; }
+
+        .code-block {
+            background: #0d1117;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            margin: 10px 0;
+            color: #c9d1d9;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin: 3px;
+        }
+        .tag-blue { background: rgba(0,217,255,0.2); color: #00d9ff; }
+        .tag-green { background: rgba(78,205,196,0.2); color: #4ecdc4; }
+        .tag-red { background: rgba(255,107,107,0.2); color: #ff6b6b; }
+        .tag-yellow { background: rgba(255,215,0,0.2); color: #ffd700; }
+
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-bottom: none;
+        }
+        .tab.active {
+            background: rgba(0,217,255,0.1);
+            border-color: rgba(0,217,255,0.3);
+            color: #00d9ff;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #a0a0a0;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🚀 Everything Claude Code (ECC)</h1>
+            <p class="subtitle">Anthropic 黑客马拉松获胜者 | Claude Code 完整配置系统</p>
+            <p style="margin-top: 15px; color: #a0a0a0;">
+                GitHub: <a href="https://github.com/affaan-m/ECC" style="color: #00d9ff;">affaan-m/ECC</a>
+            </p>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="number">140K+</div>
+                <div class="label">⭐ Stars</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">21K+</div>
+                <div class="label">🔀 Forks</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">170+</div>
+                <div class="label">👥 贡献者</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">60</div>
+                <div class="label">🤖 代理</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">232</div>
+                <div class="label">📚 技能</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">75</div>
+                <div class="label">⚡ 命令</div>
+            </div>
+        </div>
+
+        <!-- 项目概述 -->
+        <section class="section">
+            <h2>📋 项目概述</h2>
+            <p>ECC 是一个完整的 Claude Code 配置系统，不止是配置文件，而是包含技能体系、本能行为、记忆优化、持续学习、安全扫描和研究优先开发模式的整套系统。</p>
+            <div class="highlight-box">
+                <div class="title">⚠️ 重要定位</div>
+                <p>这是一个 Claude Code <strong>插件</strong>，可直接安装或手动复制组件。支持 Claude Code、Codex、Cursor、OpenCode、Gemini 及其他 AI 智能体框架。</p>
+            </div>
+            <h3>核心价值</h3>
+            <ul style="list-style: disc; padding-left: 20px; color: #c0c0c0;">
+                <li>10+ 个月高强度日常使用与真实产品开发迭代打磨</li>
+                <li>生产环境就绪的智能体、技能模块、钩子、规则、MCP 配置</li>
+                <li>兼容传统命令的适配层</li>
+                <li>跨平台支持 Windows、macOS、Linux</li>
+            </ul>
+        </section>
+
+        <!-- 目录结构 -->
+        <section class="section">
+            <h2>📁 核心目录结构</h2>
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('tab-agents')">agents/</div>
+                <div class="tab" onclick="switchTab('tab-skills')">skills/</div>
+                <div class="tab" onclick="switchTab('tab-commands')">commands/</div>
+                <div class="tab" onclick="switchTab('tab-rules')">rules/</div>
+                <div class="tab" onclick="switchTab('tab-hooks')">hooks/</div>
+                <div class="tab" onclick="switchTab('tab-other')">其他</div>
+            </div>
+
+            <div id="tab-agents" class="tab-content active">
+                <h3>agents/ — 36个专用子智能体</h3>
+                <p style="color: #a0a0a0; margin-bottom: 15px;">子代理以有限范围处理委托的任务，每个代理有特定的职责和工具集。</p>
+                <table>
+                    <tr><th>类别</th><th>代理列表</th></tr>
+                    <tr><td><span class="tag tag-blue">规划类</span></td><td>planner, architect, chief-of-staff</td></tr>
+                    <tr><td><span class="tag tag-green">审查类</span></td><td>code-reviewer, security-reviewer, cpp-reviewer, go-reviewer, python-reviewer, typescript-reviewer, java-reviewer, kotlin-reviewer, rust-reviewer, database-reviewer</td></tr>
+                    <tr><td><span class="tag tag-red">构建修复</span></td><td>build-error-resolver, cpp-build-resolver, go-build-resolver, java-build-resolver, kotlin-build-resolver, rust-build-resolver, pytorch-build-resolver</td></tr>
+                    <tr><td><span class="tag tag-yellow">测试/运维</span></td><td>e2e-runner, tdd-guide, refactor-cleaner, doc-updater, docs-lookup, loop-operator, harness-optimizer</td></tr>
+                </table>
+            </div>
+
+            <div id="tab-skills" class="tab-content">
+                <h3>skills/ — 232个工作流定义与领域知识库</h3>
+                <div class="component-grid">
+                    <div class="component-card">
+                        <h4>编码标准</h4>
+                        <ul>
+                            <li>coding-standards/ — 各语言最佳实践</li>
+                            <li>golang-patterns/ — Go 惯用写法</li>
+                            <li>python-patterns/ — Python 最佳实践</li>
+                            <li>cpp-coding-standards/ — C++ Core Guidelines</li>
+                            <li>java-coding-standards/ — Java 编码规范</li>
+                        </ul>
+                    </div>
+                    <div class="component-card">
+                        <h4>框架技能</h4>
+                        <ul>
+                            <li>django-patterns/tdd/security/verification</li>
+                            <li>laravel-patterns/tdd/security/verification</li>
+                            <li>springboot-patterns/tdd/security/verification</li>
+                            <li>quarkus-patterns/tdd/security/verification</li>
+                            <li>nestjs-patterns</li>
+                        </ul>
+                    </div>
+                    <div class="component-card">
+                        <h4>前端/内容</h4>
+                        <ul>
+                            <li>frontend-patterns/ — React/Next.js</li>
+                            <li>frontend-slides/ — HTML 幻灯片</li>
+                            <li>article-writing/ — 长文本写作</li>
+                            <li>content-engine/ — 社交内容创作</li>
+                            <li>videodb/ — 音视频处理</li>
+                        </ul>
+                    </div>
+                    <div class="component-card">
+                        <h4>开发流程</h4>
+                        <ul>
+                            <li>tdd-workflow/ — 测试驱动开发</li>
+                            <li>continuous-learning/v2/ — 学习系统</li>
+                            <li>iterative-retrieval/ — 渐进式上下文</li>
+                            <li>strategic-compact/ — 上下文精简</li>
+                            <li>search-first/ — 先调研再编码</li>
+                        </ul>
+                    </div>
+                    <div class="component-card">
+                        <h4>安全/验证</h4>
+                        <ul>
+                            <li>security-review/ — 安全检查清单</li>
+                            <li>security-scan/ — AgentShield 集成</li>
+                            <li>eval-harness/ — 验证循环评估</li>
+                            <li>verification-loop/ — 持续验证机制</li>
+                        </ul>
+                    </div>
+                    <div class="component-card">
+                        <h4>DevOps/部署</h4>
+                        <ul>
+                            <li>deployment-patterns/ — CI/CD</li>
+                            <li>docker-patterns/ — Docker 最佳实践</li>
+                            <li>database-migrations/ — 迁移模式</li>
+                            <li>api-design/ — REST API 设计</li>
+                            <li>e2e-testing/ — Playwright E2E</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-commands" class="tab-content">
+                <h3>commands/ — 75个斜杠命令</h3>
+                <table>
+                    <tr><th>命令</th><th>功能</th><th>状态</th></tr>
+                    <tr><td>/plan</td><td>实现规划</td><td><span class="tag tag-green">维护中</span></td></tr>
+                    <tr><td>/code-review</td><td>代码质量审查</td><td><span class="tag tag-green">维护中</span></td></tr>
+                    <tr><td>/build-fix</td><td>修复构建错误</td><td><span class="tag tag-green">维护中</span></td></tr>
+                    <tr><td>/quality-gate</td><td>验证门禁</td><td><span class="tag tag-green">维护中</span></td></tr>
+                    <tr><td>/learn, /learn-eval</td><td>从会话提取模式</td><td><span class="tag tag-green">维护中</span></td></tr>
+                    <tr><td>/instinct-* 系列</td><td>直觉管理(status/import/export)</td><td><span class="tag tag-green">维护中</span></td></tr>
+                    <tr><td>/multi-* 系列</td><td>多智能体编排(plan/execute/backend/frontend/workflow)</td><td><span class="tag tag-yellow">需额外配置</span></td></tr>
+                    <tr><td>/evolve, /prune</td><td>本能聚类/清理</td><td><span class="tag tag-green">维护中</span></td></tr>
+                </table>
+                <div class="highlight-box">
+                    <div class="title">📁 legacy-command-shims/</div>
+                    <p>已退役命令的归档：/tdd、/e2e、/eval、/verify、/orchestrate — 优先使用对应的 skills</p>
+                </div>
+            </div>
+
+            <div id="tab-rules" class="tab-content">
+                <h3>rules/ — 必须遵守的规范</h3>
+                <p style="color: #a0a0a0; margin-bottom: 15px;">需复制到 ~/.claude/rules/ 目录</p>
+                <table>
+                    <tr><th>目录</th><th>内容</th></tr>
+                    <tr><td>common/</td><td>通用原则：coding-style, git-workflow, testing, performance, patterns, hooks, agents, security</td></tr>
+                    <tr><td>typescript/</td><td>TS/JS 特定规范</td></tr>
+                    <tr><td>python/</td><td>Python 特定规范</td></tr>
+                    <tr><td>golang/</td><td>Go 特定规范</td></tr>
+                    <tr><td>swift/</td><td>Swift 特定规范</td></tr>
+                    <tr><td>php/</td><td>PHP 特定规范</td></tr>
+                </table>
+            </div>
+
+            <div id="tab-hooks" class="tab-content">
+                <h3>hooks/ — 基于触发器的自动化逻辑</h3>
+                <div class="code-block">
+{
+  "hooks": {
+    "PreToolUse": [...],
+    "PostToolUse": [...],
+    "Stop": [...]
+  }
+}
+                </div>
+                <table>
+                    <tr><th>钩子</th><th>功能</th></tr>
+                    <tr><td>memory-persistence/</td><td>会话生命周期钩子 — 自动跨会话保存/加载上下文</td></tr>
+                    <tr><td>strategic-compact/</td><td>上下文精简建议</td></tr>
+                    <tr><td>session-start.js</td><td>会话启动时加载上下文</td></tr>
+                    <tr><td>session-end.js</td><td>会话结束时保存状态</td></tr>
+                    <tr><td>pre-compact.js</td><td>上下文精简前状态保存</td></tr>
+                    <tr><td>evaluate-session.js</td><td>从会话中提取模式</td></tr>
+                </table>
+            </div>
+
+            <div id="tab-other" class="tab-content">
+                <h3>其他重要目录</h3>
+                <div class="component-grid">
+                    <div class="component-card">
+                        <h4>contexts/</h4>
+                        <ul>
+                            <li>dev.md — 开发模式上下文</li>
+                            <li>review.md — 代码审查模式</li>
+                            <li>research.md — 研究探索模式</li>
+                        </ul>
+                    </div>
+                    <div class="component-card">
+                        <h4>examples/</h4>
+                        <ul>
+                            <li>CLAUDE.md 示例</li>
+                            <li>saas-nextjs 示例</li>
+                            <li>go-microservice 示例</li>
+                            <li>django-api 示例</li>
+                            <li>laravel-api/rust-api 示例</li>
+                        </ul>
+                    </div>
+                    <div class="component-card">
+                        <h4>mcp-configs/</h4>
+                        <ul>
+                            <li>mcp-servers.json</li>
+                            <li>GitHub/Supabase/Vercel 配置</li>
+                            <li>Railway 等服务配置</li>
+                        </ul>
+                    </div>
+                    <div class="component-card">
+                        <h4>scripts/</h4>
+                        <ul>
+                            <li>lib/utils.js — 跨平台工具</li>
+                            <li>package-manager.js — 包管理器检测</li>
+                            <li>setup-package-manager.js</li>
+                        </ul>
+                    </div>
+                    <div class="component-card">
+                        <h4>tests/</h4>
+                        <ul>
+                            <li>lib/ — 工具库测试</li>
+                            <li>hooks/ — 钩子测试</li>
+                            <li>run-all.js — 全量测试</li>
+                        </ul>
+                    </div>
+                    <div class="component-card">
+                        <h4>ecc2/</h4>
+                        <ul>
+                            <li>Rust 控制层 (Alpha)</li>
+                            <li>dashboard/start/sessions</li>
+                            <li>status/stop/resume/daemon</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 安装方式 -->
+        <section class="section">
+            <h2>🔧 安装方式</h2>
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('install-plugin')">插件安装(推荐)</div>
+                <div class="tab" onclick="switchTab('install-manual')">手动安装</div>
+                <div class="tab" onclick="switchTab('install-rules')">规则安装</div>
+            </div>
+
+            <div id="install-plugin" class="tab-content active">
+                <h3>方式1：插件安装（最便捷）</h3>
+                <div class="code-block">
+# 添加市场
+/plugin marketplace add https://github.com/affaan-m/everything-claude-code
+
+# 安装插件
+/plugin install ecc@ecc
+
+# 查看可用命令
+/plugin list ecc@ecc
+                </div>
+                <div class="highlight-box">
+                    <div class="title">⚠️ 注意事项</div>
+                    <p>1. Claude Code 插件无法自动分发 rules，需手动复制</p>
+                    <p>2. 已通过插件安装后，不要再运行完整安装脚本，避免重复</p>
+                    <p>3. multi-* 命令需额外安装 ccg-workflow 运行时</p>
+                </div>
+            </div>
+
+            <div id="install-manual" class="tab-content">
+                <h3>方式2：手动安装</h3>
+                <div class="code-block">
+# 克隆仓库
+git clone https://github.com/affaan-m/everything-claude-code.git
+
+# 复制智能体
+cp everything-claude-code/agents/*.md ~/.claude/agents/
+
+# 复制规则
+mkdir -p ~/.claude/rules
+cp -r everything-claude-code/rules/common ~/.claude/rules/
+cp -r everything-claude-code/rules/typescript ~/.claude/rules/
+
+# 复制技能
+cp -r everything-claude-code/.agents/skills/* ~/.claude/skills/
+
+# 复制命令
+mkdir -p ~/.claude/commands
+cp everything-claude-code/commands/*.md ~/.claude/commands/
+                </div>
+            </div>
+
+            <div id="install-rules" class="tab-content">
+                <h3>规则安装（插件用户必做）</h3>
+                <div class="code-block">
+# 用户级规则（对所有项目生效）
+mkdir -p ~/.claude/rules
+cp -r rules/common ~/.claude/rules/
+cp -r rules/typescript ~/.claude/rules/  # 选择技术栈
+
+# 项目级规则（仅当前项目）
+mkdir -p .claude/rules
+cp -r rules/common .claude/rules/
+                </div>
+            </div>
+        </section>
+
+        <!-- 生态系统工具 -->
+        <section class="section">
+            <h2>🛠️ 生态系统工具</h2>
+            <div class="component-grid">
+                <div class="component-card">
+                    <h4>AgentShield — 安全审计</h4>
+                    <ul>
+                        <li>1282 项测试、98% 覆盖率</li>
+                        <li>102 条静态分析规则</li>
+                        <li>扫描 CLAUDE.md/settings.json/MCP/钩子</li>
+                        <li>密钥检测(14种)、权限审计</li>
+                        <li>--opus 红队/蓝队对抗推理</li>
+                    </ul>
+                    <div class="code-block" style="margin-top: 10px;">
+npx ecc-agentshield scan
+npx ecc-agentshield scan --fix
+npx ecc-agentshield scan --opus --stream
+                    </div>
+                </div>
+                <div class="component-card">
+                    <h4>技能创建器</h4>
+                    <ul>
+                        <li>选项A：本地分析 /skill-create</li>
+                        <li>选项B：GitHub App 高级功能</li>
+                        <li>从 git 历史生成 SKILL.md</li>
+                        <li>生成直觉集合供 learning-v2</li>
+                    </ul>
+                    <div class="code-block" style="margin-top: 10px;">
+/skill-create                    # 本地分析
+/skill-create --instincts        # 含直觉生成
+                    </div>
+                </div>
+                <div class="component-card">
+                    <h4>持续学习 v2</h4>
+                    <ul>
+                        <li>基于直觉的学习系统</li>
+                        <li>自动学习你的模式</li>
+                        <li>带置信度评分</li>
+                        <li>支持导入/导出分享</li>
+                    </ul>
+                    <div class="code-block" style="margin-top: 10px;">
+/instinct-status   # 查看学习直觉
+/instinct-import   # 导入直觉
+/instinct-export   # 导出分享
+/evolve            # 聚类为技能
+                    </div>
+                </div>
+                <div class="component-card">
+                    <h4>多智能体编排</h4>
+                    <ul>
+                        <li>需安装 ccg-workflow 运行时</li>
+                        <li>multi-plan — 任务拆解</li>
+                        <li>multi-execute — 工流编排</li>
+                        <li>multi-backend/frontend — 服务编排</li>
+                    </ul>
+                    <div class="code-block" style="margin-top: 10px;">
+npx ccg-workflow    # 初始化安装
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 关键概念 -->
+        <section class="section">
+            <h2>💡 关键概念</h2>
+            <table>
+                <tr><th>概念</th><th>定义</th><th>示例</th></tr>
+                <tr>
+                    <td><span class="tag tag-blue">代理 (Agent)</span></td>
+                    <td>以有限范围处理委托任务的子智能体</td>
+                    <td>code-reviewer, architect, tdd-guide</td>
+                </tr>
+                <tr>
+                    <td><span class="tag tag-green">技能 (Skill)</span></td>
+                    <td>由命令或代理调用的工作流定义</td>
+                    <td>tdd-workflow, security-review</td>
+                </tr>
+                <tr>
+                    <td><span class="tag tag-red">钩子 (Hook)</span></td>
+                    <td>在工具事件时触发的自动化逻辑</td>
+                    <td>PreToolUse, PostToolUse, Stop</td>
+                </tr>
+                <tr>
+                    <td><span class="tag tag-yellow">规则 (Rule)</span></td>
+                    <td>始终遵循的指南，分通用+语言特定</td>
+                    <td>common/testing.md, typescript/*.md</td>
+                </tr>
+                <tr>
+                    <td><span class="tag tag-blue">上下文 (Context)</span></td>
+                    <td>动态注入的系统提示</td>
+                    <td>dev.md, review.md, research.md</td>
+                </tr>
+            </table>
+        </section>
+
+        <!-- 配置要点 -->
+        <section class="section">
+            <h2>⚙️ 配置要点</h2>
+            <div class="highlight-box">
+                <div class="title">⚠️ 上下文窗口管理（关键！）</div>
+                <p>不要一次启用所有 MCP。经验法则：</p>
+                <ul style="list-style: disc; padding-left: 20px; margin-top: 10px;">
+                    <li>配置 20-30 个 MCP</li>
+                    <li>每个项目保持启用少于 10 个</li>
+                    <li>活动工具少于 80 个</li>
+                    <li>使用 disabledMcpServers 禁用未使用的</li>
+                </ul>
+            </div>
+            <h3>包管理器检测</h3>
+            <p style="color: #a0a0a0;">自动检测优先级：环境变量 → 项目配置 → package.json → 锁文件 → 全局配置</p>
+            <div class="code-block">
+export CLAUDE_PACKAGE_MANAGER=pnpm
+node scripts/setup-package-manager.js --global pnpm
+node scripts/setup-package-manager.js --detect
+/setup-pm    # Claude Code 内命令
+            </div>
+            <h3>钩子运行时控制</h3>
+            <div class="code-block">
+export ECC_HOOK_PROFILE=standard    # 严格度配置
+export ECC_DISABLED_HOOKS="pre:bash:tmux-reminder,post:edit:typecheck"
+            </div>
+            <h3>环境要求</h3>
+            <p style="color: #a0a0a0;">最低版本：Claude Code CLI <strong>v2.1.0+</strong>（插件系统钩子机制变更）</p>
+            <div class="code-block">
+claude --version    # 查看当前版本
+            </div>
+        </section>
+
+        <!-- 版本动态 -->
+        <section class="section">
+            <h2>📅 最新动态</h2>
+            <div style="background: rgba(0,217,255,0.05); padding: 20px; border-radius: 12px;">
+                <h3 style="color: #00d9ff;">v2.0.0-rc.1 (2026年4月)</h3>
+                <ul style="list-style: disc; padding-left: 20px; color: #c0c0c0; margin-top: 10px;">
+                    <li><strong>公共表面同步</strong> — 元数据、目录数量、插件清单与实际仓库一致</li>
+                    <li><strong>运营工作流扩展</strong> — brand-voice、social-graph-ranker、customer-billing-ops 等</li>
+                    <li><strong>媒体发布工具</strong> — manim-video、remotion-video-creation、社媒发布</li>
+                    <li><strong>框架扩展</strong> — nestjs-patterns、Codex/OpenCode 安装表面</li>
+                    <li><strong>ECC 2.0 Alpha</strong> — ecc2/ Rust 控制层，dashboard/daemon 命令</li>
+                    <li><strong>生态加固</strong> — AgentShield、ECC Tools 成本控制持续推进</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- 社区与贡献 -->
+        <section class="section">
+            <h2>🌍 社区与贡献</h2>
+            <h3>贡献方向（欢迎！）</h3>
+            <ul style="list-style: disc; padding-left: 20px; color: #c0c0c0;">
+                <li>特定语言技能（Rust、C#、Kotlin、Java）— Go、Python、Perl、Swift 已内置</li>
+                <li>特定框架配置（Rails、FastAPI）— Django、NestJS、Spring Boot、Laravel 已内置</li>
+                <li>DevOps 智能体（Kubernetes、Terraform、AWS、Docker）</li>
+                <li>测试策略（多种测试框架、视觉回归测试）</li>
+                <li>领域专属知识库（机器学习、数据工程、移动端开发）</li>
+            </ul>
+            <h3 style="margin-top: 20px;">社区项目</h3>
+            <table>
+                <tr><th>项目</th><th>介绍</th></tr>
+                <tr><td>EVC</td><td>营销智能体工作区 — 42 条命令，内容运营、品牌管控、多渠道发布</td></tr>
+            </table>
+            <h3 style="margin-top: 20px;">相关链接</h3>
+            <ul style="list-style: disc; padding-left: 20px; color: #00d9ff;">
+                <li><a href="https://github.com/affaan-m/everything-claude-code" style="color: #00d9ff;">精简指南</a> — 入门首选</li>
+                <li><a href="#" style="color: #00d9ff;">完整版深度指南</a> — 高阶进阶</li>
+                <li><a href="#" style="color: #00d9ff;">安全指南</a> — 攻击向量、沙箱、Agent防护</li>
+                <li>作者 Twitter: @affaanmustafa</li>
+            </ul>
+        </section>
+
+        <footer class="footer">
+            <p>许可证：MIT — 自由使用，根据需要修改，欢迎回馈</p>
+            <p style="margin-top: 10px;">生成时间：2026-05-25 | 数据来源：GitHub README.zh-CN.md</p>
+        </footer>
+    </div>
+
+    <script>
+        function switchTab(tabId) {
+            // 移除所有active状态
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            // 找到点击的tab并激活
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                if (tab.getAttribute('onclick').includes(tabId)) {
+                    tab.classList.add('active');
+                }
+            });
+
+            // 激活对应内容
+            document.getElementById(tabId).classList.add('active');
+        }
+    </script>
+</body>
+</html>

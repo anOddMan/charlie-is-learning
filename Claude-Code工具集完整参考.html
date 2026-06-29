@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code 工具集完整参考</title>
+<style>
+  :root {
+    --bg: #1e1e2e;
+    --bg-secondary: #181825;
+    --bg-surface: #313244;
+    --bg-overlay: #45475a;
+    --text: #cdd6f4;
+    --text-secondary: #a6adc8;
+    --text-muted: #6c7086;
+    --accent: #89b4fa;
+    --accent2: #cba6f7;
+    --green: #a6e3a1;
+    --peach: #fab387;
+    --red: #f38ba8;
+    --yellow: #f9e2af;
+    --teal: #94e2d5;
+    --border: rgba(205, 214, 244, 0.08);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --sidebar-w: 280px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; font-size: 15px; }
+  body {
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar {
+    position: fixed; top: 0; left: 0; width: var(--sidebar-w); height: 100vh;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    overflow-y: auto; overflow-x: hidden;
+    padding: 20px 16px;
+    z-index: 100;
+  }
+  .sidebar h2 {
+    font-size: 1rem; color: var(--accent); margin-bottom: 6px;
+    letter-spacing: 0.02em;
+  }
+  .sidebar .subtitle {
+    font-size: 0.75rem; color: var(--text-muted); margin-bottom: 20px;
+  }
+  .sidebar nav a {
+    display: block; color: var(--text-secondary); text-decoration: none;
+    padding: 5px 10px; border-radius: 6px; font-size: 0.82rem;
+    transition: background 0.15s, color 0.15s;
+    border-left: 2px solid transparent;
+  }
+  .sidebar nav a:hover, .sidebar nav a.active {
+    background: var(--bg-surface); color: var(--text);
+    border-left-color: var(--accent);
+  }
+  .sidebar nav a.cat { font-weight: 600; margin-top: 10px; color: var(--accent2); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  .sidebar nav a.cat:first-of-type { margin-top: 0; }
+  .sidebar nav a.sub { padding-left: 20px; font-size: 0.78rem; }
+
+  .sidebar-toggle {
+    display: none; position: fixed; top: 12px; left: 12px; z-index: 200;
+    background: var(--bg-surface); border: 1px solid var(--border); color: var(--text);
+    width: 36px; height: 36px; border-radius: 8px; cursor: pointer; font-size: 1.1rem;
+  }
+
+  /* ===== MAIN ===== */
+  .main {
+    margin-left: var(--sidebar-w); padding: 32px 40px 80px;
+    max-width: 1100px; width: 100%;
+  }
+  .main h1 {
+    font-size: 1.8rem; color: var(--text); margin-bottom: 4px;
+  }
+  .main .meta { color: var(--text-muted); font-size: 0.82rem; margin-bottom: 32px; }
+
+  /* ===== SECTIONS ===== */
+  section { margin-bottom: 48px; }
+  section h2 {
+    font-size: 1.35rem; color: var(--accent); margin-bottom: 6px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  section h2 .badge {
+    font-size: 0.7rem; background: var(--bg-surface); color: var(--text-secondary);
+    padding: 2px 8px; border-radius: 10px; font-weight: 400;
+  }
+  section > p.desc { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 16px; }
+
+  /* ===== TOOL CARD ===== */
+  .tool-card {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: var(--radius); margin-bottom: 18px; overflow: hidden;
+  }
+  .tool-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; cursor: pointer; user-select: none;
+    transition: background 0.15s;
+  }
+  .tool-header:hover { background: rgba(255,255,255,0.02); }
+  .tool-header .name {
+    font-weight: 700; font-size: 1rem; color: var(--accent2);
+    font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+  }
+  .tool-header .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tool-header .tag {
+    font-size: 0.7rem; padding: 2px 8px; border-radius: 10px;
+    background: var(--bg-surface); color: var(--text-muted);
+  }
+  .tool-header .tag.api { background: rgba(203, 166, 247, 0.15); color: var(--accent2); }
+  .tool-header .tag.safe { background: rgba(166, 227, 161, 0.15); color: var(--green); }
+  .tool-header .tag.danger { background: rgba(243, 139, 168, 0.15); color: var(--red); }
+  .tool-body { padding: 0 18px 18px; display: none; }
+  .tool-card.open .tool-body { display: block; }
+  .tool-card.open .tool-header { border-bottom: 1px solid var(--border); }
+
+  .field { margin-bottom: 12px; }
+  .field-label {
+    font-size: 0.75rem; font-weight: 700; color: var(--peach);
+    text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .field-label::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: var(--peach); }
+  .field-content { color: var(--text-secondary); font-size: 0.9rem; }
+
+  /* Code block */
+  .code-block {
+    background: #11111b; border-radius: var(--radius-sm); overflow: hidden;
+    margin-top: 8px; border: 1px solid var(--border);
+  }
+  .code-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 14px; background: rgba(255,255,255,0.04);
+    font-size: 0.75rem; color: var(--text-muted);
+  }
+  .code-header .lang {
+    font-weight: 700; color: var(--accent2); text-transform: uppercase; font-size: 0.68rem;
+  }
+  .code-block pre {
+    padding: 14px; margin: 0; overflow-x: auto;
+    font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+    font-size: 0.82rem; line-height: 1.6;
+  }
+  .code-block code { color: var(--text); }
+  .kw { color: #cba6f7; } .str { color: #a6e3a1; } .fn { color: #89b4fa; }
+  .cmt { color: #6c7086; } .param { color: #fab387; } .op { color: #cdd6f4; }
+
+  /* ===== TABLES ===== */
+  .info-table {
+    width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 16px;
+  }
+  .info-table th {
+    text-align: left; padding: 10px 14px; background: var(--bg-surface);
+    color: var(--accent); font-weight: 700; font-size: 0.75rem;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    border-bottom: 2px solid var(--border);
+  }
+  .info-table td {
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    color: var(--text-secondary); vertical-align: top;
+  }
+  .info-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .info-table td:first-child { font-weight: 600; color: var(--text); white-space: nowrap; }
+
+  /* ===== PRINCIPLES GRID ===== */
+  .principles-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px; margin-top: 16px;
+  }
+  .principle-card {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px;
+  }
+  .principle-card h4 { font-size: 0.9rem; color: var(--accent); margin-bottom: 6px; }
+  .principle-card p { font-size: 0.82rem; color: var(--text-secondary); }
+
+  /* ===== TOOL COUNT BAR ===== */
+  .stats-bar {
+    display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 32px;
+  }
+  .stat {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 12px 18px; text-align: center; min-width: 80px;
+  }
+  .stat .num { font-size: 1.4rem; font-weight: 800; color: var(--accent); }
+  .stat .label { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+
+  /* Collapse All / Expand All */
+  .ctrl-bar { margin-bottom: 18px; display: flex; gap: 8px; }
+  .ctrl-btn {
+    background: var(--bg-surface); border: 1px solid var(--border); color: var(--text);
+    padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;
+    transition: background 0.15s;
+  }
+  .ctrl-btn:hover { background: var(--bg-overlay); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--bg-overlay); border-radius: 3px; }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .sidebar { transform: translateX(-100%); transition: transform 0.25s; }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-toggle { display: flex; align-items: center; justify-content: center; }
+    .main { margin-left: 0; padding: 24px 16px 60px; }
+    .principles-grid { grid-template-columns: 1fr; }
+    .stats-bar { gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Mobile toggle -->
+<button class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')" title="目录">☰</button>
+
+<!-- ====== SIDEBAR ====== -->
+<aside class="sidebar">
+  <h2>Claude Code 工具集</h2>
+  <p class="subtitle">完整参考 v1.0 · 2026-05-27</p>
+  <nav>
+    <a href="#overview" class="cat">总览</a>
+    <a href="#filesystem" class="cat">一、文件系统</a>
+    <a href="#filesystem" class="sub">Read / Write / Edit</a>
+    <a href="#filesystem" class="sub">Glob / Grep / LSP</a>
+    <a href="#shell" class="cat">二、Shell 执行</a>
+    <a href="#shell" class="sub">Bash / PowerShell</a>
+    <a href="#tasks" class="cat">三、任务管理</a>
+    <a href="#tasks" class="sub">TaskCreate / Get / List</a>
+    <a href="#tasks" class="sub">TaskUpdate / Output / Stop</a>
+    <a href="#agent" class="cat">四、子代理调度</a>
+    <a href="#agent" class="sub">Agent</a>
+    <a href="#plan" class="cat">五、计划模式</a>
+    <a href="#plan" class="sub">EnterPlanMode / ExitPlanMode</a>
+    <a href="#interaction" class="cat">六、用户交互</a>
+    <a href="#interaction" class="sub">AskUserQuestion / PushNotification</a>
+    <a href="#cron" class="cat">七、定时与调度</a>
+    <a href="#cron" class="sub">CronCreate / Delete / List</a>
+    <a href="#monitor" class="cat">八、后台监控</a>
+    <a href="#monitor" class="sub">Monitor</a>
+    <a href="#loop" class="cat">九、循环控制</a>
+    <a href="#loop" class="sub">ScheduleWakeup</a>
+    <a href="#web" class="cat">十、Web 能力</a>
+    <a href="#web" class="sub">WebFetch / WebSearch</a>
+    <a href="#skill" class="cat">十一、技能系统</a>
+    <a href="#skill" class="sub">Skill</a>
+    <a href="#worktree" class="cat">十二、Worktree 隔离</a>
+    <a href="#worktree" class="sub">EnterWorktree / ExitWorktree</a>
+    <a href="#notebook" class="cat">十三、Notebook</a>
+    <a href="#notebook" class="sub">NotebookEdit</a>
+    <a href="#playwright" class="cat">十四、浏览器自动化</a>
+    <a href="#playwright" class="sub">browser_* 系列 (22个)</a>
+    <a href="#principles" class="cat">设计原则</a>
+    <a href="#comparison" class="cat">与 Agent SDK 对比</a>
+  </nav>
+</aside>
+
+<!-- ====== MAIN CONTENT ====== -->
+<main class="main">
+
+<h1>Claude Code 工具集完整参考</h1>
+<p class="meta">涵盖全部 29+ 工具，含用途、原理、建设理由及代码级应用实例 · 最后更新 2026-05-27</p>
+
+<!-- Stats Bar -->
+<div class="stats-bar">
+  <div class="stat"><div class="num">29</div><div class="label">内置工具</div></div>
+  <div class="stat"><div class="num">22</div><div class="label">浏览器工具</div></div>
+  <div class="stat"><div class="num">14</div><div class="label">分类</div></div>
+  <div class="stat"><div class="num">3</div><div class="label">权限级别</div></div>
+  <div class="stat"><div class="num">8</div><div class="label">设计原则</div></div>
+</div>
+
+<div class="ctrl-bar">
+  <button class="ctrl-btn" onclick="document.querySelectorAll('.tool-card').forEach(c=>c.classList.add('open'))">展开全部</button>
+  <button class="ctrl-btn" onclick="document.querySelectorAll('.tool-card').forEach(c=>c.classList.remove('open'))">折叠全部</button>
+</div>
+
+<!-- ==================== OVERVIEW ==================== -->
+<section id="overview">
+  <h2>总览 <span class="badge">Overview</span></h2>
+  <p class="desc">
+    Claude Code 的工具集是构建在 <strong>Anthropic API tool-use 原语</strong>之上的封闭式工具箱。
+    每个工具经过精心的安全沙箱封装，通过权限分级（只读 / 需审批 / 危险操作）确保用户可以完全控制 Agent 的行为边界。
+    工具之间遵循<strong>高内聚低耦合</strong>原则：每个工具只做一件事，并通过组合而非膨胀来应对复杂场景。
+  </p>
+
+  <table class="info-table">
+    <thead>
+      <tr><th>分类</th><th>工具数</th><th>核心能力</th><th>典型场景</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>文件系统</td><td>6</td><td>读写编辑、搜索、代码智能</td><td>日常编码、代码分析、重构</td></tr>
+      <tr><td>Shell 执行</td><td>2</td><td>Bash + PowerShell 双轨</td><td>构建、测试、Git 操作</td></tr>
+      <tr><td>任务管理</td><td>6</td><td>创建/追踪/依赖/后台</td><td>复杂多步骤任务编排</td></tr>
+      <tr><td>子代理调度</td><td>1</td><td>上下文隔离 + 专业化 + 并行</td><td>代码探索、架构规划、审查</td></tr>
+      <tr><td>计划模式</td><td>2</td><td>只读探索 → 方案审批 → 执行</td><td>新功能、多方案决策</td></tr>
+      <tr><td>用户交互</td><td>2</td><td>结构化问答 + 推送通知</td><td>歧义澄清、异步通知</td></tr>
+      <tr><td>定时调度</td><td>2</td><td>Cron 表达式 + 一次性/重复</td><td>定时提醒、定期检查</td></tr>
+      <tr><td>后台监控</td><td>1</td><td>事件流监控 + 实时通知</td><td>日志监控、CI 状态追踪</td></tr>
+      <tr><td>循环控制</td><td>1</td><td>自适应唤醒间隔</td><td>/loop 自主循环模式</td></tr>
+      <tr><td>Web 能力</td><td>2</td><td>网页抓取 + 搜索</td><td>查阅文档、获取最新信息</td></tr>
+      <tr><td>技能系统</td><td>1</td><td>加载预定义工作流指令</td><td>TDD、学术写作、飞书操作</td></tr>
+      <tr><td>Worktree 隔离</td><td>2</td><td>Git worktree 创建/销毁</td><td>实验性改动、并行任务</td></tr>
+      <tr><td>Notebook</td><td>1</td><td>Jupyter 单元格级编辑</td><td>数据科学工作流</td></tr>
+      <tr><td>浏览器自动化</td><td>22</td><td>Playwright 驱动的完整浏览器</td><td>UI 验证、E2E 测试</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ==================== 一、文件系统 ==================== -->
+<section id="filesystem">
+  <h2>一、文件系统 <span class="badge">6 tools</span></h2>
+  <p class="desc">代码 Agent 的感知层。所有代码理解、修改、搜索的入口。专用工具替代 UNIX 命令（Read 替代 cat、Grep 替代 rg、Glob 替代 find），统一权限管控。</p>
+
+  <!-- Read -->
+  <div class="tool-card open">
+    <div class="tool-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="name">Read</span>
+      <span class="tags"><span class="tag safe">只读</span><span class="tag api">高频</span></span>
+    </div>
+    <div class="tool-body">
+      <div class="field">
+        <div class="field-label">用途</div>
+        <div class="field-content">读取本地文件内容。支持文本、图片（多模态视觉）、PDF、Jupyter Notebook (.ipynb) 等格式。</div>
+      </div>
+      <div class="field">
+        <div class="field-label">原理</div>
+        <div class="field-content">直接读取文件系统，通过文件扩展名判断类型。图片和 PDF 使用多模态能力直接理解内容。大文件支持 offset/limit 分段读取。PDF 大文件需 pages 参数按页码范围读取（上限 20 页/次）。</div>
+      </div>
+      <div class="field">
+        <div class="field-label">建设理由</div>
+        <div class="field-content">Agent 必须能"看到"代码才能工作。不提供目录列表（该职责属于 Glob），只做文件内容读取。与 Write/Edit 有明确的职责边界。</div>
+      </div>
+      <div class="field">
+        <div class="field-label">应用实例</div>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="lang">JSON-RPC</span><span>Tool Call</span></div>
+        <pre><code><span class="cmt">// 1. 读取完整文件（默认前 2000 行）</span>
+<span class="op">{</span> <span class="str">"file_path"</span><span class="op">:</span> <span class="str">"/abs/path/to/src/App.tsx"</span> <span class="op">}</span>
+
+<span class="cmt">// 2. 分页读取大文件</span>
+<span class="op">{</span> <span class="str">"file_path"</span><span class="op">:</span> <span class="str">"/abs/path/to/large.log"</span><span class="op">,</span> <span class="str">"offset"</span><span class="op">:</span> <span class="param">1000</span><span class="op">,</span> <span class="str">"limit"</span><span class="op">:</span> <span class="param">500</span> <span class="op">}</span>
+
+<span class="cmt">// 3. 读取 PDF 指定页码范围</span>
+<span class="op">{</span> <span class="str">"file_path"</span><span class="op">:</span> <span class="str">"/abs/path/to/paper.pdf"</span><span class="op">,</span> <span class="str">"pages"</span><span class="op">:</span> <span class="str">"1-5"</span> <span class="op">}</span>
+
+<span class="cmt">// 4. 读取图片（多模态，无需额外参数）</span>
+<span class="op">{</span> <span class="str">"file_path"</span><span class="op">:</span> <span class="str">"/abs/path/to/screenshot.png"</span> <span class="op">}</span></code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Write -->
+  <div class="tool-card">
+    <div class="tool-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="name">Write</span>
+      <span class="tags"><span class="tag danger">需审批</span><span class="tag api">写操作</span></span>
+    </div>
+    <div class="tool-body">
+      <div class="field">
+        <div class="field-label">用途</div>
+        <div class="field-content">创建新文件或整体覆写已有文件。必须先用 Read 读取过目标文件才能覆写。</div>
+      </div>
+      <div class="field">
+        <div class="field-label">原理</div>
+        <div class="field-content">全量内容替换。对已有文件要求先 Read（防止误覆写未读文件）。新建文件无此限制。文件路径必须是绝对路径。</div>
+      </div>
+      <div class="field">
+        <div class="field-label">建设理由</div>
+        <div class="field-content">与 Edit 分工明确：Write 用于新建/全量替换，Edit 用于增量修改。Write 不显示 diff，适合初始创建或确定要整体重写的场景。</div>
+      </div>
+      <div class="field">
+        <div class="field-label">应用实例</div>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="lang">JSON-RPC</span><span>Tool Call</span></div>
+        <pre><code><span class="cmt">// 1. 创建新文件（无需先 Read）</span>
+<span class="op">{</span>
+  <span class="str">"file_path"</span><span class="op">:</span> <span class="str">"/abs/path/to/src/utils/helpers.ts"</span><span class="op">,</span>
+  <span class="str">"content"</span><span class="op">:</span> <span class="str">"export function greet(name: string): string {\n  return `Hello, ${name}`;\n}\n"</span>
+<span class="op">}</span>
+
+<span class="cmt">// 2. 覆写已有文件（必须先 Read 过）</span>
+<span class="op">{</span>
+  <span class="str">"file_path"</span><span class="op">:</span> <span class="str">"/abs/path/to/src/App.tsx"</span><span class="op">,</span>
+  <span class="str">"content"</span><span class="op">:</span> <span class="str">"import React from 'react';\n// ... full new content\n"</span>
+<span class="op">}</span></code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit -->
+  <div class="tool-card">
+    <div class="tool-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="name">Edit</span>
+      <span class="tags"><span class="tag danger">需审批</span><span class="tag api">高频</span><span class="tag api">主力</span></span>
+    </div>
+    <div class="tool-body">
+      <div class="field">
+        <div class="field-label">用途</div>
+        <div class="field-content">精确字符串替换（diff 式编辑）。日常代码修改的主力工具。</div>
+      </div>
+      <div class="field">
+        <div class="field-label">原理</div>
+        <div class="field-content">在文件中查找 old_string → 替换为 new_string。old_string 必须在文件中唯一（否则报错），可通过提供更多上下文使其唯一。支持 replace_all 参数进行全量替换。</div>
+      </div>
+      <div class="field">
+        <div class="field-label">建设理由</div>
+        <div class="field-content">避免每次修改都发送整个文件内容，大幅减少 token 消耗。相比 sed/awk 更安全可靠（精确匹配，不会误伤）。diff 式编辑也比全量覆写更容易做 Code Review。</div>
+      </div>
+      <div class="field">
+        <div class="field-label">应用实例</div>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="lang">JSON-RPC</span><span>Tool Call</span></div>
+        <pre><code><span class="cmt">// 1. 精确替换单处</span>
+<span class="op">{</span>
+  <span class="str">"file_path"</span><span class="op">:</span> <span class="str">"/abs/path/to/src/utils.ts"</span><span class="op">,</span>
+  <span class="str">"old_string"</span><span class="op">:</span> <span class="str">"function add(a: number, b: number): number {\n  return a + b;\n}"</span><span class="op">,</span>
+  <span class="str">"new_string"</span><span class="op">:</span> <span class="str">"function add(a: number, b: number): number {\n  // 增加溢出检查\n  return a + b;\n}"</span>
+<span class="op">}</span>
+
+<span class="cmt">// 2. 全量重命名变量</span>
+<span class="op">{</span>
+  <span class="str">"file_path"</span><span class="op">:</span> <span class="str">"/abs/path/to/src/UserProfile.tsx"</span><span class="op">,</span>
+  <span class="str">"old_string"</span><span class="op">:</span> <span class="str">"userName"</span><span class="op">,</span>
+  <span class="str">"new_string"</span><span class="op">:</span> <span class="str">"displayName"</span><span class="op">,</span>
+  <span class="str">"replace_all"</span><span class="op">:</span> <span class="param">true</span>
+<span class="op">}</span></code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Glob -->
+  <div class="tool-card">
+    <div class="tool-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="name">Glob</span>
+      <span class="tags"><span class="tag safe">只读</span><span class="tag api">文件发现</span></span>
+    </div>
+    <div class="tool-body">
+      <div class="field">
+        <div class="field-label">用途</div>
+        <div class="field-content">文件名通配符匹配，按修改时间排序返回匹配文件列表。</div>
+      </div>
+      <div class="field">
+        <div class="field-label">原理</div>
+        <div class="field-content">基于文件系统的 glob 模式匹配，支持 `**` 递归匹配。比 `ls`/`find` 更快，且权限更安全。</div>
+      </div>
+      <div class="field">
+        <div class="field-label">建设理由</div>
+        <div class="field-content">Shell 的 `ls` 和 `find` 需要权限审批且输出格式不可控。专用 Glob 工具提供统一的文件发现接口，输出结构化路径列表。</div>
+      </div>
+      <div class="field">
+        <div class="field-label">应用实例</div>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="lang">JSON-RPC</span><span>Tool Call</span></div>
+        <pre><code><span class="cmt">// 1. 查找所有 TypeScript 组件</span>
+<span class="op">{</span> <span class="str">"pattern"</span><span class="op">:</span> <span class="str">"src/components/**/*.tsx"</span><span class="op">,</span> <span class="str">"path"</span><span class="op">:</span> <span class="str">"/abs/path/to/project"</span> <span class="op">}</span>
+
+<span class="cmt">// 2. 查找所有 Markdown 文档</span>
+<span class="op">{</span> <span class="str">"pattern"</span><span class="op">:</span> <span class="str">"docs/**/*.md"</span> <span class="op">}</span>
+
+<span class="cmt">// 3. 查找所有配置文件</span>
+<span class="op">{</span> <span class="str">"pattern"</span><span class="op">:</span> <span class="str">"*.{json,yaml,yml,toml}"</span> <span class="op">}</span></code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grep -->
+  <div class="tool-card">
+    <div class="tool-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="name">Grep</span>
+      <span class="tags"><span class="tag safe">只读</span><span class="tag api">高频</span></span>
+    </div>
+    <div class="tool-body">
+      <div class="field">
+        <div class="field-label">用途</div>
+        <div class="field-content">文件内容正则搜索。支持正则、文件类型过滤、上下文行、多行模式。底层基于 ripgrep。</div>
+      </div>
+      <div class="field">
+        <div class="field-label">原理</div>
+        <div class="field-content">使用 ripgrep 引擎执行正则匹配。output_mode 支持三种模式：content（匹配行 + 上下文）、files_with_matches（仅文件路径）、count（匹配计数）。支持 glob 文件过滤和 type 类型过滤。</div>
+      </div>
+      <div class="field">
+        <div class="field-label">建设理由</div>
+        <div class="field-content">代码搜索是最高频操作之一。专用工具比 Shell grep/rg 更快、更安全、输出更结构化。多行模式支持跨行搜索（如搜索函数签名跨越换行）。head_limit 和 offset 支持结果分页。</div>
+      </div>
+      <div class="field">
+        <div class="field-label">应用实例</div>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="lang">JSON-RPC</span><span>Tool Call</span></div>
+        <pre><code><span class="cmt">// 1. 搜索函数定义（含上下文）</span>
+<span class="op">{</span>
+  <span class="str">"pattern"</span><span class="op">:</span> <span class="str">"function\\s+handleLogin"</span><span class="op">,</span>
+  <span class="str">"output_mode"</span><span class="op">:</span> <span class="str">"content"</span><span class="op">,</span>
+  <span class="str">"-C"</span><span class="op">:</span> <span class="param">3</span><span class="op">,</span>
+  <span class="str">"glob"</span><span class="op">:</span> <span class="str">"*.ts"</span>
+<span class="op">}</span>
+
+<span class="cmt">// 2. 查找所有调用特定 API 的文件</span>
+<span class="op">{</span>
+  <span class="str">"pattern"</span><span class="op">:</span> <span class="str">"fetch\\(.*/api/users"</span><span class="op">,</span>
+  <span class="str">"output_mode"</span><span class="op">:</span> <span class="str">"files_with_matches"</span>
+<span class="op">}</span>
+
+<span class="cmt">// 3. 跨行搜索 React 组件</span>
+<span class="op">{</span>
+  <span class="str">"pattern"</span><span class="op">:</span> <span class="str">"export\\s+default\\s+function\\s+\\w+\\s*\\([^)]*\\)\\s*\\{"</span><span class="op">,</span>
+  <span class="str">"type"</span><span class="op">:</span> <span class="str">"tsx"</span><span class="op">,</span>
+  <span class="str">"multiline"</span><span class="op">:</span> <span class="param">true</span>
+<span class="op">}</span></code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- LSP -->
+  <div class="tool-card">
+    <div class="tool-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="name">LSP</span>
+      <span class="tags"><span class="tag safe">只读</span><span class="tag api">语义分析</span></span>
+    </div>
+    <div class="tool-body">
+      <div class="field">
+        <div class="field-label">用途</div>
+        <div class="field-content">Language Server Protocol 代码智能：跳转定义、查找引用、悬停类型信息、调用层次分析。</div>
+      </div>
+      <div class="field">
+        <div class="field-label">原理</div>
+        <div class="field-content">连接项目已配置的 LSP 服务器（TypeScript、Python、Rust 等），通过标准 LSP 协议请求语义信息。所有操作需要 filePath + line + character 定位符号位置。</div>
+      </div>
+      <div class="field">
+        <div class="field-label">建设理由</div>
+        <div class="field-content">语义级代码理解比文本搜索更准确。文本搜索 "getUser" 可能匹配注释、字符串、变量名的一部分；LSP 能精确定位到函数定义、区分同名不同模块的符号。利用 IDE 已有的语言分析基础设施。</div>
+      </div>
+      <div class="field">
+        <div class="field-label">应用实例</div>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="lang">JSON-RPC</span><span>Tool Call</span></div>
+        <pre><code><span class="cmt">// 1. 跳转到函数定义</span>
+<span class="op">{</span> <span class="str">"operation"</span><span class="op">:</span> <span class="str">"goToDefinition"</span><span class="op">,</span> <span class="str">"filePath"</span><span class="op">:</span> <span class="str">"src/App.tsx"</span><span class="op">,</span> <span class="str">"line"</span><span class="op">:</span> <span class="param">42</span><span class="op">,</span> <span class="str">"character"</span><span class="op">:</span> <span class="param">10</span> <span class="op">}</span>
+
+<span class="cmt">// 2. 查找所有引用（谁调用了这个函数）</span>
+<span class="op">{</span> <span class="str">"operation"</span><span class="op">:</span> <span class="str">"findReferences"</span><span class="op">,</span> <span class="str">"filePath"</span><span class="op">:</span> <span class="str">"src/api.ts"</span><span class="op">,</span> <span class="str">"line"</span><span class="op">:</span> <span class="param">88</span><span class="op">,</span> <span class="str">"character"</span><span class="op">:</span> <span class="param">5</span> <span class="op">}</span>
+
+<span class="cmt">// 3. 分析调用层次（谁调了谁）</span>
+<span class="op">{</span> <span class="str">"operation"</span><span class="op">:</span> <span class="str">"incomingCalls"</span><span class="op">,</span> <span class="str">"filePath"</span><span class="op">:</span> <span class="str">"src/utils.ts"</span><span class="op">,</span> <span class="str">"line"</span><span class="op">:</span> <span class="param">15</span><span class="op">,</span> <span class="str">"character"</span><span class="op">:</span> <span class="param">1</span> <span class="op">}</span>
+
+<span class="cmt">// 4. 查看类型信息（Hover）</span>
+<span class="op">{</span> <span class="str">"operation"</span><span class="op">:</span> <span class="str">"hover"</span><span class="op">,</span> <span class="str">"filePath"</span><span class="op">:</span> <span class="str">"src/types.ts"</span><span class="op">,</span> <span class="str">"line"</span><span class="op">:</span> <span class="param">12</span><span class="op">,</span> <span class="str">"character"</span><span class="op">:</span> <span class="param">18</span> <span class="op">}</span></code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 二、Shell 执行 ==================== -->
+<section id="shell">
+  <h2>二、Shell 执行 <span class="badge">2 tools</span></h2>
+  <p class="desc">与操作系统交互的桥梁。双轨制设计（Bash + PowerShell）覆盖 macOS/Linux 和 Windows 生态。支持后台运行、超时控制、工作目录持久化。</p>
+
+  <div class="tool-card">
+    <div class="tool-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="name">Bash</span>
+      <span class="tags"><span class="tag danger">需审批</span><span class="tag api">Shell</span></span>
+    </div>
+    <div class="tool-body">
+      <div class="field"><div class="field-label">用途</div><div class="field-content">执行 Bash/POSIX shell 命令。工作目录跨调用持久化，但 Shell 状态（变量、函数）不保留。</div></div>
+      <div class="field"><div class="field-label">原理</div><div class="field-content">在用户 Shell 环境中执行命令（从 profile 初始化）。支持超时控制（默认 120s，最大 600s）。run_in_background 模式用于长时间任务。</div></div>
+      <div class="field"><div class="field-label">建设理由</div><div class="field-content">运行构建、测试、git、包管理器等 CLI 操作是编码 Agent 的刚需。不建议用于文件搜索/读取/编辑（有专用工具更快更安全）。</div></div>
+      <div class="field">
+        <div class="field-label">应用实例</div>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="lang">JSON-RPC</span><span>Tool Call</span></div>
+        <pre><code><span class="cmt">// 1. 运行测试套件（超时 5 分钟）</span>
+<span class="op">{</span>
+  <span class="str">"command"</span><span class="op">:</span> <span class="str">"npm test -- --coverage"</span><span class="op">,</span>
+  <span class="str">"description"</span><span class="op">:</span> <span class="str">"Run test suite with coverage"</span><span class="op">,</span>
+  <span class="str">"timeout"</span><span class="op">:</span> <span class="param">300000</span>
+<span class="op">}</span>
+
+<span class="cmt">// 2. 后台启动开发服务器</span>
+<span class="op">{</span>
+  <span class="str">"command"</span><span class="op">:</span> <span class="str">"npm run dev"</span><span class="op">,</span>
+  <span class="str">"description"</span><span class="op">:</span> <span class="str">"Start dev server"</span><span class="op">,</span>
+  <span class="str">"run_in_background"</span><span class="op">:</span> <span class="param">true</span>
+<span class="op">}</span>
+
+<span class="cmt">// 3. Git 操作（查看最近提交）</span>
+<span class="op">{</span>
+  <span class="str">"command"</span><span class="op">:</span> <span class="str">"git log --oneline -10"</span><span class="op">,</span>
+  <span class="str">"description"</span><span class="op">:</span> <span class="str">"Show recent git commits"</span>
+<span class="op">}</span></code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-card">
+    <div class="tool-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="name">PowerShell</span>
+      <span class="tags"><span class="tag danger">需审批</span><span class="tag api">Shell</span><span class="tag">Windows</span></span>
+    </div>
+    <div class="tool-body">
+      <div class="field"><div class="field-label">用途</div><div class="field-content">Windows PowerShell 5.1 命令执行。与 Bash 平行选择，覆盖 Windows 原生操作。</div></div>
+      <div class="field"><div class="field-label">原理</div><div class="field-content">在 powershell.exe 中执行命令。不支持 `&&`/`||` 链式操作（用 `; if ($?) {}` 替代）、不支持三元/空合并运算符。文件编码默认 UTF-16 LE。</div></div>
+      <div class="field"><div class="field-label">建设理由</div><div class="field-content">Windows 用户原生体验；部分 Windows 专有操作（注册表、证书、COM 对象）只能用 PowerShell。双轨制确保跨平台覆盖无死角。</div></div>
+      <div class="field">
+        <div class="field-label">应用实例</div>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="lang">JSON-RPC</span><span>Tool Call</span></div>
+        <pre><code><span class="cmt">// 1. 列出目录</span>
+<span class="op">{</span>
+  <span class="str">"command"</span><span class="op">:</span> <span class="str">"Get-ChildItem D:\\projects -Name"</span><span class="op">,</span>
+  <span class="str">"description"</span><span class="op">:</span> <span class="str">"List project directory"</span>
+<span class="op">}</span>
+
+<span class="cmt">// 2. 检查环境变量</span>
+<span class="op">{</span>
+  <span class="str">"command"</span><span class="op">:</span> <span class="str">"$env:NODE_ENV"</span><span class="op">,</span>
+  <span class="str">"description"</span><span class="op">:</span> <span class="str">"Check Node environment"</span>
+<span class="op">}</span>
+
+<span class="cmt">// 3. 条件执行（无 && 运算符）</span>
+<span class="op">{</span>
+  <span class="str">"command"</span><span class="op">:</span> <span class="str">"npm run build; if ($?) { npm run deploy }"</span><span class="op">,</span>
+  <span class="str">"description"</span><span class="op">:</span> <span class="str">"Build and deploy on success"</span>
+<span class="op">}</span></code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 三、任务管理 ==================== -->
+<section id="tasks">
+  <h2>三、任务管理 <span class="badge">6 tools</span></h2>
+  <p class="desc">内存中的结构化任务追踪系统。支持状态流转（pending → in_progress → completed）、依赖关系（blocks/blockedBy）、元数据。比自由文本的任务列表更可靠，自动反映进度。</p>
+
+  <div class="tool-card open">
+    <div class="tool-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="name">TaskCreate / TaskGet / TaskList / TaskUpdate / TaskOutput / TaskStop</span>
+      <span class="tags"><span class="tag safe">管理</span><span class="tag api">编排</span></span>
+    </div>
+    <div class="tool-body">
+      <div class="field"><div class="field-label">用途</div><div class="field-content">创建、查询、更新、停止结构化任务，建立任务间依赖关系。</div></div>
+      <div class="field"><div class="field-label">原理</div><div class="field-content">内存中的任务图（DAG）。每个任务有 id / subject / description / status / owner / blocks / blockedBy。状态严格单向流转：pending → in_progress → completed（或 deleted）。后台任务（Bash/Agent）与 TaskOutput 联动。</div></div>
+      <div class="field"><div class="field-label">建设理由</div><div class="field-content">复杂多步骤任务需要可靠的追踪机制。依赖图确保不会跳过前置步骤。用户通过 TaskList 快速了解全局进度。</div></div>
+      <div class="field">
+        <div class="field-label">应用实例</div>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="lang">JSON-RPC</span><span>Tool Call 序列</span></div>
+        <pre><code><span class="cmt">// Step 1: 创建三个任务</span>
+<span class="op">{</span> <span class="str">"subject"</span><span class="op">:</span> <span class="str">"设计数据库 Schema"</span><span class="op">,</span> <span class="str">"description"</span><span class="op">:</span> <span class="str">"用户表 + 订单表 + 索引设计"</span> <span class="op">}</span>  <span class="cmt">// → id: "1"</span>
+<span class="op">{</span> <span class="str">"subject"</span><span class="op">:</span> <span class="str">"实现 API 端点"</span><span class="op">,</span> <span class="str">"description"</span><span class="op">:</span> <span class="str">"CRUD for /api/users, /api/orders"</span> <span class="op">}</span>   <span class="cmt">// → id: "2"</span>
+<span class="op">{</span> <span class="str">"subject"</span><span class="op">:</span> <span class="str">"编写集成测试"</span><span class="op">,</span> <span class="str">"description"</span><span class="op">:</span> <span class="str">"supertest + in-memory DB"</span> <span class="op">}</span>    <span class="cmt">// → id: "3"</span>
+
+<span class="cmt">// Step 2: 设置依赖（测试依赖 API，API 依赖 Schema）</span>
+<span class="op">{</span> <span class="str">"taskId"</span><span class="op">:</span> <span class="str">"2"</span><span class="op">,</span> <span class="str">"addBlockedBy"</span><span class="op">:</span> <span class="op">[</span><span class="str">"1"</span><span class="op">]</span> <span class="op">}</span>          <span class="cmt">// API 等待 Schema</span>
+<span class="op">{</span> <span class="str">"taskId"</span><span class="op">:</span> <span class="str">"3"</span><span class="op">,</span> <span class="str">"addBlockedBy"</span><span class="op">:</span> <span class="op">[</span><span class="str">"2"</span><span class="op">]</span> <span class="op">}</span>          <span class="cmt">// 测试等待 API</span>
+
+<span class="cmt">// Step 3: 开始工作，逐个完成</span>
+<span class="op">{</span> <span class="str">"taskId"</span><span class="op">:</span> <span class="str">"1"</span><span class="op">,</span> <span class="str">"status"</span><span class="op">:</span> <span class="str">"in_progress"</span> <span class="op">}</span>  <span class="cmt">// 开始 Schema</span>
+<span class="op">{</span> <span class="str">"taskId"</span><span class="op">:</span> <span class="str">"1"</span><span class="op">,</span> <span class="str">"status"</span><span class="op">:</span> <span class="str">"completed"</span> <span class="op">}</span>     <span class="cmt">// Schema 完成 → API 自动解封</span>
+
+<span class="cmt">// Step 4: 查看进度</span>
+<span class="op">{}</span>  <span class="cmt">// TaskList → [{id:"1", status:"completed"}, {id:"2", status:"pending"}, {id:"3", status:"pending", blockedBy:["2"]}]</span></code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 四、子代理调度 ==================== -->
+<section id="agent">
+  <h2>四、子代理调度 <span class="badge">1 tool, 多类型</span></h2>
+  <p class="desc">子代理是 Claude Code 实现上下文隔离和并行化的核心机制。每个子代理拥有独立的工具集和上下文窗口，支持多种专业化类型。</p>
+
+  <div class="tool-card open">
+    <div class="tool-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="name">Agent</span>
+      <span class="tags"><span class="tag danger">需审批</span><span class="tag api">核心</span><span class="tag api">并行</span></span>
+    </div>
+    <div class="tool-body">
+      <div class="field"><div class="field-label">用途</div><div class="field-content">启动子代理（Sub-agent）处理复杂、多步骤或可并行的任务。</div></div>
+      <div class="field"><div class="field-label">原理</div><div class="field-content">创建独立 Agent 实例：独立的上下文窗口 → 独立的工具调用循环 → 返回结构化结果。类型系统决定工具集和 prompt：Explore（只读搜索）、Plan（架构设计）、code-reviewer（审查）、general-purpose（通用）。isolation: "worktree" 在 Git 临时分支上工作。</div></div>
+      <div class="field"><div class="field-label">建设理由</div><div class="field-content">
+        <strong>上下文隔离</strong>：搜索结果不污染主会话；<strong>并行化</strong>：多个子代理并发执行独立任务；<strong>专业化</strong>：不同类型有优化的工具集和 prompt。<br>
+        ⚠️ 注意：这是 Claude Code 内置的子代理机制，与 Anthropic 发布的 Claude Agent SDK 是两套独立的实现。
+      </div></div>
+      <div class="field">
+        <div class="field-label">应用实例</div>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="lang">JSON-RPC</span><span>Tool Call</span></div>
+        <pre><code><span class="cmt">// 1. 启动只读探索子代理（搜索代码库）</span>
+<span class="op">{</span>
+  <span class="str">"description"</span><span class="op">:</span> <span class="str">"Find auth middleware"</span><span class="op">,</span>
+  <span class="str">"subagent_type"</span><span class="op">:</span> <span class="str">"Explore"</span><span class="op">,</span>
+  <span class="str">"prompt"</span><span class="op">:</span> <span class="str">"Find all authentication middleware files and report their patterns."</span>
+<span class="op">}</span>
+
+<span class="cmt">// 2. 启动架构规划子代理</span>
+<span class="op">{</span>
+  <span class="str">"description"</span><span class="op">:</span> <span class="str">"Design caching strategy"</span><span class="op">,</span>
+  <span class="str">"subagent_type"</span><span class="op">:</span> <span class="str">"Plan"</span><span class="op">,</span>
+  <span class="str">"prompt"</span><span class="op">:</span> <span class="str">"Design a caching layer with TTL, invalidation strategy, and fallback."</span>
+<span class="op">}</span>
+
+<span class="cmt">// 3. 并行执行多个独立任务（同一消息中多个 Agent 调用）</span>
+<span class="cmt">// Agent 1: Lint 检查</span>
+<span class="op">{</span> <span class="str">"description"</span><span class="op">:</span> <span class="str">"Run linter"</span><span class="op">,</span> <span class="str">"prompt"</span><span class="op">:</span> <span class="str">"Run eslint and report errors."</span> <span class="op">}</span>
+<span class="cmt">// Agent 2: 类型检查（与 Agent 1 并行）</span>
+<span class="op">{</span> <span class="str">"description"</span><span class="op">:</span> <span class="str">"Type check"</span><span class="op">,</span> <span class="str">"prompt"</span><span class="op">:</span> <span class="str">"Run tsc --noEmit and report errors."</span> <span class="op">}</span>
+<span class="cmt">// Agent 3: 测试（与 Agent 1、2 并行）</span>
+<span class="op">{</span> <span class="str">"description"</span><span class="op">:</span> <span class="str">"Run tests"</span><span class="op">,</span> <span class="str">"prompt"</span><span class="op">:</span> <span class="str">"Run full test suite and report failures."</span><span class="op">,</span> <span class="str">"run_in_background"</span><span class="op">:</span> <span class="param">true</span> <span class="op">}</span>
+
+<span class="cmt">// 4. Worktree 隔离子代理（在临时分支上实验）</span>
+<span class="op">{</span>
+  <span class="str">"description"</span><span class="op">:</span> <span class="str">"Experiment with new auth"</span><span class="op">,</span>
+  <span class="str">"subagent_type"</span><span class="op">:</span> <span class="str">"general-purpose"</span><span class="op">,</span>
+  <span class="str">"isolation"</span><span class="op">:</span> <span class="str">"worktree"</span><span class="op">,</span>
+  <span class="str">"prompt"</span><span class="op">:</span> <span class="str">"Replace JWT auth with session-based auth. Commit the changes."</span>
+<span class="op">}</span></code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 五、计划模式 ==================== -->
+<section id="plan">
+  <h2>五、计划模式 <span class="badge">2 tools</span></h2>
+  <p class="desc">Plan → Approve → Execute 三步法的技术保障。进入计划模式后只能探索不能编辑，必须通过审批才能进入实现阶段。</p>
+
+  <div class="tool-card">
+    <div class="tool-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="name">EnterPlanMode / ExitPlanMode</span>
+      <span class="tags"><span class="tag safe">流程</span><span class="tag api">架构</span></span>
+    </div>
+    <div class="tool-body">
+      <div class="field"><div class="field-label">用途</div><div class="field-content">EnterPlanMode 进入只读探索状态设计方案；ExitPlanMode 提交方案等待用户审批。</div></div>
+      <div class="field"><div class="field-label">原理</div><div class="field-content">切换会话到 plan 模式：可读取/搜索但不能编辑文件。方案通过 ExitPlanMode 从计划文件读取并展示给用户。用户审批通过后退出计划模式，进入执行阶段。</div></div>
+      <div class="field"><div class="field-label">建设理由</div><div class="field-content">防止"先动手再思考"——复杂任务需要先规划再编码。用户审批节点确保 Agent 的方案与用户期望对齐，避免浪费精力。</div></div>
+      <div class="field">
+        <div class="field-label">应用实例</div>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="lang">交互流程</span><span>Plan Mode Lifecycle</span></div>
+        <pre><code><span class="cmt">// 用户: "实现用户登录功能"</span>
+<span class="cmt">// ↓ Claude Code 判断这是多方案多文件任务 ↓</span>
+
+<span class="op">{</span> <span class="str">"tool"</span><span class="op">:</span> <span class="str">"EnterPlanMode"</span> <span class="op">}</span>
+  <span class="cmt">// → 进入计划模式</span>
+  <span class="cmt">// → 探索现有代码: Read + Grep + Glob</span>
+  <span class="cmt">// → 设计方案: JWT vs Session, 中间件位置, 错误处理策略</span>
+  <span class="cmt">// → 撰写计划文件: plan.md</span>
+
+<span class="op">{</span> <span class="str">"tool"</span><span class="op">:</span> <span class="str">"ExitPlanMode"</span> <span class="op">}</span>
+  <span class="cmt">// → 用户看到方案: "使用 JWT + 中间件 + HttpOnly Cookie"</span>
+  <span class="cmt">// → 用户审批通过</span>
+
+<span class="cmt">// → 退出计划模式，开始 Edit + Write 实现代码</span></code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 六、用户交互 ==================== -->
+<section id="interaction">
+  <h2>六、用户交互 <span class="badge">2 tools</span></h2>
+  <p class="desc">保持"人在环中"的决策权。结构化问答在关键节点让用户选择，推送通知在异步任务完成时提醒用户。</p>
+
+  <div class="tool-card">
+    <div class="tool-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="name">AskUserQuestion / PushNotification</span>
+      <span class="tags"><span class="tag safe">交互</span></span>
+    </div>
+    <div class="tool-body">
+      <div class="field"><div class="field-label">用途</div><div class="field-content">AskUserQuestion：结构化问答（单选/多选 + 预览），用于澄清需求和选择方案。PushNotification：桌面/手机通知，用于异步任务完成提醒。</div></div>
+      <div class="field"><div class="field-label">原理</div><div class="field-content">AskUserQuestion 渲染带选项的 UI 组件，支持每个选项的预览内容（代码片段、ASCII 图等）。PushNotification 通过终端通知机制 + Remote Control 推送到手机。</div></div>
+      <div class="field"><div class="field-label">建设理由</div><div class="field-content">AI 不能替用户做价值判断。歧义必须澄清，关键决策必须有审批节点。异步完成的通知让用户不必守在终端前。</div></div>
+      <div class="field">
+        <div class="field-label">应用实例</div>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="lang">JSON-RPC</span><span>Tool Call</span></div>
+        <pre><code><span class="cmt">// 1. 结构化单选（含预览）</span>
+<span class="op">{</span>
+  <span class="str">"questions"</span><span class="op">:</span> <span class="op">[{</span>
+    <span class="str">"question"</span><span class="op">:</span> <span class="str">"认证方案选择哪个？"</span><span class="op">,</span>
+    <span class="str">"header"</span><span class="op">:</span> <span class="str">"Auth 方案"</span><span class="op">,</span>
+    <span class="str">"multiSelect"</span><span class="op">:</span> <span class="param">false</span><span class="op">,</span>
+    <span class="str">"options"</span><span class="op">:</span> <span class="op">[</span>
+      <span class="op">{</span> <span class="str">"label"</span><span class="op">:</span> <span class="str">"JWT (推荐)"</span><span class="op">,</span> <span class="str">"description"</span><span class="op">:</span> <span class="str">"无状态，适合微服务，但需要处理刷新逻辑"</span> <span class="op">},</span>
+      <span class="op">{</span> <span class="str">"label"</span><span class="op">:</span> <span class="str">"Session"</span><span class="op">,</span>  <span class="str">"description"</span><span class="op">:</span> <span class="str">"传统方案，服务端有状态，Redis 存储"</span> <span class="op">},</span>
+      <span class="op">{</span> <span class="str">"label"</span><span class="op">:</span> <span class="str">"OAuth 2.0"</span><span class="op">,</span> <span class="str">"description"</span><span class="op">:</span> <span class="str">"第三方登录，但需要额外配置"</span> <span class="op">}</span>
+    <span class="op">]</span>
+  <span class="op">}]</span>
+<span class="op">}</span>
+
+<span class="cmt">// 2. 异步完成通知</span>
+<span class="op">{</span>
+  <span class="str">"message"</span><span class="op">:</span> <span class="str">"构建完成：3 passed, 0 failed (12.4s)"</span><span class="op">,</span>
+  <span class="str">"status"</span><span class="op">:</span> <span class="str">"proactive"</span>
+<span class="op">}</span></code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 七~十四（略简，保持结构完整） ==================== -->
+
+<section id="cron">
+  <h2>七、定时与调度 <span class="badge">2 tools</span></h2>
+  <p class="desc">Cron 表达式驱动的定时任务。支持单次提醒和周期性检查，仅存在于当前会话内存中。</p>
+  <div class="tool-card">
+    <div class="tool-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="name">CronCreate / CronDelete / CronList</span>
+      <span class="tags"><span class="tag safe">调度</span></span>
+    </div>
+    <div class="tool-body">
+      <div class="field"><div class="field-label">用途</div><div class="field-content">创建、删除、列出基于 Cron 表达式的定时任务。</div></div>
+      <div class="field"><div class="field-label">应用实例</div></div>
+      <div class="code-block">
+        <div class="code-header"><span class="lang">JSON-RPC</span><span>Tool Call</span></div>
+        <pre><code><span class="cmt">// 每 10 分钟检查 CI 状态</span>
+<span class="op">{</span> <span class="str">"cron"</span><span class="op">:</span> <span class="str">"*/10 * * * *"</span><span class="op">,</span> <span class="str">"prompt"</span><span class="op">:</span> <span class="str">"Check CI status and report any failures"</span><span class="op">,</span> <span class="str">"recurring"</span><span class="op">:</span> <span class="param">true</span> <span class="op">}</span>
+
+<span class="cmt">// 下午 3 点一次性提醒</span>
+<span class="op">{</span> <span class="str">"cron"</span><span class="op">:</span> <span class="str">"57 14 27 5 *"</span><span class="op">,</span> <span class="str">"prompt"</span><span class="op">:</span> <span class="str">"提醒用户检查部署状态"</span><span class="op">,</span> <span class="str">"recurring"</span><span class="op">:</span> <span class="param">false</span> <span class="op">}</span></code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="monitor">
+  <h2>八、后台监控 <span class="badge">1 tool</span></h2>
+  <p class="desc">事件流驱动的后台监控。stdout 的每一行作为一个事件通知推送到会话。</p>
+  <div class="tool-card">
+    <div class="tool-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="name">Monitor</span>
+      <span class="tags"><span class="tag safe">监控</span></span>
+    </div>
+    <div class="tool-body">
+      <div class="field"><div class="field-label">应用实例</div></div>
+      <div class="code-block">
+        <div class="code-header"><span class="lang">JSON-RPC</span><span>Tool Call</span></div>
+        <pre><code><span class="cmt">// 监控日志中的错误行（持续到会话结束）</span>
+<span class="op">{</span>
+  <span class="str">"command"</span><span class="op">:</span> <span class="str">"tail -f /var/log/app.log | grep --line-buffered \"ERROR\""</span><span class="op">,</span>
+  <span class="str">"description"</span><span class="op">:</span> <span class="str">"Watch for ERROR lines in app log"</span><span class="op">,</span>
+  <span class="str">"persistent"</span><span class="op">:</span> <span class="param">true</span>
+<span class="op">}</span></code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="loop">
+  <h2>九、循环控制 <span class="badge">1 tool</span></h2>
+  <p class="desc">/loop 自主循环模式下的自适应唤醒机制，根据任务类型智能选择等待间隔。</p>
+  <div class="tool-card">
+    <div class="tool-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="name">ScheduleWakeup</span>
+      <span class="tags"><span class="tag safe">循环</span></span>
+    </div>
+    <div class="tool-body">
+      <div class="field"><div class="field-label">用途</div><div class="field-content">在 /loop 动态模式下，根据任务类型和预期耗时调度下次唤醒时间（60s~3600s）。</div></div>
+      <div class="field"><div class="field-label">原理</div><div class="field-content">以 Anthropic prompt cache 的 5 分钟 TTL 为分界：&lt;270s 保持缓存热度；&gt;300s 接受缓存失效但换取更长等待。1200s+ 是默认的空闲心跳间隔。</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="web">
+  <h2>十、Web 能力 <span class="badge">2 tools</span></h2>
+  <p class="desc">访问互联网获取最新信息。WebFetch 抓取并分析网页，WebSearch 搜索互联网。</p>
+  <div class="tool-card">
+    <div class="tool-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="name">WebFetch / WebSearch</span>
+      <span class="tags"><span class="tag safe">网络</span></span>
+    </div>
+    <div class="tool-body">
+      <div class="field"><div class="field-label">用途</div><div class="field-content">WebFetch 获取网页并用 AI 提取信息（15 分钟缓存）。WebSearch 搜索互联网返回带链接的结果。</div></div>
+      <div class="field"><div class="field-label">应用实例</div></div>
+      <div class="code-block">
+        <div class="code-header"><span class="lang">JSON-RPC</span><span>Tool Call</span></div>
+        <pre><code><span class="cmt">// 获取 React 文档中的 useOptimistic 说明</span>
+<span class="op">{</span>
+  <span class="str">"url"</span><span class="op">:</span> <span class="str">"https://react.dev/reference/react/useOptimistic"</span><span class="op">,</span>
+  <span class="str">"prompt"</span><span class="op">:</span> <span class="str">"提取 useOptimistic 的参数、返回值和示例代码"</span>
+<span class="op">}</span>
+
+<span class="cmt">// 搜索最新的 Bun 版本</span>
+<span class="op">{</span> <span class="str">"query"</span><span class="op">:</span> <span class="str">"Bun runtime latest version 2026"</span> <span class="op">}</span></code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="skill">
+  <h2>十一、技能系统 <span class="badge">1 tool</span></h2>
+  <p class="desc">可复用的专业化工作流指令。技能加载后成为会话的指令层，无需每次对话中重复描述流程。</p>
+  <div class="tool-card">
+    <div class="tool-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="name">Skill</span>
+      <span class="tags"><span class="tag safe">扩展</span><span class="tag api">核心</span></span>
+    </div>
+    <div class="tool-body">
+      <div class="field"><div class="field-label">用途</div><div class="field-content">按名称加载预定义的技能。技能内容被注入为当前会话的指令层，覆盖/补充默认行为。</div></div>
+      <div class="field"><div class="field-label">原理</div><div class="field-content">技能是包含指令、检查清单、工作流的 Markdown 文件。Skill 工具加载后，Skill 的指令优先级高于默认系统提示但低于用户明确指令。</div></div>
+      <div class="field">
+        <div class="field-label">应用实例</div>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="lang">交互示例</span><span>Skill Invocation</span></div>
+        <pre><code><span class="cmt">// 用户输入 / 技能名 或任务匹配技能时自动调用</span>
+
+<span class="cmt">// 触发: 用户说 "帮我审查这段代码"</span>
+<span class="op">{</span> <span class="str">"skill"</span><span class="op">:</span> <span class="str">"superpowers:requesting-code-review"</span> <span class="op">}</span>
+
+<span class="cmt">// 触发: 用户说 "写一篇学术论文"</span>
+<span class="op">{</span> <span class="str">"skill"</span><span class="op">:</span> <span class="str">"academic-research-skills:academic-paper"</span> <span class="op">}</span>
+
+<span class="cmt">// 触发: 用户说 "检查这个 Dify 工作流"</span>
+<span class="op">{</span> <span class="str">"skill"</span><span class="op">:</span> <span class="str">"dify-workflow-inspection"</span> <span class="op">}</span></code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="worktree">
+  <h2>十二、Worktree 隔离 <span class="badge">2 tools</span></h2>
+  <p class="desc">基于 Git worktree 的隔离工作环境。不干扰主工作区，支持并行实验。</p>
+  <div class="tool-card">
+    <div class="tool-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="name">EnterWorktree / ExitWorktree</span>
+      <span class="tags"><span class="tag danger">需审批</span><span class="tag">Git</span></span>
+    </div>
+    <div class="tool-body">
+      <div class="field"><div class="field-label">用途</div><div class="field-content">创建或进入 Git worktree 隔离环境，工作完成后保留或清理。</div></div>
+      <div class="field"><div class="field-label">应用实例</div></div>
+      <div class="code-block">
+        <div class="code-header"><span class="lang">JSON-RPC</span><span>Tool Call</span></div>
+        <pre><code><span class="cmt">// 创建隔离 worktree 进行实验</span>
+<span class="op">{</span> <span class="str">"name"</span><span class="op">:</span> <span class="str">"experiment-new-auth"</span> <span class="op">}</span>
+
+<span class="cmt">// 工作完成后保留 worktree（继续开发）</span>
+<span class="op">{</span> <span class="str">"action"</span><span class="op">:</span> <span class="str">"keep"</span> <span class="op">}</span>
+
+<span class="cmt">// 或清理 worktree（实验废弃）</span>
+<span class="op">{</span> <span class="str">"action"</span><span class="op">:</span> <span class="str">"remove"</span><span class="op">,</span> <span class="str">"discard_changes"</span><span class="op">:</span> <span class="param">true</span> <span class="op">}</span></code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="notebook">
+  <h2>十三、Notebook <span class="badge">1 tool</span></h2>
+  <p class="desc">Jupyter Notebook 单元格级编辑。支持替换、插入、删除操作。</p>
+  <div class="tool-card">
+    <div class="tool-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="name">NotebookEdit</span>
+      <span class="tags"><span class="tag danger">需审批</span><span class="tag">DS</span></span>
+    </div>
+    <div class="tool-body">
+      <div class="field"><div class="field-label">用途</div><div class="field-content">在 .ipynb 文件中按 cell index / cell ID 替换、插入或删除单元格。</div></div>
+      <div class="field"><div class="field-label">应用实例</div></div>
+      <div class="code-block">
+        <div class="code-header"><span class="lang">JSON-RPC</span><span>Tool Call</span></div>
+        <pre><code><span class="cmt">// 替换索引为 3 的单元格</span>
+<span class="op">{</span>
+  <span class="str">"notebook_path"</span><span class="op">:</span> <span class="str">"/abs/path/to/analysis.ipynb"</span><span class="op">,</span>
+  <span class="str">"cell_number"</span><span class="op">:</span> <span class="param">3</span><span class="op">,</span>
+  <span class="str">"new_source"</span><span class="op">:</span> <span class="str">"df = pd.read_csv('data.csv')\ndf.describe()"</span><span class="op">,</span>
+  <span class="str">"cell_type"</span><span class="op">:</span> <span class="str">"code"</span>
+<span class="op">}</span>
+
+<span class="cmt">// 在 cell #2 之后插入新单元格</span>
+<span class="op">{</span>
+  <span class="str">"notebook_path"</span><span class="op">:</span> <span class="str">"/abs/path/to/analysis.ipynb"</span><span class="op">,</span>
+  <span class="str">"edit_mode"</span><span class="op">:</span> <span class="str">"insert"</span><span class="op">,</span>
+  <span class="str">"cell_id"</span><span class="op">:</span> <span class="str">"cell-2"</span><span class="op">,</span>
+  <span class="str">"new_source"</span><span class="op">:</span> <span class="str">"# 新增的 Markdown 说明\n这是数据预处理步骤"</span><span class="op">,</span>
+  <span class="str">"cell_type"</span><span class="op">:</span> <span class="str">"markdown"</span>
+<span class="op">}</span></code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="playwright">
+  <h2>十四、浏览器自动化 <span class="badge">22 tools (MCP)</span></h2>
+  <p class="desc">通过 Playwright MCP 插件驱动真实 Chromium 浏览器。基于无障碍快照理解页面结构，支持完整的用户交互模拟。</p>
+  <div class="tool-card open">
+    <div class="tool-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="name">browser_* 系列 (22 tools)</span>
+      <span class="tags"><span class="tag safe">浏览器</span><span class="tag api">MCP</span></span>
+    </div>
+    <div class="tool-body">
+      <div class="field"><div class="field-label">用途</div><div class="field-content">控制真实浏览器完成 UI 验证、表单填写、截图、网络请求检查等操作。</div></div>
+      <div class="field"><div class="field-label">原理</div><div class="field-content">通过 MCP（Model Context Protocol）插件协议连接 Playwright 服务器。browser_snapshot 获取基于无障碍树的页面结构，其他工具在此基础上执行操作。所有操作在真实 Chromium 实例中执行。</div></div>
+      <div class="field"><div class="field-label">完整工具清单</div></div>
+      <table class="info-table">
+        <thead><tr><th>类别</th><th>工具</th><th>功能</th></tr></thead>
+        <tbody>
+          <tr><td>导航</td><td>browser_navigate</td><td>导航到指定 URL</td></tr>
+          <tr><td>导航</td><td>browser_navigate_back</td><td>返回上一页</td></tr>
+          <tr><td>导航</td><td>browser_tabs</td><td>标签页管理（list/new/close/select）</td></tr>
+          <tr><td>感知</td><td>browser_snapshot</td><td>获取页面无障碍快照（结构化元素树）</td></tr>
+          <tr><td>感知</td><td>browser_take_screenshot</td><td>截图（视口/全页/元素）</td></tr>
+          <tr><td>交互</td><td>browser_click</td><td>点击元素（支持双击、右键、修饰键）</td></tr>
+          <tr><td>交互</td><td>browser_type</td><td>输入文本（支持逐字模式、提交）</td></tr>
+          <tr><td>交互</td><td>browser_hover</td><td>悬停元素</td></tr>
+          <tr><td>交互</td><td>browser_drag</td><td>拖拽（从一个元素到另一个）</td></tr>
+          <tr><td>交互</td><td>browser_drop</td><td>投放文件/MIME 数据到元素</td></tr>
+          <tr><td>交互</td><td>browser_press_key</td><td>按键</td></tr>
+          <tr><td>表单</td><td>browser_fill_form</td><td>批量填写表单字段</td></tr>
+          <tr><td>表单</td><td>browser_select_option</td><td>下拉选择</td></tr>
+          <tr><td>表单</td><td>browser_file_upload</td><td>文件上传</td></tr>
+          <tr><td>表单</td><td>browser_handle_dialog</td><td>处理对话框（alert/confirm/prompt）</td></tr>
+          <tr><td>检查</td><td>browser_network_requests</td><td>列出所有网络请求</td></tr>
+          <tr><td>检查</td><td>browser_network_request</td><td>查看单个请求详情（Header + Body）</td></tr>
+          <tr><td>检查</td><td>browser_console_messages</td><td>获取控制台消息</td></tr>
+          <tr><td>高级</td><td>browser_evaluate</td><td>在页面/元素上执行 JS</td></tr>
+          <tr><td>高级</td><td>browser_run_code_unsafe</td><td>执行任意 Playwright 代码（⚠️ RCE 等价）</td></tr>
+          <tr><td>工具</td><td>browser_resize</td><td>调整浏览器窗口大小</td></tr>
+          <tr><td>工具</td><td>browser_wait_for</td><td>等待文本出现/消失或时间流逝</td></tr>
+          <tr><td>工具</td><td>browser_close</td><td>关闭页面</td></tr>
+        </tbody>
+      </table>
+      <div class="field" style="margin-top:16px;"><div class="field-label">应用实例</div></div>
+      <div class="code-block">
+        <div class="code-header"><span class="lang">端到端测试流程</span><span>Playwright MCP</span></div>
+        <pre><code><span class="cmt">// 1. 导航到应用</span>
+<span class="op">{</span> <span class="str">"tool"</span><span class="op">:</span> <span class="str">"browser_navigate"</span><span class="op">,</span> <span class="str">"url"</span><span class="op">:</span> <span class="str">"http://localhost:3000/login"</span> <span class="op">}</span>
+
+<span class="cmt">// 2. 获取页面结构</span>
+<span class="op">{</span> <span class="str">"tool"</span><span class="op">:</span> <span class="str">"browser_snapshot"</span> <span class="op">}</span>
+<span class="cmt">// → 返回: button "登录" [ref=e1], textbox "邮箱" [ref=e2], textbox "密码" [ref=e3]</span>
+
+<span class="cmt">// 3. 批量填写表单</span>
+<span class="op">{</span> <span class="str">"tool"</span><span class="op">:</span> <span class="str">"browser_fill_form"</span><span class="op">,</span> <span class="str">"fields"</span><span class="op">:</span> <span class="op">[</span>
+  <span class="op">{</span> <span class="str">"target"</span><span class="op">:</span> <span class="str">"e2"</span><span class="op">,</span> <span class="str">"name"</span><span class="op">:</span> <span class="str">"邮箱"</span><span class="op">,</span> <span class="str">"type"</span><span class="op">:</span> <span class="str">"textbox"</span><span class="op">,</span> <span class="str">"value"</span><span class="op">:</span> <span class="str">"test@example.com"</span> <span class="op">},</span>
+  <span class="op">{</span> <span class="str">"target"</span><span class="op">:</span> <span class="str">"e3"</span><span class="op">,</span> <span class="str">"name"</span><span class="op">:</span> <span class="str">"密码"</span><span class="op">,</span> <span class="str">"type"</span><span class="op">:</span> <span class="str">"textbox"</span><span class="op">,</span> <span class="str">"value"</span><span class="op">:</span> <span class="str">"s3cret"</span> <span class="op">}</span>
+<span class="op">]</span> <span class="op">}</span>
+
+<span class="cmt">// 4. 点击登录</span>
+<span class="op">{</span> <span class="str">"tool"</span><span class="op">:</span> <span class="str">"browser_click"</span><span class="op">,</span> <span class="str">"target"</span><span class="op">:</span> <span class="str">"e1"</span><span class="op">,</span> <span class="str">"element"</span><span class="op">:</span> <span class="str">"登录按钮"</span> <span class="op">}</span>
+
+<span class="cmt">// 5. 验证跳转到首页</span>
+<span class="op">{</span> <span class="str">"tool"</span><span class="op">:</span> <span class="str">"browser_snapshot"</span> <span class="op">}</span>
+<span class="cmt">// → 检查是否包含 "欢迎回来" 文本</span>
+
+<span class="cmt">// 6. 检查网络请求</span>
+<span class="op">{</span> <span class="str">"tool"</span><span class="op">:</span> <span class="str">"browser_network_requests"</span><span class="op">,</span> <span class="str">"filter"</span><span class="op">:</span> <span class="str">"/api/auth"</span> <span class="op">}</span>
+<span class="op">{</span> <span class="str">"tool"</span><span class="op">:</span> <span class="str">"browser_network_request"</span><span class="op">,</span> <span class="str">"index"</span><span class="op">:</span> <span class="param">1</span><span class="op">,</span> <span class="str">"part"</span><span class="op">:</span> <span class="str">"response-body"</span> <span class="op">}</span></code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 设计原则 ==================== -->
+<section id="principles">
+  <h2>设计原则 <span class="badge">8 Principles</span></h2>
+  <p class="desc">指导工具集设计和演进的核心理念。</p>
+
+  <div class="principles-grid">
+    <div class="principle-card">
+      <h4>1. 专用优于通用</h4>
+      <p>Read/Grep/Glob 替代 cat/grep/find。每个工具只做一件事，通过组合应对复杂场景。专用工具提供更结构化的输出、更精确的权限控制。</p>
+    </div>
+    <div class="principle-card">
+      <h4>2. 安全优先</h4>
+      <p>三级权限体系：只读（自动放行）、需审批（Edit/Write/Bash）、危险操作（rm -rf / force push 必须确认）。沙箱执行 + hooks 拦截。</p>
+    </div>
+    <div class="principle-card">
+      <h4>3. Token 效率</h4>
+      <p>Edit（diff）替代 Write（全量）减少上下文消耗。Agent 子代理隔离搜索结果，不污染主会话。Prompt cache 5 分钟 TTL 指导调度策略。</p>
+    </div>
+    <div class="principle-card">
+      <h4>4. 结构化优先</h4>
+      <p>NotebookEdit 而非 sed 操作 JSON。Task* 系统而非自由文本追踪。信息输出统一结构化，便于程序化消费。</p>
+    </div>
+    <div class="principle-card">
+      <h4>5. 可扩展性</h4>
+      <p>MCP 协议（浏览器工具由 Playwright MCP 插件提供）和 Skill 系统允许第三方扩展工具集，不修改核心代码。</p>
+    </div>
+    <div class="principle-card">
+      <h4>6. 跨平台</h4>
+      <p>Bash + PowerShell 双轨制，确保 macOS/Linux 和 Windows 都有一流体验。Windows 专有操作（注册表、证书）通过 PowerShell 覆盖。</p>
+    </div>
+    <div class="principle-card">
+      <h4>7. 人在环中</h4>
+      <p>AskUserQuestion（决策节点）、PlanMode（方案审批）、PushNotification（异步通知）。AI 不能替用户做价值判断，关键决策必须有审批。</p>
+    </div>
+    <div class="principle-card">
+      <h4>8. 上下文隔离</h4>
+      <p>Agent 子代理拥有独立上下文窗口。Worktree 在 Git 层面隔离文件系统。避免搜索噪音和实验性改动污染主工作流。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 与 Agent SDK 对比 ==================== -->
+<section id="comparison">
+  <h2>与 Claude Agent SDK 的对比 <span class="badge">Differentiation</span></h2>
+  <p class="desc">Claude Code 工具集 与 Claude Agent SDK 都构建在 Anthropic API tool-use 原语之上，但定位完全不同。</p>
+
+  <table class="info-table">
+    <thead>
+      <tr><th>维度</th><th>Claude Code 工具集</th><th>Claude Agent SDK</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>性质</td>
+        <td>CLI 应用内的固定工具集</td>
+        <td>npm SDK 包，供开发者在自己的 App 中使用</td>
+      </tr>
+      <tr>
+        <td>实现者</td>
+        <td>Anthropic 团队（Claude Code 产品组）</td>
+        <td>SDK 使用者自己实现工具逻辑</td>
+      </tr>
+      <tr>
+        <td>运行环境</td>
+        <td>Claude Code 沙箱（CLI 进程内）</td>
+        <td>开发者的 Node.js 进程</td>
+      </tr>
+      <tr>
+        <td>权限控制</td>
+        <td>Claude Code 三级权限 + hooks</td>
+        <td>开发者通过 <code>canUseTool</code> 回调自定义</td>
+      </tr>
+      <tr>
+        <td>可定制性</td>
+        <td>固定工具集，不可增删</td>
+        <td>完全掌控：可删减、增强、替换任意工具</td>
+      </tr>
+      <tr>
+        <td>扩展方式</td>
+        <td>MCP 插件 + Skill 系统</td>
+        <td>直接编写 TypeScript 代码定义工具</td>
+      </tr>
+      <tr>
+        <td>适用场景</td>
+        <td>终端用户交互式编码</td>
+        <td>程序化构建自定义 AI Agent</td>
+      </tr>
+      <tr>
+        <td>典型用例</td>
+        <td>"帮我重构这个模块"</td>
+        <td>"在 CI 流水线中自动修复 lint 错误"</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div style="margin-top: 24px; padding: 16px 20px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm);">
+    <strong style="color: var(--peach);">关键认知</strong>
+    <p style="margin-top: 8px; color: var(--text-secondary); font-size: 0.88rem;">
+      两者工具集的"重复"是<strong style="color: var(--text);">有意设计</strong>，不是冗余。
+      就像 macOS Terminal.app 和 iTerm2 都能 <code style="color: var(--green);">ls</code>、<code style="color: var(--green);">cd</code>、<code style="color: var(--green);">cat</code>，
+      它们解决的是同一类问题（文件操作），但是两个独立的、互不依赖的产品。
+      Claude Code 的 Agent 工具（子代理调度）与 Claude Agent SDK 也完全无关——前者是内置的子代理机制，后者是面向开发者的 npm 包。
+    </p>
+  </div>
+</section>
+
+</main>
+
+<script>
+// 点击 sidebar 外部关闭（移动端）
+document.addEventListener('click', (e) => {
+  const sidebar = document.querySelector('.sidebar');
+  const toggle = document.querySelector('.sidebar-toggle');
+  if (window.innerWidth <= 900 &&
+      !sidebar.contains(e.target) &&
+      !toggle.contains(e.target) &&
+      sidebar.classList.contains('open')) {
+    sidebar.classList.remove('open');
+  }
+});
+
+// 滚动时高亮当前 section 对应的 sidebar 链接
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
+      const id = entry.target.id;
+      const link = document.querySelector(`.sidebar nav a[href="#${id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-80px 0px -70% 0px' });
+
+document.querySelectorAll('section[id]').forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>

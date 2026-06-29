@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude提示词工程最佳实践学习报告</title>
+  <style>
+    /* ===== Catppuccin 暗色主题配色 ===== */
+    :root {
+      --bg-primary: #1e1e2e;
+      --bg-secondary: #181825;
+      --bg-card: rgba(255,255,255,0.04);
+      --text-primary: #cdd6f4;
+      --text-secondary: #bac2de;
+      --text-muted: #6c7086;
+      --accent-blue: #89b4fa;
+      --accent-purple: #cba6f7;
+      --accent-green: #a6e3a1;
+      --accent-orange: #fab387;
+      --accent-red: #f38ba8;
+      --border-color: rgba(255,255,255,0.08);
+    }
+
+    /* ===== 全局样式 ===== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.8;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ===== 侧边栏导航 ===== */
+    .sidebar {
+      width: 280px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      padding: 32px 24px;
+      position: fixed;
+      left: 0;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      z-index: 100;
+    }
+
+    .sidebar-header {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--accent-purple);
+      margin-bottom: 8px;
+    }
+
+    .sidebar-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .sidebar-nav {
+      list-style: none;
+    }
+
+    .sidebar-nav li {
+      margin-bottom: 8px;
+    }
+
+    .sidebar-nav a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      display: block;
+      transition: all 0.2s;
+    }
+
+    .sidebar-nav a:hover {
+      background: var(--bg-card);
+      color: var(--accent-blue);
+    }
+
+    .sidebar-nav a.active {
+      background: var(--accent-purple);
+      color: white;
+    }
+
+    .nav-section {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .nav-section-title {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 8px;
+      padding-left: 12px;
+    }
+
+    /* ===== 主内容区 ===== */
+    .main-content {
+      margin-left: 280px;
+      padding: 48px 64px;
+      flex: 1;
+      max-width: 1200px;
+    }
+
+    /* ===== 文章头部 ===== */
+    .article-header {
+      margin-bottom: 48px;
+      padding-bottom: 32px;
+      border-bottom: 2px solid var(--accent-purple);
+    }
+
+    .article-title {
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--accent-purple);
+      margin-bottom: 16px;
+    }
+
+    .article-meta {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .article-source {
+      color: var(--accent-blue);
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .article-source:hover {
+      text-decoration: underline;
+    }
+
+    .article-intro {
+      font-size: 18px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+
+    /* ===== 卡片组件 ===== */
+    .card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 32px;
+      margin-bottom: 32px;
+      border: 1px solid var(--border-color);
+    }
+
+    .card-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--accent-purple);
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .card-title::before {
+      content: "";
+      width: 4px;
+      height: 24px;
+      background: var(--accent-purple);
+      border-radius: 2px;
+    }
+
+    .card-subtitle {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--accent-blue);
+      margin: 24px 0 16px;
+    }
+
+    .card-content {
+      color: var(--text-primary);
+    }
+
+    /* ===== 文本样式 ===== */
+    p {
+      margin: 16px 0;
+      color: var(--text-primary);
+    }
+
+    strong {
+      color: var(--accent-green);
+      font-weight: 600;
+    }
+
+    em {
+      color: var(--accent-orange);
+      font-style: italic;
+    }
+
+    /* ===== 列表样式 ===== */
+    ul, ol {
+      margin: 16px 0;
+      padding-left: 32px;
+    }
+
+    li {
+      margin: 12px 0;
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+
+    li ul, li ol {
+      margin: 8px 0;
+    }
+
+    .feature-list {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .feature-list li {
+      margin-bottom: 16px;
+      padding-left: 28px;
+      position: relative;
+    }
+
+    .feature-list li::before {
+      content: "▸";
+      position: absolute;
+      left: 0;
+      color: var(--accent-purple);
+      font-size: 16px;
+    }
+
+    /* ===== 对比示例 ===== */
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 24px 0;
+    }
+
+    .comparison-box {
+      background: rgba(255,255,255,0.02);
+      border-radius: 8px;
+      padding: 20px;
+      border: 1px solid var(--border-color);
+    }
+
+    .comparison-label {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      padding: 4px 12px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    .label-bad {
+      background: rgba(243, 139, 168, 0.15);
+      color: var(--accent-red);
+    }
+
+    .label-good {
+      background: rgba(166, 227, 161, 0.15);
+      color: var(--accent-green);
+    }
+
+    .comparison-text {
+      font-size: 14px;
+      color: var(--text-primary);
+      font-style: italic;
+    }
+
+    /* ===== 代码块样式 ===== */
+    .code-container {
+      background: #1e1e2e;
+      border-radius: 12px;
+      margin: 20px 0;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+    }
+
+    .code-header {
+      background: rgba(255,255,255,0.04);
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .code-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent-purple);
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: rgba(203, 166, 247, 0.15);
+    }
+
+    .code-body {
+      padding: 20px;
+      overflow-x: auto;
+    }
+
+    .code-body pre {
+      margin: 0;
+      color: var(--text-primary);
+      font-family: "Fira Code", "Consolas", monospace;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* ===== 表格样式 ===== */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+      background: rgba(255,255,255,0.02);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .data-table th {
+      background: rgba(255,255,255,0.06);
+      color: var(--accent-blue);
+      font-weight: 600;
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .data-table td {
+      padding: 12px 16px;
+      color: var(--text-primary);
+      border-top: 1px solid var(--border-color);
+      font-size: 14px;
+    }
+
+    /* ===== 重点提示框 ===== */
+    .highlight-box {
+      background: rgba(203, 166, 247, 0.08);
+      border-left: 4px solid var(--accent-purple);
+      padding: 20px 24px;
+      border-radius: 8px;
+      margin: 24px 0;
+    }
+
+    .highlight-box-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--accent-purple);
+      margin-bottom: 12px;
+    }
+
+    /* ===== 响应式布局 ===== */
+    @media (max-width: 1024px) {
+      .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s;
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .main-content {
+        margin-left: 0;
+        padding: 24px;
+      }
+
+      .menu-toggle {
+        display: block;
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        z-index: 101;
+        background: var(--accent-purple);
+        color: white;
+        border: none;
+        padding: 12px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+
+      .comparison-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (min-width: 1025px) {
+      .menu-toggle {
+        display: none;
+      }
+    }
+
+    /* ===== 技术徽章 ===== */
+    .tech-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+
+    .badge-core {
+      background: rgba(166, 227, 161, 0.15);
+      color: var(--accent-green);
+    }
+
+    .badge-advanced {
+      background: rgba(137, 180, 250, 0.15);
+      color: var(--accent-blue);
+    }
+
+    .badge-legacy {
+      background: rgba(250, 179, 135, 0.15);
+      color: var(--accent-orange);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 移动端菜单按钮 -->
+  <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+
+  <!-- 侧边栏导航 -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">Claude提示词工程</div>
+    <div class="sidebar-meta">最佳实践学习报告<br>2026-05-27</div>
+    <ul class="sidebar-nav">
+      <li><a href="#overview">概述</a></li>
+
+      <div class="nav-section">
+        <div class="nav-section-title">核心技术</div>
+        <li><a href="#explicit">明确清晰</a></li>
+        <li><a href="#context">提供上下文</a></li>
+        <li><a href="#specific">具体化指令</a></li>
+        <li><a href="#examples">使用示例</a></li>
+        <li><a href="#uncertainty">表达不确定性</a></li>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section-title">高级技术</div>
+        <li><a href="#prefill">预填充响应</a></li>
+        <li><a href="#cot">链式思考</a></li>
+        <li><a href="#format">控制输出格式</a></li>
+        <li><a href="#chaining">提示链</a></li>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section-title">实践指南</div>
+        <li><a href="#legacy">过时技术</a></li>
+        <li><a href="#combination">技术组合</a></li>
+        <li><a href="#troubleshooting">问题排查</a></li>
+        <li><a href="#mistakes">常见错误</a></li>
+        <li><a href="#summary">总结建议</a></li>
+      </div>
+    </ul>
+  </nav>
+
+  <!-- 主内容区 -->
+  <main class="main-content">
+
+    <!-- 文章头部 -->
+    <header class="article-header">
+      <h1 class="article-title">Claude提示词工程最佳实践学习报告</h1>
+      <div class="article-meta">
+        原文来源：<a href="https://claude.com/blog/best-practices-for-prompt-engineering" class="article-source" target="_blank">Prompt engineering best practices | Claude</a>
+      </div>
+      <div class="article-intro">
+        本报告系统梳理了Claude团队发布的提示词工程最佳实践，涵盖核心技术、高级技巧、实践策略和常见问题解决方案。提示词工程是与大语言模型高效协作的核心技能，掌握这些方法能显著提升AI输出质量。
+      </div>
+    </header>
+
+    <!-- 概述部分 -->
+    <section id="overview" class="card">
+      <h2 class="card-title">概述：什么是提示词工程</h2>
+      <div class="card-content">
+        <p><strong>提示词工程（Prompt Engineering）</strong>是结构化指令以获得更好AI输出的技术，涉及如何措辞查询、指定风格、提供上下文，引导模型行为以达成目标。</p>
+
+        <div class="highlight-box">
+          <div class="highlight-box-title">核心价值</div>
+          <p>模糊指令与精心设计的提示词之间的差距，意味着能否一次性获得理想输出。糟糕的提示词需要多次反复澄清意图，而优秀的提示词能<strong>直达目标</strong>。</p>
+        </div>
+
+        <p>本文从<strong>简单习惯</strong>开始，逐步升级到<strong>高级方法</strong>，帮助你在日常使用和复杂项目中都能获得更好的AI交互效果。</p>
+      </div>
+    </section>
+
+    <!-- 核心技术：明确清晰 -->
+    <section id="explicit" class="card">
+      <h2 class="card-title">核心技术1：明确清晰（Be Explicit and Clear）</h2>
+      <div class="card-content">
+        <span class="tech-badge badge-core">核心技术</span>
+
+        <p>现代AI模型对<strong>明确、清晰的指令</strong>响应效果极佳。不要假设模型能推断你的需求——<strong>直接表达</strong>，使用简单无歧义的语言。</p>
+
+        <h3 class="card-subtitle">关键原则</h3>
+        <p><strong>告诉模型你想要看到什么</strong>。如果需要全面的输出，直接请求。如果需要特定功能，列出它们。现代模型（如Claude）特别受益于明确的指导。</p>
+
+        <h3 class="card-subtitle">对比示例</h3>
+        <div class="comparison-grid">
+          <div class="comparison-box">
+            <span class="comparison-label label-bad">模糊版本</span>
+            <p class="comparison-text">"创建一个分析仪表板"</p>
+          </div>
+          <div class="comparison-box">
+            <span class="comparison-label label-good">明确版本</span>
+            <p class="comparison-text">"创建一个分析仪表板。包含尽可能多的相关功能和交互。超越基础，创建一个功能完整的实现。"</p>
+          </div>
+        </div>
+
+        <p>第二个版本<strong>明确请求全面功能和超越最低要求</strong>，引导模型产出更高质量的成果。</p>
+
+        <h3 class="card-subtitle">最佳实践</h3>
+        <ul class="feature-list">
+          <li>使用<strong>直接行动动词</strong>开头："Write"（编写）、"Analyze"（分析）、"Generate"（生成）、"Create"（创建）</li>
+          <li><strong>跳过前言</strong>，直达请求内容</li>
+          <li>说明<strong>你希望输出包含什么</strong>，不仅仅是工作内容</li>
+          <li>明确<strong>质量和深度期望</strong></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 核心技术：提供上下文 -->
+    <section id="context" class="card">
+      <h2 class="card-title">核心技术2：提供上下文和动机（Provide Context and Motivation）</h2>
+      <div class="card-content">
+        <span class="tech-badge badge-core">核心技术</span>
+
+        <p>解释<strong>为什么某事重要</strong>能帮助AI模型更好地理解你的目标，提供更精准的响应。这对于能够推理底层目标的现代模型特别有效。</p>
+
+        <h3 class="card-subtitle">对比示例</h3>
+        <div class="comparison-grid">
+          <div class="comparison-box">
+            <span class="comparison-label label-bad">效果较弱</span>
+            <p class="comparison-text">"NEVER使用要点列表"</p>
+          </div>
+          <div class="comparison-box">
+            <span class="comparison-label label-good">效果更强</span>
+            <p class="comparison-text">"我更偏好自然的段落形式而非要点列表，因为流畅的文字对我来说更易阅读且更具对话感。要点列表感觉过于正式和列表化，不符合我的轻松学习风格。"</p>
+          </div>
+        </div>
+
+        <p>第二个版本帮助模型理解<strong>规则背后的推理</strong>，使其能做出更好的相关格式决策。</p>
+
+        <h3 class="card-subtitle">何时提供上下文</h3>
+        <ul>
+          <li>解释输出的<strong>目的或受众</strong></li>
+          <li>澄清为何存在某些<strong>约束</strong></li>
+          <li>描述<strong>输出如何被使用</strong></li>
+          <li>指明你<strong>试图解决的问题</strong></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 核心技术：具体化 -->
+    <section id="specific" class="card">
+      <h2 class="card-title">核心技术3：具体化（Be Specific）</h2>
+      <div class="card-content">
+        <span class="tech-badge badge-core">核心技术</span>
+
+        <p>具体性意味着用<strong>明确的指导和要求</strong>结构化你的指令。你对需求的表述越具体，结果越好。</p>
+
+        <h3 class="card-subtitle">对比示例</h3>
+        <div class="comparison-grid">
+          <div class="comparison-box">
+            <span class="comparison-label label-bad">模糊版本</span>
+            <p class="comparison-text">"为地中海饮食创建一个膳食计划"</p>
+          </div>
+          <div class="comparison-box">
+            <span class="comparison-label label-good">具体版本</span>
+            <p class="comparison-text">"为糖尿病前期管理设计地中海饮食膳食计划。每日1800卡路里，强调低升糖食物。列出早餐、午餐、晚餐和一份零食，附带完整营养分析。"</p>
+          </div>
+        </div>
+
+        <h3 class="card-subtitle">如何让提示词足够具体</h3>
+        <ul>
+          <li><strong>清晰的约束</strong>：字数、格式、时间线</li>
+          <li><strong>相关上下文</strong>：谁是受众、目标是什么</li>
+          <li><strong>期望的输出结构</strong>：表格、列表、段落</li>
+          <li><strong>要求或限制</strong>：饮食需求、预算限制、技术约束</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 核心技术：使用示例 -->
+    <section id="examples" class="card">
+      <h2 class="card-title">核心技术4：使用示例（Use Examples）</h2>
+      <div class="card-content">
+        <span class="tech-badge badge-core">核心技术</span>
+
+        <p>示例（也称为<strong>单样本或少样本提示</strong>）在解释概念或演示特定格式时表现出色。示例<strong>展示而非讲述</strong>，澄清难以通过描述表达的细微需求。</p>
+
+        <div class="highlight-box">
+          <div class="highlight-box-title">重要提醒</div>
+          <p>Claude 4.x等先进模型对示例中的细节<strong>格外关注</strong>。确保示例与你希望鼓励的行为一致，并<strong>最小化你希望避免的模式</strong>。</p>
+        </div>
+
+        <h3 class="card-subtitle">何时使用示例</h3>
+        <ul>
+          <li>期望的格式<strong>更容易展示而非描述</strong></li>
+          <li>需要特定的<strong>语气或风格</strong></li>
+          <li>任务涉及<strong>细微模式或惯例</strong></li>
+          <li>简单指令<strong>未产生一致结果</strong></li>
+        </ul>
+
+        <p><strong>专业建议</strong>：从一个示例开始（单样本）。仅在输出仍不符合需求时添加更多示例（少样本）。</p>
+      </div>
+    </section>
+
+    <!-- 核心技术：表达不确定性 -->
+    <section id="uncertainty" class="card">
+      <h2 class="card-title">核心技术5：允许表达不确定性（Give Permission to Express Uncertainty）</h2>
+      <div class="card-content">
+        <span class="tech-badge badge-core">核心技术</span>
+
+        <p>给AI<strong>明确许可表达不确定性</strong>而非猜测。这减少幻觉，增加可靠性。</p>
+
+        <h3 class="card-subtitle">示例</h3>
+        <div class="code-container">
+          <div class="code-header">
+            <span class="code-label">提示词示例</span>
+          </div>
+          <div class="code-body">
+            <pre>"分析这些财务数据并识别趋势。如果数据不足以得出结论，请说明，而不是猜测。"</pre>
+          </div>
+        </div>
+
+        <p>这个简单补充使响应更可信，允许模型<strong>承认局限性</strong>。</p>
+      </div>
+    </section>
+
+    <!-- 高级技术：预填充响应 -->
+    <section id="prefill" class="card">
+      <h2 class="card-title">高级技术1：预填充AI响应（Prefill the AI's Response）</h2>
+      <div class="card-content">
+        <span class="tech-badge badge-advanced">高级技术</span>
+
+        <p>预填充让你<strong>为AI启动响应</strong>，引导格式、语气或结构。这在强制输出格式或跳过前言时特别强大。</p>
+
+        <h3 class="card-subtitle">何时使用预填充</h3>
+        <ul>
+          <li>需要AI输出<strong>JSON、XML或其他结构化格式</strong></li>
+          <li>希望<strong>跳过对话式前言</strong>直达内容</li>
+          <li>需要维持特定的<strong>声音或角色</strong></li>
+          <li>希望<strong>控制AI如何开始响应</strong></li>
+        </ul>
+
+        <h3 class="card-subtitle">示例：强制JSON输出</h3>
+        <div class="comparison-grid">
+          <div class="comparison-box">
+            <span class="comparison-label label-bad">无预填充</span>
+            <p class="comparison-text">Claude可能会说："这是你请求的JSON：{...}"</p>
+          </div>
+          <div class="comparison-box">
+            <span class="comparison-label label-good">有预填充（API用法）</span>
+            <div class="code-container">
+              <div class="code-body">
+                <pre>user: "Extract data as JSON"
+assistant: "{"</pre>
+              </div>
+            </div>
+            <p>AI将继续从开头大括号开始，仅输出有效JSON。</p>
+          </div>
+        </div>
+
+        <div class="highlight-box">
+          <div class="highlight-box-title">注意</div>
+          <p>在聊天界面中，你可以通过非常明确来近似此效果："仅输出有效JSON，无前言。以开头大括号开始响应。"</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 高级技术：链式思考 -->
+    <section id="cot" class="card">
+      <h2 class="card-title">高级技术2：链式思考（Chain of Thought Prompting）</h2>
+      <div class="card-content">
+        <span class="tech-badge badge-advanced">高级技术</span>
+
+        <p>链式思考（CoT）提示涉及在回答前<strong>请求逐步推理</strong>。这对复杂分析任务有帮助，能通过结构化思考获益。</p>
+
+        <div class="highlight-box">
+          <div class="highlight-box-title">现代方法</div>
+          <p>Claude提供<strong>扩展思考</strong>（extended thinking）功能，自动执行结构化推理。当可用时，扩展思考通常优于手动CoT提示。但理解手动CoT仍对扩展思考不可用或需要透明推理可审查的情况有价值。</p>
+        </div>
+
+        <h3 class="card-subtitle">何时使用链式思考</h3>
+        <ul>
+          <li>扩展思考<strong>不可用</strong>（如免费Claude.ai计划）</li>
+          <li>需要<strong>可审查的透明推理</strong></li>
+          <li>任务需要<strong>多个分析步骤</strong></li>
+          <li>希望确保AI<strong>考虑特定因素</strong></li>
+        </ul>
+
+        <h3 class="card-subtitle">三种常见实现方式</h3>
+
+        <p><strong>1. 基础链式思考</strong></p>
+        <div class="code-container">
+          <div class="code-body">
+            <pre>简单添加"Think step-by-step"到你的指令中。</pre>
+          </div>
+        </div>
+
+        <p><strong>2. 引导链式思考</strong></p>
+        <div class="code-container">
+          <div class="code-body">
+            <pre>结构化你的提示词以提供特定推理阶段。</pre>
+          </div>
+        </div>
+
+        <p><strong>3. 结构化链式思考</strong></p>
+        <div class="code-container">
+          <div class="code-body">
+            <pre>使用标签分离推理与最终答案。</pre>
+          </div>
+        </div>
+
+        <div class="highlight-box">
+          <div class="highlight-box-title">重要</div>
+          <p>即使扩展思考可用，<strong>显式CoT提示仍对复杂任务有益</strong>。两种方法互补而非互斥。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 高级技术：控制输出格式 -->
+    <section id="format" class="card">
+      <h2 class="card-title">高级技术3：控制输出格式（Control Output Format）</h2>
+      <div class="card-content">
+        <span class="tech-badge badge-advanced">高级技术</span>
+
+        <p>对于现代AI模型，有几种有效控制响应格式的方法：</p>
+
+        <h3 class="card-subtitle">1. 告诉AI<strong>做什么</strong>而非<strong>不做什么</strong></h3>
+        <div class="comparison-grid">
+          <div class="comparison-box">
+            <span class="comparison-label label-bad">不建议</span>
+            <p class="comparison-text">"Do not use markdown in your response"</p>
+          </div>
+          <div class="comparison-box">
+            <span class="comparison-label label-good">建议</span>
+            <p class="comparison-text">"Your response should be composed of smoothly flowing prose paragraphs"</p>
+          </div>
+        </div>
+
+        <h3 class="card-subtitle">2. 匹配提示词风格与期望输出</h3>
+        <p>提示词中使用的格式风格可能影响AI的响应风格。如果你希望最小markdown，<strong>减少提示词中的markdown</strong>。</p>
+
+        <h3 class="card-subtitle">3. 明确格式偏好</h3>
+        <div class="code-container">
+          <div class="code-body">
+            <pre>对详细格式控制：
+- 指定段落结构
+- 明确列表格式（如果有）
+- 说明标题层级
+- 描述期望的文本密度</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 高级技术：提示链 -->
+    <section id="chaining" class="card">
+      <h2 class="card-title">高级技术4：提示链（Prompt Chaining）</h2>
+      <div class="card-content">
+        <span class="tech-badge badge-advanced">高级技术</span>
+
+        <p>提示链将复杂任务<strong>分解为更小的顺序步骤</strong>，每个提示词处理一个阶段，输出传递到下一个指令。这种方法<strong>以延迟换取更高准确性</strong>，使每个单独任务更简单。</p>
+
+        <h3 class="card-subtitle">示例：研究摘要</h3>
+        <div class="code-container">
+          <div class="code-header">
+            <span class="code-label">第一步</span>
+          </div>
+          <div class="code-body">
+            <pre>"Summarize this medical paper covering methodology, findings, and clinical implications."</pre>
+          </div>
+        </div>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span class="code-label">第二步</span>
+          </div>
+          <div class="code-body">
+            <pre>"Review the summary above for accuracy, clarity, and completeness. Provide graded feedback."</pre>
+          </div>
+        </div>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span class="code-label">第三步</span>
+          </div>
+          <div class="code-body">
+            <pre>"Improve the summary based on this feedback: [feedback from step 2]"</pre>
+          </div>
+        </div>
+
+        <p>每个阶段通过<strong>专注指令</strong>添加细化。</p>
+
+        <h3 class="card-subtitle">何时使用提示链</h3>
+        <ul>
+          <li>有<strong>需要分解为步骤</strong>的复杂请求</li>
+          <li>需要<strong>迭代细化</strong></li>
+          <li>进行<strong>多阶段分析</strong></li>
+          <li>中间<strong>验证增加价值</strong></li>
+          <li>单个提示词<strong>产生不一致结果</strong></li>
+        </ul>
+
+        <div class="highlight-box">
+          <div class="highlight-box-title">权衡</div>
+          <p>提示链<strong>增加延迟</strong>（多个API调用），但<strong>显著提高复杂任务的准确性和可靠性</strong>。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 过时技术 -->
+    <section id="legacy" class="card">
+      <h2 class="card-title">过时技术（Legacy Techniques）</h2>
+      <div class="card-content">
+        <span class="tech-badge badge-legacy">已过时</span>
+
+        <p>一些在早期AI模型中流行的提示词工程技术，在Claude等现代模型中<strong>必要性降低</strong>。但仍可能在特定情况下有用。</p>
+
+        <h3 class="card-subtitle">XML标签用于结构</h3>
+        <p>XML标签曾是向提示词添加结构和清晰度的推荐方式，特别是包含大量数据时。现代模型<strong>更能理解结构</strong>而无需XML标签，但在特定情况下仍有用。</p>
+
+        <p><strong>何时XML标签可能仍有帮助：</strong></p>
+        <ul>
+          <li>处理<strong>极其复杂的提示词</strong>混合多种类型内容</li>
+          <li>需要<strong>绝对确定内容边界</strong></li>
+          <li>使用<strong>较旧模型版本</strong></li>
+        </ul>
+
+        <p><strong>现代替代方案：</strong>对大多数用例，清晰的标题、空白和明确语言（"使用下面的运动员信息..."）<strong>同样有效且开销更小</strong>。</p>
+
+        <h3 class="card-subtitle">角色提示</h3>
+        <p>角色提示在查询中定义专家角色和视角。虽然可以有效，但现代模型足够先进，<strong>繁重的角色提示往往不必要</strong>。</p>
+
+        <div class="highlight-box">
+          <div class="highlight-box-title">重要警示</div>
+          <p><strong>不要过度约束角色</strong>。"You are a helpful assistant"往往比"You are a world-renowned expert who only speaks in technical jargon and never makes mistakes"更好。过度具体的角色可能<strong>限制AI的帮助性</strong>。</p>
+        </div>
+
+        <p><strong>何时角色提示可能帮助：</strong></p>
+        <ul>
+          <li>需要跨多个输出的<strong>一致语气</strong></li>
+          <li>构建需要特定<strong>角色</strong>的应用</li>
+          <li>希望对复杂主题的<strong>领域专家框架</strong></li>
+        </ul>
+
+        <p><strong>现代替代方案：</strong>通常，明确你想要的视角更有效："从风险容忍度和长期增长潜力角度分析此投资组合"，而非分配角色。</p>
+      </div>
+    </section>
+
+    <!-- 技术组合 -->
+    <section id="combination" class="card">
+      <h2 class="card-title">技术组合策略（Putting It All Together）</h2>
+      <div class="card-content">
+        <p>单个技术孤立使用价值有限，但<strong>战略组合</strong>时真正力量显现。提示词工程的艺术不是使用每个可用技术——而是为特定需求<strong>选择正确组合</strong>。</p>
+
+        <h3 class="card-subtitle">组合示例</h3>
+        <div class="code-container">
+          <div class="code-header">
+            <span class="code-label">组合技术示例</span>
+          </div>
+          <div class="code-body">
+            <pre>Extract key metrics from this financial report:
+- Revenue and growth rate
+- Operating margins
+- Customer acquisition cost
+
+Return as JSON with this structure:
+{
+  "revenue": number,
+  "growth_rate": string,
+  "operating_margin": number
+}
+
+If any metric is unclear or not found, use null.
+Begin your response with {</pre>
+          </div>
+        </div>
+
+        <p>此提示词组合：</p>
+        <ul>
+          <li><strong>明确指令</strong>（确切提取什么）</li>
+          <li><strong>上下文</strong>（为何格式重要）</li>
+          <li><strong>示例结构</strong>（展示格式）</li>
+          <li><strong>表达不确定性许可</strong>（不确定时用null）</li>
+          <li><strong>格式控制</strong>（以开头大括号开始）</li>
+        </ul>
+
+        <h3 class="card-subtitle">技术选择决策框架</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>情况</th>
+              <th>推荐技术</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>请求是否清晰明确？</td>
+              <td>否 → 首先提升清晰度</td>
+            </tr>
+            <tr>
+              <td>任务是否简单？</td>
+              <td>仅使用核心技术（具体、清晰、上下文）</td>
+            </tr>
+            <tr>
+              <td>是否需要特定格式？</td>
+              <td>使用示例或预填充</td>
+            </tr>
+            <tr>
+              <td>任务是否复杂？</td>
+              <td>考虑分解（提示链）</td>
+            </tr>
+            <tr>
+              <td>是否需要推理？</td>
+              <td>使用扩展思考或链式思考</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 问题排查 -->
+    <section id="troubleshooting" class="card">
+      <h2 class="card-title">常见问题排查（Troubleshooting）</h2>
+      <div class="card-content">
+        <p>即使精心设计的提示词也可能产生意外结果。以下是常见问题及解决方案：</p>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>问题</th>
+              <th>解决方案</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>响应太泛泛</strong></td>
+              <td>添加具体性、示例或明确请求全面输出。要求AI"超越基础"</td>
+            </tr>
+            <tr>
+              <td><strong>响应偏离主题或错失要点</strong></td>
+              <td>更明确你的实际目标。提供为何询问的上下文</td>
+            </tr>
+            <tr>
+              <td><strong>响应格式不一致</strong></td>
+              <td>添加示例（少样本）或使用预填充控制响应开始</td>
+            </tr>
+            <tr>
+              <td><strong>任务太复杂，结果不可靠</strong></td>
+              <td>分解为多个提示词（提示链）。每个提示词做好一件事</td>
+            </tr>
+            <tr>
+              <td><strong>AI包含不必要前言</strong></td>
+              <td>使用预填充或明确请求："跳过前言，直达答案"</td>
+            </tr>
+            <tr>
+              <td><strong>AI虚构信息</strong></td>
+              <td>明确许可说"我不知道"当不确定时</td>
+            </tr>
+            <tr>
+              <td><strong>AI建议更改而非实现</strong></td>
+              <td>明确行动："更改此函数"而非"你能建议更改吗？"</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="highlight-box">
+          <div class="highlight-box-title">专业建议</div>
+          <p><strong>从简单开始，仅在需要时添加复杂性</strong>。测试每个添加以查看是否实际改善结果。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 常见错误 -->
+    <section id="mistakes" class="card">
+      <h2 class="card-title">常见错误警示（Common Mistakes to Avoid）</h2>
+      <div class="card-content">
+        <p>从这些常见陷阱中学习，节省时间并提升提示词：</p>
+
+        <ul class="feature-list">
+          <li><strong>不要过度工程</strong>：更长、更复杂的提示词<strong>并不总是更好</strong></li>
+          <li><strong>不要忽略基础</strong>：如果核心提示词不清晰或模糊，高级技术<strong>无法帮助</strong></li>
+          <li><strong>不要假设AI读心</strong>：明确你想要什么。留模糊给AI空间<strong>误解</strong></li>
+          <li><strong>不要同时使用所有技术</strong>：选择<strong>解决特定挑战</strong>的技术</li>
+          <li><strong>不要忘记迭代</strong>：第一个提示词<strong>很少完美</strong>。测试并细化</li>
+          <li><strong>不要依赖过时技术</strong>：XML标签和繁重角色提示在现代模型中<strong>必要性降低</strong>。从明确、清晰的指令开始</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 总结建议 -->
+    <section id="summary" class="card">
+      <h2 class="card-title">总结建议（Final Words of Advice）</h2>
+      <div class="card-content">
+        <p>提示词工程最终是关于<strong>沟通</strong>：说帮助AI最清晰理解你意图的语言。</p>
+
+        <h3 class="card-subtitle">学习路径</h3>
+        <ul>
+          <li><strong>从核心技术开始</strong>（本文早期覆盖的技术）</li>
+          <li><strong>一致使用直到成为第二天性</strong></li>
+          <li><strong>仅在解决特定问题时</strong>叠加高级技术</li>
+        </ul>
+
+        <div class="highlight-box">
+          <div class="highlight-box-title">核心原则</div>
+          <p><strong>最好的提示词不是最长或最复杂的</strong>。它是<strong>以最小必要结构可靠达成目标</strong>的那个。随着练习，你将发展出哪种技术适合哪种情况的直觉。</p>
+        </div>
+
+        <h3 class="card-subtitle">上下文工程的未来</h3>
+        <p>向上下文工程的转变<strong>不削弱提示词工程的重要性</strong>。事实上，提示词工程是上下文工程中的<strong>基础构建块</strong>。每个精心设计的提示词成为塑造AI行为的更大上下文的一部分，与对话历史、附加文件和系统指令协作创造更好结果。</p>
+
+        <h3 class="card-subtitle">快速评估清单</h3>
+        <ul>
+          <li>输出是否匹配你的<strong>具体要求</strong>？</li>
+          <li>是否<strong>一次尝试</strong>获得结果，或需要多次迭代？</li>
+          <li>格式在<strong>多次尝试</strong>中是否一致？</li>
+          <li>是否避免上面列出的<strong>常见错误</strong>？</li>
+        </ul>
+
+        <h3 class="card-subtitle">下一步学习资源</h3>
+        <ul>
+          <li><a href="https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/overview" class="article-source" target="_blank">Prompt engineering documentation（提示词工程文档）</a></li>
+          <li><a href="https://github.com/anthropics/prompt-eng-interactive-tutorial" class="article-source" target="_blank">Interactive prompt engineering tutorial（交互式提示词工程教程）</a></li>
+          <li><a href="https://anthropic.skilljar.com/claude-with-the-anthropic-api" class="article-source" target="_blank">Prompt engineering course（提示词工程课程）</a></li>
+          <li><a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents" class="article-source" target="_blank">Context engineering guide（上下文工程指南）</a></li>
+        </ul>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- JavaScript：侧边栏交互 -->
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('open');
+    }
+
+    // 点击导航链接时自动关闭侧边栏（移动端）
+    document.querySelectorAll('.sidebar-nav a').forEach(link => {
+      link.addEventListener('click', () => {
+        if (window.innerWidth <= 1024) {
+          document.getElementById('sidebar').classList.remove('open');
+        }
+      });
+    });
+
+    // 滚动时高亮当前章节
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('.sidebar-nav a');
+
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        if (scrollY >= sectionTop - 100) {
+          current = section.getAttribute('id');
+        }
+      });
+
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#' + current) {
+          link.classList.add('active');
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>

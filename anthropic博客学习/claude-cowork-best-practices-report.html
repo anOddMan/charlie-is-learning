@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Cowork 入门最佳实践 — 学习报告</title>
+<style>
+  :root {
+    --bg: #1e1e2e;
+    --surface: #313244;
+    --overlay: #45475a;
+    --text: #cdd6f4;
+    --subtext: #a6adc8;
+    --muted: #6c7086;
+    --accent: #89b4fa;
+    --green: #a6e3a1;
+    --yellow: #f9e2af;
+    --red: #f38ba8;
+    --purple: #cba6f7;
+    --peach: #fab387;
+    --teal: #94e2d5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ====== 侧边栏 TOC ====== */
+  .sidebar {
+    width: 280px;
+    min-width: 280px;
+    background: var(--surface);
+    padding: 24px 20px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    border-right: 1px solid var(--overlay);
+  }
+  .sidebar h2 {
+    font-size: 15px;
+    color: var(--accent);
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+  }
+  .sidebar .meta {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .sidebar nav a {
+    display: block;
+    color: var(--subtext);
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+  }
+  .sidebar nav a:hover, .sidebar nav a.active {
+    color: var(--text);
+    background: var(--overlay);
+    border-left-color: var(--accent);
+  }
+  .sidebar nav a.sub { padding-left: 28px; font-size: 12px; }
+
+  /* ====== 主内容区 ====== */
+  .main {
+    flex: 1;
+    max-width: 940px;
+    padding: 40px 48px;
+  }
+  .main h1 {
+    font-size: 28px;
+    color: var(--text);
+    margin-bottom: 4px;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 12px;
+  }
+  .main .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+  .main h2 {
+    font-size: 20px;
+    color: var(--accent);
+    margin: 40px 0 16px;
+    padding-left: 12px;
+    border-left: 3px solid var(--accent);
+  }
+  .main h3 {
+    font-size: 16px;
+    color: var(--teal);
+    margin: 28px 0 10px;
+  }
+  .main p { margin-bottom: 14px; font-size: 15px; color: var(--subtext); }
+  .main strong { color: var(--text); }
+
+  /* ====== 信息卡片 ====== */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+  }
+  .card {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--overlay);
+  }
+  .card .num {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--accent);
+    display: block;
+  }
+  .card .label {
+    font-size: 13px;
+    color: var(--subtext);
+    margin-top: 4px;
+  }
+
+  /* ====== 引用块 ====== */
+  blockquote {
+    border-left: 3px solid var(--yellow);
+    background: rgba(249,226,175,0.06);
+    padding: 12px 18px;
+    margin: 18px 0;
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+    color: var(--yellow);
+    font-size: 14px;
+  }
+
+  /* ====== 表格 ====== */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 18px 0;
+    font-size: 14px;
+  }
+  th, td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--overlay);
+  }
+  th {
+    color: var(--accent);
+    font-weight: 600;
+    background: rgba(137,180,250,0.06);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  td { color: var(--subtext); vertical-align: top; }
+  tr:hover td { background: rgba(137,180,250,0.03); }
+
+  /* ====== 标签 ====== */
+  .tag {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .tag-green { background: rgba(166,227,161,0.15); color: var(--green); }
+  .tag-red { background: rgba(243,139,168,0.15); color: var(--red); }
+  .tag-yellow { background: rgba(249,226,175,0.15); color: var(--yellow); }
+  .tag-purple { background: rgba(203,166,247,0.15); color: var(--purple); }
+  .tag-blue { background: rgba(137,180,250,0.15); color: var(--accent); }
+
+  /* ====== SVG 图表区 ====== */
+  .diagram-box {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 24px;
+    margin: 20px 0;
+    text-align: center;
+    border: 1px solid var(--overlay);
+  }
+  .diagram-box .caption {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 10px;
+  }
+
+  /* ====== 要点列表 ====== */
+  ul, ol { margin: 10px 0 16px 20px; color: var(--subtext); font-size: 14px; }
+  li { margin-bottom: 6px; }
+  li strong { color: var(--text); }
+
+  /* ====== 步骤流程 ====== */
+  .step-list { list-style: none; margin-left: 0; counter-reset: step; }
+  .step-list li {
+    counter-increment: step;
+    background: var(--surface);
+    border: 1px solid var(--overlay);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 12px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .step-list li::before {
+    content: counter(step);
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 700;
+    font-size: 14px;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* ====== 分隔线 ====== */
+  hr { border: none; border-top: 1px solid var(--overlay); margin: 32px 0; }
+
+  /* ====== 移动端适配 ====== */
+  @media (max-width: 768px) {
+    body { flex-direction: column; }
+    .sidebar {
+      width: 100%; min-width: auto; height: auto; position: static;
+      border-right: none; border-bottom: 1px solid var(--overlay);
+      padding: 16px;
+    }
+    .sidebar nav { display: flex; flex-wrap: wrap; gap: 4px; }
+    .sidebar nav a { font-size: 11px; padding: 4px 8px; }
+    .main { padding: 20px 16px; }
+    .main h1 { font-size: 22px; }
+    .card-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ 侧边栏 ============ -->
+<aside class="sidebar">
+  <h2>📋 目录</h2>
+  <p class="meta">2026-06-05 · 学习报告</p>
+  <nav>
+    <a href="#overview">一、概述与作者背景</a>
+    <a href="#chat-cowork-code">二、Chat / Cowork / Code 三角色</a>
+    <a href="#cowork-shaped">三、Cowork 型任务的五标准</a>
+    <a href="#first-10-min">四、你的前 10 分钟</a>
+    <a href="#real-examples">五、真实案例拆解</a>
+    <a href="#setup">六、环境配置最佳实践</a>
+    <a href="#enterprise">七、企业级部署（五级成熟度）</a>
+    <a href="#takeaways">八、核心启示</a>
+  </nav>
+</aside>
+
+<!-- ============ 主内容 ============ -->
+<main class="main">
+
+<h1>Claude Cowork 入门最佳实践<br>—— 从聊天到委托，让 AI 产出交付物</h1>
+<p class="subtitle">
+  原文：<em>Best practices for getting started with Claude Cowork</em> ·
+  作者：Austin Lau（Anthropic 增长营销负责人） · 2026年6月
+</p>
+
+<!-- ====== 一、概述 ====== -->
+<h2 id="overview">一、概述与作者背景</h2>
+
+<p>
+  本文作者 <strong>Austin Lau</strong> 是 Anthropic 的增长营销负责人，<strong>非技术背景、不会写代码</strong>。
+  他在没有工程团队支持的情况下，独自一人扛起了 Anthropic 长达 10 个月的全部增长营销工作——
+  核心秘诀就是 <strong>Claude Cowork</strong>。他将多达 <strong>90%</strong> 的日常任务委托给 Claude，自己只做决策和判断。
+</p>
+
+<blockquote>
+  "关键的心态转变：从把 Claude 当作聊天工具，到把它当作一个可以产出交付物的同事。"
+  —— Austin Lau
+</blockquote>
+
+<div class="card-grid">
+  <div class="card"><span class="num">90%</span><span class="label">日常任务委托给 Claude Cowork</span></div>
+  <div class="card"><span class="num">10 个月</span><span class="label">一人扛起全部增长营销</span></div>
+  <div class="card"><span class="num">5 个标准</span><span class="label">判断 Cowork 型任务</span></div>
+  <div class="card"><span class="num">30 秒</span><span class="label">前置澄清 → 省下大量返工</span></div>
+</div>
+
+<hr>
+
+<!-- ====== 二、三角色 ====== -->
+<h2 id="chat-cowork-code">二、Chat / Cowork / Code 三角色定位</h2>
+
+<p>Anthropic 将 Claude 产品线划分为三个清晰的角色，各自对应不同场景：</p>
+
+<table>
+  <tr><th style="width:15%">产品</th><th style="width:25%">适用场景</th><th style="width:30%">核心能力</th><th style="width:30%">典型用户</th></tr>
+  <tr>
+    <td><span class="tag tag-purple">Chat</span></td>
+    <td>头脑风暴、快速问答、压力测试想法、定位问题、随机提问</td>
+    <td>对话式交互、单轮或多轮问答、知识检索</td>
+    <td>所有人</td>
+  </tr>
+  <tr>
+    <td><span class="tag tag-green">Cowork</span></td>
+    <td>产出交付物：文档、PPT、电子表格、报告、分析</td>
+    <td>多步骤执行、文件读写、连接器（Gmail/Slack/Notion等）、定时任务、子智能体</td>
+    <td><strong>非技术知识工作者</strong></td>
+  </tr>
+  <tr>
+    <td><span class="tag tag-blue">Code</span></td>
+    <td>软件开发、代码编写与调试、工程任务</td>
+    <td>终端操作、代码编辑、Git 集成、测试运行</td>
+    <td>开发者</td>
+  </tr>
+</table>
+
+<blockquote>
+  "Chat 给你想法，Cowork 给你交付物，Code 给你软件。"
+</blockquote>
+
+<hr>
+
+<!-- ====== 三、五标准 ====== -->
+<h2 id="cowork-shaped">三、判断 "Cowork 型任务" 的五个标准</h2>
+
+<p>Austin 提出了判断一个任务是否适合交给 Cowork 的 <strong>五个标准</strong>——不需要全部满足，但好候选通常匹配其中多项：</p>
+
+<div class="diagram-box">
+  <svg viewBox="0 0 700 360" xmlns="http://www.w3.org/2000/svg" style="max-width:100%">
+    <!-- 中心圆 -->
+    <circle cx="350" cy="180" r="55" fill="none" stroke="#89b4fa" stroke-width="2" stroke-dasharray="6"/>
+    <text x="350" y="175" fill="#89b4fa" font-size="12" font-weight="700" text-anchor="middle">Cowork</text>
+    <text x="350" y="192" fill="#89b4fa" font-size="11" text-anchor="middle">型任务</text>
+
+    <!-- 标准1 - 上方 -->
+    <rect x="265" y="18" width="170" height="62" rx="10" fill="rgba(166,227,161,0.08)" stroke="#a6e3a1" stroke-opacity="0.5"/>
+    <text x="350" y="42" fill="#a6e3a1" font-size="13" font-weight="700" text-anchor="middle">① 多输入源</text>
+    <text x="350" y="60" fill="#a6e3a1" font-size="11" text-anchor="middle" opacity="0.8">多个文件 / 文件夹 / 连接器</text>
+    <line x1="350" y1="80" x2="350" y2="122" stroke="#a6e3a1" stroke-opacity="0.3" stroke-width="1"/>
+
+    <!-- 标准2 - 右上方 -->
+    <rect x="510" y="80" width="170" height="62" rx="10" fill="rgba(249,226,175,0.08)" stroke="#f9e2af" stroke-opacity="0.5"/>
+    <text x="595" y="104" fill="#f9e2af" font-size="13" font-weight="700" text-anchor="middle">② 文件输出</text>
+    <text x="595" y="122" fill="#f9e2af" font-size="11" text-anchor="middle" opacity="0.8">文档 / PPT / 表格 / CSV</text>
+    <line x1="540" y1="111" x2="407" y2="163" stroke="#f9e2af" stroke-opacity="0.3" stroke-width="1"/>
+
+    <!-- 标准3 - 右下方 -->
+    <rect x="510" y="218" width="170" height="62" rx="10" fill="rgba(203,166,247,0.08)" stroke="#cba6f7" stroke-opacity="0.5"/>
+    <text x="595" y="242" fill="#cba6f7" font-size="13" font-weight="700" text-anchor="middle">③ 可复现</text>
+    <text x="595" y="260" fill="#cba6f7" font-size="11" text-anchor="middle" opacity="0.8">每日/周重复执行（最佳）</text>
+    <line x1="540" y1="249" x2="407" y2="197" stroke="#cba6f7" stroke-opacity="0.3" stroke-width="1"/>
+
+    <!-- 标准4 - 下方 -->
+    <rect x="265" y="280" width="170" height="62" rx="10" fill="rgba(148,226,213,0.08)" stroke="#94e2d5" stroke-opacity="0.5"/>
+    <text x="350" y="304" fill="#94e2d5" font-size="13" font-weight="700" text-anchor="middle">④ 你知好坏</text>
+    <text x="350" y="322" fill="#94e2d5" font-size="11" text-anchor="middle" opacity="0.8">15 秒内判断结果质量</text>
+    <line x1="350" y1="280" x2="350" y2="240" stroke="#94e2d5" stroke-opacity="0.3" stroke-width="1"/>
+
+    <!-- 标准5 - 左下方 -->
+    <rect x="20" y="218" width="170" height="62" rx="10" fill="rgba(243,139,168,0.08)" stroke="#f38ba8" stroke-opacity="0.5"/>
+    <text x="105" y="242" fill="#f38ba8" font-size="13" font-weight="700" text-anchor="middle">⑤ 中间过程枯燥</text>
+    <text x="105" y="260" fill="#f38ba8" font-size="11" text-anchor="middle" opacity="0.8">提取、编译、核对、格式化</text>
+    <line x1="190" y1="249" x2="293" y2="197" stroke="#f38ba8" stroke-opacity="0.3" stroke-width="1"/>
+
+    <!-- 第6个维度 - 左上方（可选加分项） -->
+    <rect x="20" y="80" width="170" height="62" rx="10" fill="rgba(137,180,250,0.06)" stroke="#89b4fa" stroke-opacity="0.4" stroke-dasharray="4"/>
+    <text x="105" y="104" fill="#89b4fa" font-size="12" font-weight="700" text-anchor="middle">+ 加分项</text>
+    <text x="105" y="122" fill="#89b4fa" font-size="11" text-anchor="middle" opacity="0.7">思考在首尾 / 中间可委托</text>
+    <line x1="190" y1="111" x2="293" y2="163" stroke="#89b4fa" stroke-opacity="0.3" stroke-width="1"/>
+  </svg>
+  <p class="caption">▲ 五个标准环绕式视图 —— 中心是 Cowork 型任务，外围是五大判断维度</p>
+</div>
+
+<table>
+  <tr><th style="width:5%">#</th><th style="width:20%">标准</th><th>说明</th><th>为什么重要</th></tr>
+  <tr>
+    <td style="color:var(--green); font-weight:700;">①</td>
+    <td><strong>多输入源</strong></td>
+    <td>任务涉及多个文件、整个文件夹，或文件 + 连接器（Slack/Gmail 等）的组合</td>
+    <td>Cowork 的价值在于跨来源整合——单一来源的问题用 Chat 就够了</td>
+  </tr>
+  <tr>
+    <td style="color:var(--yellow); font-weight:700;">②</td>
+    <td><strong>产出文件</strong></td>
+    <td>交付物是可以附上、展示、分享或复用的东西（文档、PPT、表格、CSV）</td>
+    <td>文件输出意味着任务有明确的"完成"标准，你可以直接审阅结果</td>
+  </tr>
+  <tr>
+    <td style="color:var(--purple); font-weight:700;">③</td>
+    <td><strong>可复现</strong></td>
+    <td>一次性任务也可以，但<strong>每日/每周重复执行</strong>的任务是最佳场景</td>
+    <td>你可以用定时任务（scheduled tasks）自动化——设一次，永久运行</td>
+  </tr>
+  <tr>
+    <td style="color:var(--teal); font-weight:700;">④</td>
+    <td><strong>你知好坏</strong></td>
+    <td>你能在 <strong>15 秒内</strong>判断结果——正确、错误，或完成了 70%</td>
+    <td>快速反馈循环是迭代改进的基础；如果你自己都不知道什么算"好"，AI 更不可能知道</td>
+  </tr>
+  <tr>
+    <td style="color:var(--red); font-weight:700;">⑤</td>
+    <td><strong>中间过程枯燥</strong></td>
+    <td>思考发生在开头（决定你要什么）和结尾（判断结果）。中间繁琐的提取、编译、核对、格式化——这些就是你要委托出去的</td>
+    <td>这是 Cowork 的核心价值主张：你做判断，AI 做执行</td>
+  </tr>
+</table>
+
+<hr>
+
+<!-- ====== 四、前10分钟 ====== -->
+<h2 id="first-10-min">四、你的前 10 分钟：从零到第一个交付物</h2>
+
+<ol class="step-list">
+  <li>
+    <div>
+      <strong>打开桌面应用，切换到 Cowork 标签页</strong>
+      <p style="margin-top:4px;font-size:13px;">无需终端、无需代码。Claude Desktop 是 Cowork 的原生界面。</p>
+    </div>
+  </li>
+  <li>
+    <div>
+      <strong>给 Claude 一些可用的素材</strong>
+      <p style="margin-top:4px;font-size:13px;">拖入文件、指向一个文件夹，或连接应用（Slack、Gmail、Notion、CRM 等）。空手而来很难产出好东西。</p>
+    </div>
+  </li>
+  <li>
+    <div>
+      <strong>告诉 Claude 你想要的产出结果</strong>
+      <p style="margin-top:4px;font-size:13px;">描述交付物并提供上下文——你要的不是"帮我分析数据"，而是"帮我生成一份包含趋势图和关键发现的周报"。</p>
+    </div>
+  </li>
+  <li>
+    <div>
+      <strong>从一个你熟悉的任务开始</strong>
+      <p style="margin-top:4px;font-size:13px;">不要拿陌生任务练习——选一个你非常了解的任务，这样你能立刻看出 Cowork 的优势和不足。</p>
+    </div>
+  </li>
+  <li>
+    <div>
+      <strong>⭐ 让 Claude 在动手前先问你问题</strong>
+      <p style="margin-top:4px;font-size:13px;">这是 Austin 称之为<strong>"最有用的习惯"</strong>：在 Prompt 中加入——<em>"在开始之前，先复述我的需求确保我们一致，然后提出你所有的澄清性问题。"</em>回答 5 个问题花 30 秒，事后修补同样的漏洞花的是时间和 Token。</p>
+    </div>
+  </li>
+</ol>
+
+<blockquote>
+  "回答五个前置问题花你 30 秒。事后发现同样的漏洞，花的是你的时间和 Token，而且修正起来很痛苦。"
+  —— Austin Lau
+</blockquote>
+
+<hr>
+
+<!-- ====== 五、真实案例 ====== -->
+<h2 id="real-examples">五、真实案例拆解：Austin 的三类 Cowork 工作流</h2>
+
+<h3>案例一：每日简报（Daily Briefing）</h3>
+<table>
+  <tr><th style="width:18%">维度</th><th>详情</th></tr>
+  <tr><td><strong>输入源</strong></td><td>Slack（#ops-team、#leadership、#sales 频道）+ Gmail + Notion 任务 + 仪表盘指标</td></tr>
+  <tr><td><strong>输出</strong></td><td>一份结构化的每日简报：紧急事项、需关注的讨论串、待办任务、跨工具上下文关联</td></tr>
+  <tr><td><strong>匹配标准</strong></td><td><span class="tag tag-green">①多输入</span> <span class="tag tag-yellow">②文件输出</span> <span class="tag tag-purple">③可复现(每日)</span> <span class="tag tag-red">⑤中间枯燥</span></td></tr>
+  <tr><td><strong>效率提升</strong></td><td>无需手动切换平台——Claude 并行拉取所有数据源，自动关联指标变化与讨论上下文</td></tr>
+</table>
+
+<h3>案例二：广告预算管控（Budget Pacing）</h3>
+<table>
+  <tr><th style="width:18%">维度</th><th>详情</th></tr>
+  <tr><td><strong>输入源</strong></td><td>Google Ads + Meta Ads（通过 API 连接器）</td></tr>
+  <tr><td><strong>输出</strong></td><td>实时支出/转化率仪表盘、预算浪费分析、A/B 测试历史记忆与建议</td></tr>
+  <tr><td><strong>匹配标准</strong></td><td><span class="tag tag-green">①多输入</span> <span class="tag tag-yellow">②文件输出</span> <span class="tag tag-teal">④你知好坏</span> <span class="tag tag-red">⑤中间枯燥</span></td></tr>
+  <tr><td><strong>效率提升</strong></td><td>直接用自然语言问"哪里在浪费预算？"——无需打开各平台仪表盘手动对照。内置记忆系统跨周期追踪 A/B 测试结果</td></tr>
+</table>
+
+<h3>案例三：搜索控制台报告（Reporting）</h3>
+<table>
+  <tr><th style="width:18%">维度</th><th>详情</th></tr>
+  <tr><td><strong>输入源</strong></td><td>Google Search Console + 网站分析数据</td></tr>
+  <tr><td><strong>输出</strong></td><td>模板化的 SEO 周报/月报，含趋势分析和改进建议</td></tr>
+  <tr><td><strong>匹配标准</strong></td><td><span class="tag tag-green">①多输入</span> <span class="tag tag-yellow">②文件输出</span> <span class="tag tag-purple">③可复现</span> <span class="tag tag-red">⑤中间枯燥</span></td></tr>
+  <tr><td><strong>效率提升</strong></td><td>将数据提取→格式化→排版→图表生成的全流程自动化</td></tr>
+</table>
+
+<hr>
+
+<!-- ====== 六、环境配置 ====== -->
+<h2 id="setup">六、环境配置与生产力基础设施</h2>
+
+<h3>推荐的文件夹结构</h3>
+<p>多位实践者总结出以下布局模式：</p>
+
+<div class="diagram-box">
+  <svg viewBox="0 0 680 240" xmlns="http://www.w3.org/2000/svg" style="max-width:100%">
+    <!-- 根目录 -->
+    <rect x="30" y="10" width="170" height="32" rx="6" fill="rgba(137,180,250,0.12)" stroke="#89b4fa" stroke-opacity="0.5"/>
+    <text x="115" y="31" fill="#89b4fa" font-size="12" font-weight="600" text-anchor="middle">📁 Claude-Cowork/</text>
+
+    <!-- 连线 -->
+    <line x1="115" y1="42" x2="115" y2="54" stroke="#6c7086" stroke-width="1"/>
+    <line x1="115" y1="54" x2="50" y2="54" stroke="#6c7086" stroke-width="1"/>
+    <line x1="50" y1="54" x2="50" y2="66" stroke="#6c7086" stroke-width="1"/>
+    <line x1="115" y1="54" x2="175" y2="54" stroke="#6c7086" stroke-width="1"/>
+    <line x1="175" y1="54" x2="175" y2="66" stroke="#6c7086" stroke-width="1"/>
+    <line x1="115" y1="54" x2="300" y2="54" stroke="#6c7086" stroke-width="1"/>
+    <line x1="300" y1="54" x2="300" y2="66" stroke="#6c7086" stroke-width="1"/>
+    <line x1="115" y1="54" x2="425" y2="54" stroke="#6c7086" stroke-width="1"/>
+    <line x1="425" y1="54" x2="425" y2="66" stroke="#6c7086" stroke-width="1"/>
+    <line x1="115" y1="54" x2="550" y2="54" stroke="#6c7086" stroke-width="1"/>
+    <line x1="550" y1="54" x2="550" y2="66" stroke="#6c7086" stroke-width="1"/>
+
+    <!-- ABOUT ME -->
+    <rect x="10" y="68" width="80" height="55" rx="6" fill="rgba(166,227,161,0.08)" stroke="#a6e3a1" stroke-opacity="0.4"/>
+    <text x="50" y="88" fill="#a6e3a1" font-size="11" font-weight="600" text-anchor="middle">ABOUT ME</text>
+    <text x="50" y="106" fill="#a6e3a1" font-size="9" text-anchor="middle" opacity="0.7">about-me.md</text>
+    <text x="50" y="118" fill="#a6e3a1" font-size="9" text-anchor="middle" opacity="0.7">voice-style.md</text>
+
+    <!-- PROJECTS -->
+    <rect x="105" y="68" width="140" height="55" rx="6" fill="rgba(249,226,175,0.08)" stroke="#f9e2af" stroke-opacity="0.4"/>
+    <text x="175" y="88" fill="#f9e2af" font-size="11" font-weight="600" text-anchor="middle">PROJECTS</text>
+    <text x="175" y="106" fill="#f9e2af" font-size="9" text-anchor="middle" opacity="0.7">每个项目一个子文件夹</text>
+    <text x="175" y="118" fill="#f9e2af" font-size="9" text-anchor="middle" opacity="0.7">存放源文件 & 上下文</text>
+
+    <!-- TEMPLATES -->
+    <rect x="260" y="68" width="80" height="55" rx="6" fill="rgba(203,166,247,0.08)" stroke="#cba6f7" stroke-opacity="0.4"/>
+    <text x="300" y="88" fill="#cba6f7" font-size="11" font-weight="600" text-anchor="middle">TEMPLATES</text>
+    <text x="300" y="106" fill="#cba6f7" font-size="9" text-anchor="middle" opacity="0.7">可复用结构</text>
+    <text x="300" y="118" fill="#cba6f7" font-size="9" text-anchor="middle" opacity="0.7">报告 / 简报模板</text>
+
+    <!-- OUTPUTS -->
+    <rect x="370" y="68" width="110" height="55" rx="6" fill="rgba(148,226,213,0.08)" stroke="#94e2d5" stroke-opacity="0.4"/>
+    <text x="425" y="88" fill="#94e2d5" font-size="11" font-weight="600" text-anchor="middle">CLAUDE OUTPUTS</text>
+    <text x="425" y="106" fill="#94e2d5" font-size="9" text-anchor="middle" opacity="0.7">Cowork 交付物放这里</text>
+    <text x="425" y="118" fill="#94e2d5" font-size="9" text-anchor="middle" opacity="0.7">（写入权限）</text>
+
+    <!-- CONTEXT -->
+    <rect x="500" y="68" width="100" height="55" rx="6" fill="rgba(243,139,168,0.08)" stroke="#f38ba8" stroke-opacity="0.4"/>
+    <text x="550" y="88" fill="#f38ba8" font-size="11" font-weight="600" text-anchor="middle">CONTEXT</text>
+    <text x="550" y="106" fill="#f38ba8" font-size="9" text-anchor="middle" opacity="0.7">全局说明</text>
+    <text x="550" y="118" fill="#f38ba8" font-size="9" text-anchor="middle" opacity="0.7">工作规则</text>
+
+    <!-- 底部说明 -->
+    <text x="340" y="152" fill="#6c7086" font-size="10" text-anchor="middle">核心原则：源素材文件夹设为只读 → 输出文件夹设为可写</text>
+
+    <!-- 关键实践区 -->
+    <rect x="60" y="170" width="560" height="60" rx="8" fill="rgba(137,180,250,0.04)" stroke="#89b4fa" stroke-opacity="0.3" stroke-dasharray="4"/>
+    <text x="340" y="190" fill="#89b4fa" font-size="11" font-weight="600" text-anchor="middle">🔌 连接器（Connectors）</text>
+    <text x="340" y="208" fill="#a6adc8" font-size="10" text-anchor="middle">Gmail · Google Calendar · Google Drive · Slack · Notion · Microsoft 365 · GitHub · Jira · Linear · Asana · DocuSign · Canva · Zapier MCP (8000+ 应用) · Claude in Chrome</text>
+    <text x="340" y="222" fill="#6c7086" font-size="9" text-anchor="middle">设置路径：Settings → Connectors → Browse Connectors</text>
+  </svg>
+  <p class="caption">▲ 工作区文件夹推荐结构 + 连接器概览</p>
+</div>
+
+<h3>关键配置清单</h3>
+<table>
+  <tr><th style="width:25%">配置项</th><th>位置</th><th>作用</th></tr>
+  <tr><td><strong>全局说明</strong></td><td>Settings → Cowork → Global Instructions</td><td>定义语气、输出格式、你的角色——Claude 每次会话都会遵循</td></tr>
+  <tr><td><strong>about-me.md</strong></td><td>工作区根目录</td><td>告诉 Claude 你的身份、目标、偏好，避免每次重新学习</td></tr>
+  <tr><td><strong>连接器</strong></td><td>Settings → Connectors</td><td>让 Claude 访问外部工具（邮箱、日历、Slack、CRM 等）</td></tr>
+  <tr><td><strong>计算机使用</strong></td><td>Settings → General → Computer use</td><td>允许 Claude 直接操作你的电脑（点击、输入、打开应用）</td></tr>
+  <tr><td><strong>定时任务</strong></td><td>对话中使用 /schedule</td><td>自动化重复性工作（如每日晨间邮件分拣）</td></tr>
+  <tr><td><strong>插件</strong></td><td>Settings → Plugins</td><td>安装预构建的角色插件（销售/财务/法务/营销），再用你的工具和标准自定义</td></tr>
+</table>
+
+<blockquote>
+  "Claude 的工具使用优先级：连接器 → 浏览器（Chrome 扩展）→ 屏幕交互（计算机使用）。先给最精确的工具。"
+</blockquote>
+
+<hr>
+
+<!-- ====== 七、企业部署 ====== -->
+<h2 id="enterprise">七、企业级部署：五级成熟度模型</h2>
+
+<p>Anthropic 于 2026 年 4 月发布了 <strong>24 页</strong>的企业部署指南，提出五级成熟度模型和 6 个月路线图：</p>
+
+<div class="diagram-box">
+  <svg viewBox="0 0 680 120" xmlns="http://www.w3.org/2000/svg" style="max-width:100%">
+    <defs>
+      <linearGradient id="maturity" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#cba6f7" stop-opacity="0.6"/>
+        <stop offset="25%" stop-color="#89b4fa" stop-opacity="0.6"/>
+        <stop offset="50%" stop-color="#94e2d5" stop-opacity="0.6"/>
+        <stop offset="75%" stop-color="#f9e2af" stop-opacity="0.6"/>
+        <stop offset="100%" stop-color="#a6e3a1" stop-opacity="0.6"/>
+      </linearGradient>
+    </defs>
+    <!-- 进度条 -->
+    <rect x="40" y="30" width="600" height="12" rx="6" fill="url(#maturity)"/>
+
+    <!-- Level 节点 -->
+    <circle cx="100" cy="36" r="10" fill="#cba6f7"/><text x="100" y="40" fill="#1e1e2e" font-size="9" font-weight="700" text-anchor="middle">1</text>
+    <circle cx="220" cy="36" r="10" fill="#89b4fa"/><text x="220" y="40" fill="#1e1e2e" font-size="9" font-weight="700" text-anchor="middle">2</text>
+    <circle cx="340" cy="36" r="10" fill="#94e2d5"/><text x="340" y="40" fill="#1e1e2e" font-size="9" font-weight="700" text-anchor="middle">3</text>
+    <circle cx="460" cy="36" r="10" fill="#f9e2af"/><text x="460" y="40" fill="#1e1e2e" font-size="9" font-weight="700" text-anchor="middle">4</text>
+    <circle cx="580" cy="36" r="10" fill="#a6e3a1"/><text x="580" y="40" fill="#1e1e2e" font-size="9" font-weight="700" text-anchor="middle">5</text>
+
+    <!-- 标签 -->
+    <text x="70" y="70" fill="#cba6f7" font-size="10" font-weight="600" text-anchor="middle">Chat 问答</text>
+    <text x="70" y="84" fill="#6c7086" font-size="9" text-anchor="middle">基础实验</text>
+
+    <text x="190" y="70" fill="#89b4fa" font-size="10" font-weight="600" text-anchor="middle">个人提效</text>
+    <text x="190" y="84" fill="#6c7086" font-size="9" text-anchor="middle">个人工作流</text>
+
+    <text x="310" y="70" fill="#94e2d5" font-size="10" font-weight="600" text-anchor="middle">团队集成</text>
+    <text x="310" y="84" fill="#6c7086" font-size="9" text-anchor="middle">共享用例</text>
+
+    <text x="430" y="70" fill="#f9e2af" font-size="10" font-weight="600" text-anchor="middle">部门级插件</text>
+    <text x="430" y="84" fill="#6c7086" font-size="9" text-anchor="middle">自定义 Skills</text>
+
+    <text x="550" y="70" fill="#a6e3a1" font-size="10" font-weight="600" text-anchor="middle">全组织部署</text>
+    <text x="550" y="84" fill="#6c7086" font-size="9" text-anchor="middle">企业规模化</text>
+
+    <!-- 时间轴 -->
+    <text x="340" y="110" fill="#6c7086" font-size="9" text-anchor="middle">← 约 6 个月部署路线图 →</text>
+  </svg>
+  <p class="caption">▲ 五级成熟度模型：从 Chat 基础使用到全企业规模化部署</p>
+</div>
+
+<table>
+  <tr><th style="width:8%">级别</th><th style="width:22%">阶段</th><th>特征</th><th>关键行动</th></tr>
+  <tr>
+    <td style="color:var(--purple); font-weight:700;">L1</td>
+    <td>Chat 问答</td><td>个别员工自发使用 Chat 提问</td><td>无系统化推动</td>
+  </tr>
+  <tr>
+    <td style="color:var(--accent); font-weight:700;">L2</td>
+    <td>个人提效</td><td>个人建立 Cowork 工作流，产出交付物</td><td>设定全局说明 + about-me.md + 连接器</td>
+  </tr>
+  <tr>
+    <td style="color:var(--teal); font-weight:700;">L3</td>
+    <td>团队集成</td><td>团队共享用例、模板和上下文文件</td><td>建立团队工作区 + 共享 Skills</td>
+  </tr>
+  <tr>
+    <td style="color:var(--yellow); font-weight:700;">L4</td>
+    <td>部门级插件</td><td>构建部门专属插件和自定义 Skills，连接关键业务系统</td><td>开发/定制插件 + 连接内部系统</td>
+  </tr>
+  <tr>
+    <td style="color:var(--green); font-weight:700;">L5</td>
+    <td>全组织部署</td><td>企业级规模化，覆盖多个部门，统一治理</td><td>RBAC、SSO、可观测性、变更管理</td>
+  </tr>
+</table>
+
+<h3>Anthropic 内部使用案例</h3>
+<table>
+  <tr><th style="width:18%">部门</th><th>Cowork 使用方式</th></tr>
+  <tr><td><strong>财务</strong></td><td>自动化的财务分析报告、预算追踪、差异分析</td></tr>
+  <tr><td><strong>法务</strong></td><td>合同审查辅助、合规检查清单生成、法律研究摘要</td></tr>
+  <tr><td><strong>销售</strong></td><td>CRM 数据整合、客户简报自动生成、销售预测辅助</td></tr>
+  <tr><td><strong>产品管理</strong></td><td>需求文档起草、用户反馈汇总分析、竞品研究简报</td></tr>
+</table>
+
+<h3>外部客户案例</h3>
+<ul>
+  <li><strong>Thomson Reuters</strong> — 法律与合规工作流集成</li>
+  <li><strong>Zapier</strong> — 通过 MCP 连接 8000+ 应用，构建跨系统自动化</li>
+  <li><strong>Jamf</strong> — IT 管理与设备部署流程自动化</li>
+</ul>
+
+<hr>
+
+<!-- ====== 八、核心启示 ====== -->
+<h2 id="takeaways">八、核心启示</h2>
+
+<ol>
+  <li><strong>心态转变是第一步</strong>——从"跟 Claude 聊天"到"把 Claude 当同事委托任务"。聊天的产出是想法，委托的产出是交付物</li>
+  <li><strong>选对任务事半功倍</strong>——用五个标准筛选：多输入、文件输出、可复现、你知好坏、中间枯燥。不满足大部分标准的任务，用 Chat 可能更合适</li>
+  <li><strong>前置澄清 30 秒 &gt; 事后修补 30 分钟</strong>——每次 Prompt 都让 Claude 先复述需求并提问，这是"最有用的习惯"</li>
+  <li><strong>非技术背景反而是优势场景</strong>——Austin 不会写代码，但他比大多数工程师更高效地使用了 Claude。Cowork 的设计目标用户就是他这样的人</li>
+  <li><strong>基础设施决定天花板</strong>——about-me.md、全局说明、文件夹结构、连接器——这些一次性的设置投入，决定了后续每次交互的质量上限</li>
+  <li><strong>从个人到团队的扩展路径清晰</strong>——五级成熟度模型提供了从 Level 1（随意使用）到 Level 5（企业规模化）的可操作路线图</li>
+  <li><strong>连接器 &gt; 浏览器 &gt; 屏幕操作</strong>——给 Claude 最精确的工具接口，优先级递减，结构化数据优于非结构化抓取</li>
+</ol>
+
+<hr>
+
+<p style="color: var(--muted); font-size: 13px; margin-top: 40px;">
+  报告生成日期：2026-06-05 ·
+  原始来源：<a href="https://claude.com/blog/best-practices-for-getting-started-with-claude-cowork" style="color:var(--accent)">Anthropic Blog — Best practices for getting started with Claude Cowork</a> ·
+  补充参考：<a href="https://claude.com/blog/new-guide-deploying-claude-across-the-enterprise-with-claude-cowork" style="color:var(--accent)">企业部署指南</a> ·
+  <a href="https://support.claude.com/en/articles/13345190-get-started-with-cowork" style="color:var(--accent)">官方帮助中心</a> ·
+  学习方法：原文精读 + 多源交叉验证 + 案例补充
+</p>
+
+</main>
+</body>
+</html>

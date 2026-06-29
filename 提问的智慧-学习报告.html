@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>《How To Ask Questions The Smart Way》学习报告</title>
+<style>
+  :root {
+    --bg: #1e1e2e;
+    --surface: #26263a;
+    --surface2: #2e2e44;
+    --border: #38385a;
+    --text: #cdd6f4;
+    --text2: #a6adc8;
+    --text3: #6c7086;
+    --accent: #89b4fa;
+    --green: #a6e3a1;
+    --yellow: #f9e2af;
+    --red: #f38ba8;
+    --purple: #cba6f7;
+    --orange: #fab387;
+    --teal: #94e2d5;
+    --sidebar-w: 260px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Microsoft YaHei", "PingFang SC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.75;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* === Sidebar TOC === */
+  .sidebar {
+    width: var(--sidebar-w);
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 24px 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar-header {
+    padding: 0 20px 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+  .sidebar-header h2 {
+    font-size: 15px;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .sidebar-header .meta {
+    font-size: 11px;
+    color: var(--text3);
+  }
+  .sidebar nav { flex: 1; overflow-y: auto; padding: 0 12px; }
+  .sidebar nav a {
+    display: block;
+    padding: 6px 12px;
+    color: var(--text2);
+    text-decoration: none;
+    font-size: 13px;
+    border-radius: 6px;
+    transition: all 0.15s;
+    margin-bottom: 2px;
+  }
+  .sidebar nav a:hover { background: var(--surface2); color: var(--text); }
+  .sidebar nav a.active { background: rgba(137,180,250,0.12); color: var(--accent); font-weight: 600; }
+  .sidebar nav .sub { padding-left: 28px; font-size: 12px; }
+  .sidebar nav .divider { height: 1px; background: var(--border); margin: 8px 12px; }
+
+  /* === Main Content === */
+  .main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    max-width: 900px;
+    padding: 40px 48px;
+  }
+  h1 {
+    font-size: 28px;
+    color: var(--accent);
+    margin-bottom: 4px;
+    letter-spacing: -0.5px;
+  }
+  .subtitle {
+    color: var(--text3);
+    font-size: 14px;
+    margin-bottom: 28px;
+  }
+  h2 {
+    font-size: 20px;
+    color: var(--purple);
+    margin: 40px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 {
+    font-size: 16px;
+    color: var(--teal);
+    margin: 24px 0 10px;
+  }
+  p { margin-bottom: 12px; font-size: 15px; }
+
+  /* === Blocks === */
+  .principle-block {
+    background: var(--surface);
+    border-left: 4px solid var(--accent);
+    border-radius: 0 10px 10px 0;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .principle-block.danger {
+    border-left-color: var(--red);
+  }
+  .principle-block.good {
+    border-left-color: var(--green);
+  }
+  .principle-block.warn {
+    border-left-color: var(--yellow);
+  }
+  .principle-block .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .principle-block.accent .label { color: var(--accent); }
+  .principle-block.danger .label { color: var(--red); }
+  .principle-block.good .label { color: var(--green); }
+  .principle-block.warn .label { color: var(--yellow); }
+
+  /* === Comparison Cards === */
+  .compare-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .compare-card {
+    border-radius: 12px;
+    padding: 18px;
+    font-size: 14px;
+  }
+  .compare-card.bad {
+    background: rgba(243,139,168,0.08);
+    border: 1px solid rgba(243,139,168,0.25);
+  }
+  .compare-card.good {
+    background: rgba(166,227,161,0.06);
+    border: 1px solid rgba(166,227,161,0.25);
+  }
+  .compare-card .card-label {
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .compare-card.bad .card-label { color: var(--red); }
+  .compare-card.good .card-label { color: var(--green); }
+  .compare-card .quote {
+    font-style: italic;
+    color: var(--text2);
+    margin-bottom: 8px;
+    padding-left: 12px;
+    border-left: 2px solid var(--border);
+  }
+  .compare-card .verdict {
+    font-size: 13px;
+    color: var(--text3);
+  }
+
+  /* === Checklist === */
+  .checklist { list-style: none; }
+  .checklist li {
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    background: var(--surface);
+    border-radius: 8px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+  }
+  .checklist .chk-box {
+    width: 20px; height: 20px;
+    min-width: 20px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    margin-top: 2px;
+    display: inline-block;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .checklist .chk-box.checked {
+    background: var(--green);
+    border-color: var(--green);
+    position: relative;
+  }
+  .checklist .chk-box.checked::after {
+    content: "✓";
+    position: absolute;
+    top: -2px; left: 3px;
+    color: var(--bg);
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  /* === Tags === */
+  .tag {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-right: 6px;
+    margin-bottom: 4px;
+  }
+  .tag.red { background: rgba(243,139,168,0.15); color: var(--red); }
+  .tag.green { background: rgba(166,227,161,0.12); color: var(--green); }
+  .tag.blue { background: rgba(137,180,250,0.12); color: var(--accent); }
+  .tag.yellow { background: rgba(249,226,175,0.12); color: var(--yellow); }
+
+  /* === Table === */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    background: var(--surface);
+  }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* === Step Flow === */
+  .flow-steps {
+    display: flex;
+    gap: 12px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+  }
+  .flow-step {
+    flex: 1;
+    min-width: 150px;
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 18px 16px;
+    text-align: center;
+    position: relative;
+  }
+  .flow-step .step-num {
+    display: inline-block;
+    width: 28px; height: 28px;
+    line-height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .flow-step .step-text {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.5;
+  }
+
+  /* === Quote === */
+  blockquote {
+    border-left: 3px solid var(--yellow);
+    padding: 12px 18px;
+    margin: 16px 0;
+    background: rgba(249,226,175,0.04);
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+    color: var(--text2);
+    font-size: 14px;
+  }
+
+  /* === Responsive === */
+  @media (max-width: 768px) {
+    .sidebar {
+      width: 100%;
+      position: relative;
+      height: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+    body { flex-direction: column; }
+    .main { margin-left: 0; padding: 24px 20px; }
+    .compare-row { grid-template-columns: 1fr; }
+    .flow-steps { flex-direction: column; }
+  }
+
+  /* === Mobile sidebar toggle === */
+  .sidebar-toggle {
+    display: none;
+    position: fixed;
+    top: 12px; left: 12px;
+    z-index: 20;
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 18px;
+    cursor: pointer;
+  }
+  @media (max-width: 768px) {
+    .sidebar-toggle { display: flex; align-items: center; justify-content: center; }
+    .sidebar { display: none; }
+    .sidebar.open { display: flex; position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100%; z-index: 15; }
+    .main { margin-left: 0; padding-top: 60px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Sidebar TOC -->
+<button class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h2>提问的智慧</h2>
+    <div class="meta">Eric S. Raymond &amp; Rick Moen<br>学习报告 · 2026-06-12</div>
+  </div>
+  <nav>
+    <a href="#overview">📋 文档概览</a>
+    <a href="#philosophy">🧠 核心理念</a>
+    <a href="#before-ask" class="sub">· 提问前的自检清单</a>
+    <a href="#when-ask">✍️ 提问时的最佳实践</a>
+    <a href="#subject" class="sub">· 主题标题模板</a>
+    <a href="#code" class="sub">· 关于代码的问题</a>
+    <a href="#interpret">🔍 如何理解回答</a>
+    <a href="#compare">⚔️ 好坏问题对比</a>
+    <a href="#checklist">✅ 自我检查清单</a>
+    <a href="#key-takeaways">💎 核心要点</a>
+  </nav>
+</aside>
+
+<div class="main">
+
+<h1>📖 《How To Ask Questions The Smart Way》</h1>
+<div class="subtitle">作者：Eric Steven Raymond &amp; Rick Moen · 版本 3.10 (2014) · 报告生成于 2026-06-12</div>
+
+<!-- ===== Section: Overview ===== -->
+<h2 id="overview">📋 文档概览</h2>
+
+<p>这是一份关于<strong style="color: var(--accent);">如何在技术社区中高效提问</strong>的经典指南，由开源社区知名人物
+Eric S. Raymond 和 Rick Moen 撰写，自 2001 年问世以来被无数开源项目引用为求助规范。
+全文围绕一个核心命题展开：</p>
+
+<blockquote>
+  「在黑客世界中，你得到的答案质量，不仅取决于问题本身的难度，<br>更取决于你<strong>提问的方式</strong>。」
+</blockquote>
+
+<table>
+  <tr><th style="width: 160px;">属性</th><th>内容</th></tr>
+  <tr><td>作者</td><td>Eric Steven Raymond (ESR)、Rick Moen</td></tr>
+  <tr><td>最新版本</td><td>3.10 (2014-05-21)，新增 Stack Overflow 章节</td></tr>
+  <tr><td>适用场景</td><td>邮件列表、新闻组、Web 论坛、IRC、Stack Exchange</td></tr>
+  <tr><td>适用人群</td><td>任何需要向技术社区求助的人</td></tr>
+  <tr><td>版权</td><td>Copyright © 2001–2014，开放转载（需遵守复制策略）</td></tr>
+  <tr><td>中文译名</td><td>《提问的智慧》</td></tr>
+</table>
+
+<!-- ===== Section: Philosophy ===== -->
+<h2 id="philosophy">🧠 核心理念</h2>
+
+<div class="principle-block accent">
+  <div class="label">● 核心信念</div>
+  黑客<strong>喜欢</strong>有难度的、经过深思熟虑的好问题。"Good question!" 是黑客之间由衷的赞美。好的问题是<strong>礼物</strong>，能帮助所有人拓展认知、发现未注意的问题。
+</div>
+
+<div class="principle-block danger">
+  <div class="label">● 社区现实</div>
+  黑客对<strong>不愿思考、不做功课</strong>的人毫不掩饰地怀有敌意。这些人被称作 <em>"losers"</em>（失败者）——他们只索取不回报，浪费所有人的时间。社区会<strong>无情地过滤</strong>掉这些人。
+</div>
+
+<div class="principle-block good">
+  <div class="label">● 成功之道</div>
+  你不必已经是技术专家，但必须展现出<strong>通向专家之路的态度</strong>：敏锐、深思、善于观察、愿意成为解决问题的积极合作伙伴。把问题问得像一个"恰好需要帮助的聪明人"。
+</div>
+
+<div class="principle-block warn">
+  <div class="label">● 基本态度</div>
+  你<strong>没有权利</strong>获得答案——你不是付费客户。答案是你<strong>挣来的</strong>，通过提出有实质内容、有启发性、对社区有贡献的问题来挣取。
+</div>
+
+<!-- ===== Section: Before You Ask ===== -->
+<h2 id="before-ask">提问之前的自检清单</h2>
+<p>在发出求助之前，必须<strong>依次</strong>完成以下步骤。跳过这些步骤直接提问，很可能会被无视或收到 RTFM / STFW 的回复。</p>
+
+<div class="flow-steps">
+  <div class="flow-step">
+    <div class="step-num">1</div>
+    <div class="step-text">搜索论坛/邮件列表<strong>历史存档</strong></div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num">2</div>
+    <div class="step-text">用 <strong>Google</strong> 搜索（含报错信息原文）</div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num">3</div>
+    <div class="step-text">阅读<strong>手册</strong> (Manual)</div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num">4</div>
+    <div class="step-text">阅读 <strong>FAQ</strong></div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num">5</div>
+    <div class="step-text"><strong>自行检查</strong>或实验调试</div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num">6</div>
+    <div class="step-text">请教<strong>熟练的朋友</strong></div>
+  </div>
+  <div class="flow-step">
+    <div class="step-num">7</div>
+    <div class="step-text">（程序员）阅读<strong>源码</strong></div>
+  </div>
+</div>
+
+<div class="principle-block good">
+  <div class="label">✅ 关键技巧</div>
+  在提问时<strong>展示你已经做过这些功课</strong>，并说出你从中学到了什么。例如：<br>
+  <em>"我 google 了以下短语，但没有找到有用的结果：……"</em><br>
+  <em>"我查了 FAQ 第3条，但它没有覆盖 Nulix 版本的情况。"</em>
+</div>
+
+<!-- ===== Section: When You Ask ===== -->
+<h2 id="when-ask">✍️ 提问时的最佳实践</h2>
+
+<h3>1. 选择合适的论坛</h3>
+<table>
+  <tr><th style="min-width: 120px;">平台</th><th>适用场景</th></tr>
+  <tr><td>Super User</td><td>通用计算问题（非编程类）</td></tr>
+  <tr><td>Stack Overflow</td><td>编程问题</td></tr>
+  <tr><td>Server Fault</td><td>服务器和网络管理</td></tr>
+  <tr><td>发行版论坛/IRC</td><td>Linux 发行版相关问题（优先于项目论坛）</td></tr>
+  <tr><td>项目"用户"邮件列表</td><td>使用层面的问题（非开发层面）</td></tr>
+  <tr><td>项目"开发者"邮件列表</td><td>非平凡问题、经用户列表无应答数日后再尝试</td></tr>
+</table>
+
+<div class="principle-block danger">
+  <div class="label">⚠️ 常见错误</div>
+  不要同时轰炸所有可用渠道；不要向不熟悉的人发私信求助；不要在高级论坛问初级问题；不要在用户列表能满足时闯入开发者列表。
+</div>
+
+<h3 id="subject">2. 使用有意义、具体的主题标题</h3>
+
+<div class="compare-row">
+  <div class="compare-card bad">
+    <div class="card-label">❌ 差</div>
+    <div class="quote">HELP! Video doesn't work properly on my laptop!</div>
+  </div>
+  <div class="compare-card good">
+    <div class="card-label">✅ 好</div>
+    <div class="quote">X.org 6.8.1 mouse cursor on Fooware MV1005 vid. chipset - is misshapen</div>
+  </div>
+</div>
+
+<div class="principle-block accent">
+  <div class="label">💡 黄金模板：对象—偏差 (Object - Deviation)</div>
+  <strong>对象</strong>：哪个东西出了问题？<br>
+  <strong>偏差</strong>：与预期行为有何偏差？<br>
+  这个格式迫使你深入思考问题的本质，也让专家一眼看懂你的问题。
+</div>
+
+<h3>3. 书写清晰、语法正确</h3>
+<p>经验表明，书写马虎的人通常<strong>思考和编程也同样马虎</strong>。正确拼写、合理使用大小写；不要全大写（= 大喊大叫）；不要全小写；不要用即时通讯缩写（"u" 代替 "you"）。<strong>非英语母语者应主动声明</strong>并请求理解。</p>
+
+<h3>4. 使用可访问的标准格式</h3>
+<ul class="checklist">
+  <li><span class="chk-box"></span> 发送纯文本邮件，而非 HTML</li>
+  <li><span class="chk-box"></span> 数据（日志、转录）不要换行，保持原样</li>
+  <li><span class="chk-box"></span> 不要期望黑客能读取 Word/Excel 等专有格式</li>
+  <li><span class="chk-box"></span> Windows 用户：关闭 "Smart Quotes" 功能</li>
+</ul>
+
+<h3>5. 精确描述问题症状，而非你的猜测</h3>
+
+<div class="compare-row">
+  <div class="compare-card bad">
+    <div class="card-label">❌ 差（猜测）</div>
+    <div class="quote">内核编译时收到 SIG11 错误，我怀疑主板走线有裂纹。怎么检查？</div>
+    <div class="verdict">凭猜测引导答案 → 方向可能完全错误</div>
+  </div>
+  <div class="compare-card good">
+    <div class="card-label">✅ 好（症状）</div>
+    <div class="quote">我的 K6/233 + FIC-PA2007 主板，开机约 20 分钟后内核编译频繁出现 SIG11。重启不重置时钟，断电一晚可恢复。已排除 RAM。附上编译日志节选。</div>
+    <div class="verdict">给原始症状 → 让专家做诊断</div>
+  </div>
+</div>
+
+<blockquote>
+  <strong>"所有的诊断专家都来自密苏里州。"</strong><br>
+  密苏里州的座右铭是 "Show me"（让我看）。<br>
+  诊断者需要看到尽可能接近你亲眼所见的<strong>原始证据</strong>，而非你的推测和总结。
+</blockquote>
+
+<h3>6. 描述目标而非步骤</h3>
+<p>很多人卡在了自己认为正确的某一<strong>步骤</strong>上，却没有发现这条路本身就是错的。<strong>先描述最终目标</strong>，再描述你卡住的步骤。这能让回答者帮你换一条更好的路。</p>
+
+<h3 id="code">7. 关于代码的问题</h3>
+<div class="principle-block accent">
+  <div class="label">📌 最小化测试用例 (Minimal Bug-Demonstrating Test Case)</div>
+  不要贴出几百行代码说 "它不工作了"。<strong>精简到最少代码</strong>——刚好能复现问题即可。做法：从完整代码出发，逐步删除不相关的部分，直到问题消失时就知道哪部分是关键。
+</div>
+<table>
+  <tr><th>做法</th><th>结果</th></tr>
+  <tr><td>贴几百行代码 + "它不工作"</td><td><span class="tag red">被忽略</span></td></tr>
+  <tr><td>贴十几行代码 + "第7行后预期看到 &lt;x&gt;，实际出现 &lt;y&gt;"</td><td><span class="tag green">得到回复</span></td></tr>
+  <tr><td>明确说想要代码审查 + 说明关注哪些方面及原因</td><td><span class="tag green">有效响应</span></td></tr>
+</table>
+
+<h3>8. 其他关键原则</h3>
+
+<table>
+  <tr><th style="min-width: 180px;">原则</th><th>说明</th></tr>
+  <tr><td><strong>量不等于精确</strong></td><td>大量堆砌代码/数据 ≠ 提供精确信息。精简、聚焦才是。</td></tr>
+  <tr><td><strong>别急着宣称找到 bug</strong></td><td>先假设是自己搞错了。如果你断言是 bug，实质上是在质疑开发者的能力。如果能提供修复补丁或回归测试，再说 bug。</td></tr>
+  <tr><td><strong>不要卑微乞求</strong></td><td>"我是个 pathetic newbie loser……" 这种话分散注意力且无意义。清晰陈述事实比政治姿态更有用。</td></tr>
+  <tr><td><strong>按时间顺序描述</strong></td><td>最关键的线索往往藏在出问题<strong>之前</strong>的事件中。附上命令行的日志片段（约 20 行）。</td></tr>
+  <tr><td><strong>不要要求私下回复</strong></td><td>问题解决应该是公开、透明的过程。私下回复破坏了社区的知识积累。</td></tr>
+  <tr><td><strong>明确你的问题</strong></td><td>开放式问题 = 开放式时间黑洞。明确你想要什么：提供指针？发送代码？检查补丁？</td></tr>
+  <tr><td><strong>不要标记"紧急"</strong></td><td>标记紧急往往触发垃圾邮件过滤，且被黑客视为自私无礼。只有国际空间站级别的场景才算真正的紧急。</td></tr>
+  <tr><td><strong>礼貌永远不伤人</strong></td><td>在技术问题已经描述清晰的基础上，加上 Please 和 Thanks 能提高成功率。</td></tr>
+  <tr><td><strong>问题解决后写简短跟进</strong></td><td>在主题行标上 FIXED/RESOLVED，简述什么方法解决了问题。这比传统礼貌更重要——是赢得社区声望的关键。</td></tr>
+</table>
+
+<!-- ===== Section: Interpret Answers ===== -->
+<h2 id="interpret">🔍 如何理解回答</h2>
+
+<h3>RTFM 和 STFW：你严重搞砸的标志</h3>
+
+<div class="compare-row">
+  <div class="compare-card bad">
+    <div class="card-label">💬 收到这种回复</div>
+    <div class="quote">RTFM — Read The Fucking Manual</div>
+    <div class="verdict">去读该死的手册。对方几乎肯定是对的。</div>
+  </div>
+  <div class="compare-card bad">
+    <div class="card-label">💬 收到这种回复</div>
+    <div class="quote">STFW — Search The Fucking Web</div>
+    <div class="verdict">去搜该死的网络。对方很可能正看着答案页面。</div>
+  </div>
+</div>
+
+<div class="principle-block warn">
+  <div class="label">💡 正确心态</div>
+  这不是侮辱——按黑客的标准，<strong>没直接忽略你</strong>已经是某种尊重。这些回复意味着：<br>
+  (a) 你需要的答案<strong>很容易找到</strong>；(b) 你<strong>自己找到</strong>比被喂答案学到更多。
+</div>
+
+<h3>不理解答案时</h3>
+<p>不要立刻追问"是什么意思？"。先用你最初找答案的<strong>同样工具</strong>（手册、FAQ、Google）去理解答案，然后带着你已经理解的部分再提问：</p>
+
+<div class="compare-row">
+  <div class="compare-card bad">
+    <div class="card-label">❌ 差的追问</div>
+    <div class="quote">What's a zentry?</div>
+  </div>
+  <div class="compare-card good">
+    <div class="card-label">✅ 好的追问</div>
+    <div class="quote">我读了手册，zentries 只在 -z 和 -p 开关下提到。两者都没有说如何清除 zentries。是其中之一还是我漏了什么？</div>
+  </div>
+</div>
+
+<h3>面对粗鲁</h3>
+<p>黑客社区的"粗鲁"大多不是有意冒犯，而是<strong>直奔主题</strong>的沟通风格。冷静应对；若有人真的越界，社区资深成员会出面处理。不要自己卷入口水战，不要表现出"loser"的姿态——被指出错误时，接受并改进，而非抱怨、要求道歉、威胁投诉。</p>
+
+<blockquote>
+  当黑客告诉你犯了错、告诫你不要再犯时（不管语气多粗暴），他是在为<strong>你</strong>和<strong>社区</strong>着想。<br>直接忽略你是更容易的选择。保持尊严，不要抱怨。
+</blockquote>
+
+<!-- ===== Section: Good vs Bad ===== -->
+<h2 id="compare">⚔️ 经典好坏问题对比</h2>
+
+<table>
+  <tr><th>场景</th><th style="width: 42%;">❌ 差的问题</th><th style="width: 42%;">✅ 好的问题</th></tr>
+  <tr>
+    <td><strong>找资料</strong></td>
+    <td>在哪里能找到关于 Foonly Flurbamatic 的资料？<br><span class="tag red">→ 招来 STFW</span></td>
+    <td>我用 Google 搜了 "Foonly Flurbamatic 2600" 但没找到有用结果。能否给我一个该设备编程信息的链接？<br><span class="tag green">→ 展示了已做的搜索，问题可信</span></td>
+  </tr>
+  <tr>
+    <td><strong>编译问题</strong></td>
+    <td>项目 foo 的代码编译不了。为什么它坏了？<br><span class="tag red">→ 假设别人搞坏了，态度傲慢</span></td>
+    <td>项目 foo 的代码在 Nulix 6.2 下编译不通过。我读了 FAQ，但 FAQ 没有 Nulix 相关的问题。附上编译记录，是我哪里搞错了吗？<br><span class="tag green">→ 指定环境，读了 FAQ，展示错误，不自大</span></td>
+  </tr>
+  <tr>
+    <td><strong>硬件故障</strong></td>
+    <td>我的主板有问题。谁帮帮我？<br><span class="tag red">→ 无信息量，被删除</span></td>
+    <td>在 S2464 主板上我试了 X/Y/Z，不成功后试了 A/B/C。试 C 时注意到一个奇怪症状。显然 florbish 在 grommicking，但结果不符合预期。Athlon MP 主板上 grommicking 的常见原因是什么？有什么测试建议吗？<br><span class="tag green">→ 展示独立思考，邀请协作</span></td>
+  </tr>
+  <tr>
+    <td><strong>寻求方法</strong></td>
+    <td>怎么让 FooDraw 的颜色选择器接受十六进制 RGB 值？<br><span class="tag red">→ 锁定了一个可能错误的路径</span></td>
+    <td>我想用自定义值替换图像的色表。目前只能逐槽编辑，但 FooDraw 的颜色选择器不接受十六进制 RGB。有没有更好的工具可以做到这一点？<br><span class="tag green">→ 描述目标，允许替代方案</span></td>
+  </tr>
+</table>
+
+<!-- ===== Section: Checklist ===== -->
+<h2 id="checklist">✅ 提问前自我检查清单</h2>
+
+<ul class="checklist" id="self-checklist">
+  <li onclick="toggleChk(this)"><span class="chk-box"></span> 我已搜索论坛/邮件列表历史存档</li>
+  <li onclick="toggleChk(this)"><span class="chk-box"></span> 我已用 Google 搜索（含报错信息原文）</li>
+  <li onclick="toggleChk(this)"><span class="chk-box"></span> 我已阅读相关手册 (Manual)</li>
+  <li onclick="toggleChk(this)"><span class="chk-box"></span> 我已阅读 FAQ</li>
+  <li onclick="toggleChk(this)"><span class="chk-box"></span> 我已在代码/实验中自行调试</li>
+  <li onclick="toggleChk(this)"><span class="chk-box"></span> 我已确定提问的<strong>正确论坛</strong>（非私信、非开发者列表）</li>
+  <li onclick="toggleChk(this)"><span class="chk-box"></span> 主题行使用<strong>"对象—偏差"格式</strong>（非 "HELP!"）</li>
+  <li onclick="toggleChk(this)"><span class="chk-box"></span> 邮件使用<strong>纯文本</strong>格式（非 HTML）</li>
+  <li onclick="toggleChk(this)"><span class="chk-box"></span> 描述了<strong>环境信息</strong>（OS、版本、硬件）</li>
+  <li onclick="toggleChk(this)"><span class="chk-box"></span> 描述了<strong>问题症状</strong>（而非我的猜测）</li>
+  <li onclick="toggleChk(this)"><span class="chk-box"></span> <strong>按时间顺序</strong>描述事件（附日志片段）</li>
+  <li onclick="toggleChk(this)"><span class="chk-box"></span> 描述了<strong>最终目标</strong>（而非仅当前卡住的步骤）</li>
+  <li onclick="toggleChk(this)"><span class="chk-box"></span> 附上<strong>精简后的最小测试用例</strong>（代码问题）</li>
+  <li onclick="toggleChk(this)"><span class="chk-box"></span> <strong>明确</strong>我需要什么样的帮助（指针/补丁/解释）</li>
+  <li onclick="toggleChk(this)"><span class="chk-box"></span> 使用了<strong>正确的语法和拼写</strong>，没有全大写/缩写</li>
+  <li onclick="toggleChk(this)"><span class="chk-box"></span> 没有标记"紧急"，没有要求私下回复</li>
+  <li onclick="toggleChk(this)"><span class="chk-box"></span> 使用了 Please / Thanks（但不以此为替代）</li>
+</ul>
+
+<div style="margin-top:12px; display:flex; gap:10px; align-items:center;">
+  <span id="chk-progress" style="font-size:14px; color:var(--text2);">已完成 0 / 17 项</span>
+  <button onclick="resetChecks()" style="background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:6px 14px; border-radius:8px; cursor:pointer; font-size:13px;">重置</button>
+</div>
+
+<!-- ===== Section: Key Takeaways ===== -->
+<h2 id="key-takeaways">💎 核心要点总结</h2>
+
+<div class="principle-block good">
+  <div class="label">🏆 黄金法则</div>
+  <strong>提问是一种可以练习的技能。</strong>好的提问不仅让你更快得到答案，还能让你在过程中<strong>自己找到答案</strong>——而自己找到的答案，是最好的老师。
+</div>
+
+<table>
+  <tr><th style="width: 50px;">#</th><th>要点</th><th style="width: 80px;">标签</th></tr>
+  <tr>
+    <td>1</td>
+    <td><strong>先搜索，后提问</strong>——Google、手册、FAQ、论坛存档。这是不可跳过的第一步。</td>
+    <td><span class="tag blue">基础</span></td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td><strong>标题要精确</strong>——"对象—偏差" 格式，50 字内浓缩问题本质。</td>
+    <td><span class="tag blue">技术</span></td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td><strong>展示过程</strong>——告诉专家你已经做了什么尝试、读了什么资料、排除了什么方向。</td>
+    <td><span class="tag blue">态度</span></td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td><strong>描述症状，不做诊断</strong>——给出原始证据（日志、复现步骤），让专家来解读。</td>
+    <td><span class="tag blue">技术</span></td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td><strong>描述目标，而非步骤</strong>——你可能是走上了错误的路，先说明最终目的。</td>
+    <td><span class="tag blue">技术</span></td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td><strong>精简代码</strong>——最小化测试用例，十几行能复现问题远比几百行有效。</td>
+    <td><span class="tag blue">技术</span></td>
+  </tr>
+  <tr>
+    <td>7</td>
+    <td><strong>答案不是权利，是挣来的</strong>——用问题的质量换取回答的质量。</td>
+    <td><span class="tag yellow">心态</span></td>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td><strong>RTFM / STFW 不是侮辱</strong>——是提醒你自己去找到、学到。善用这些指针。</td>
+    <td><span class="tag yellow">心态</span></td>
+  </tr>
+  <tr>
+    <td>9</td>
+    <td><strong>追问前先消化</strong>——收到答案后，先自行理解，再带着消化结果提问。</td>
+    <td><span class="tag yellow">心态</span></td>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td><strong>解决问题后写跟进</strong>——标上 FIXED，简述解法。这是赢得社区声誉的最佳方式。</td>
+    <td><span class="tag green">进阶</span></td>
+  </tr>
+</table>
+
+<h3>🚫 永远不要问的问题</h3>
+<table>
+  <tr><th>问题类型</th><th>为什么不值得回答</th></tr>
+  <tr><td>在哪找程序 X？</td><td>Google 会告诉你，为什么你不会用？</td></tr>
+  <tr><td>怎么用 X 做 Y？</td><td>你可能选错了工具。先描述 Y 目标本身。</td></tr>
+  <tr><td>怎么配置 shell 提示符？</td><td>能问出这个问题说明你已经有能力自己查手册。</td></tr>
+  <tr><td>"我的程序不工作了"</td><td>这不是一个问题。没人想玩 20 个问题来猜你的意思。</td></tr>
+  <tr><td>能帮我看 Windows 问题吗？</td><td>除非与跨平台程序有关。Windows 本身的问题不属于黑客社区范畴。</td></tr>
+  <tr><td>怎么破解 root/盗取权限？</td><td>这是低级行为，且暴露了你的愚蠢。</td></tr>
+</table>
+
+<hr style="border-color: var(--border); margin: 32px 0 16px;">
+<p style="color: var(--text3); font-size: 13px; text-align: center;">
+  本报告基于 Eric S. Raymond &amp; Rick Moen 的 <em>How To Ask Questions The Smart Way</em> (v3.10) 整理<br>
+  原文可在各类开源项目文档中找到 · 报告仅供学习参考 · 生成于 2026-06-12
+</p>
+
+</div><!-- .main -->
+
+<script>
+// Sidebar active link highlight on scroll
+document.addEventListener('DOMContentLoaded', function() {
+  var sections = document.querySelectorAll('h2[id]');
+  var navLinks = document.querySelectorAll('.sidebar nav a');
+  window.addEventListener('scroll', function() {
+    var current = '';
+    sections.forEach(function(s) {
+      if (pageYOffset >= s.offsetTop - 80) current = s.id;
+    });
+    navLinks.forEach(function(a) {
+      a.classList.remove('active');
+      if (a.getAttribute('href') === '#' + current) a.classList.add('active');
+    });
+  });
+});
+
+// Checklist interaction
+function toggleChk(el) {
+  var box = el.querySelector('.chk-box');
+  box.classList.toggle('checked');
+  updateProgress();
+}
+
+function resetChecks() {
+  document.querySelectorAll('#self-checklist .chk-box').forEach(function(b) {
+    b.classList.remove('checked');
+  });
+  updateProgress();
+}
+
+function updateProgress() {
+  var total = document.querySelectorAll('#self-checklist .chk-box').length;
+  var done = document.querySelectorAll('#self-checklist .chk-box.checked').length;
+  document.getElementById('chk-progress').textContent = '已完成 ' + done + ' / ' + total + ' 项';
+}
+</script>
+
+</body>
+</html>

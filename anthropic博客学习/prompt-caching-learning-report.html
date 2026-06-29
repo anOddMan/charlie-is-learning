@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Caching 最佳实践学习报告</title>
+    <style>
+        :root {
+            --bg: #1e1e2e;
+            --bg-light: #262637;
+            --bg-lighter: #313244;
+            --fg: #cdd6f4;
+            --fg-muted: #a6adc8;
+            --accent: #89b4fa;
+            --accent-alt: #cba6f7;
+            --success: #a6e3a1;
+            --warning: #f9e2af;
+            --error: #f38ba8;
+            --border: #45475a;
+            --card: #181825;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            line-height: 1.6;
+        }
+
+        /* 布局 */
+        .container { max-width: 1200px; margin: 0 auto; display: flex; gap: 24px; }
+        .sidebar {
+            width: 280px;
+            position: sticky;
+            top: 20px;
+            height: calc(100vh - 40px);
+            overflow-y: auto;
+            padding: 20px 0;
+            flex-shrink: 0;
+        }
+        .main-content { flex: 1; padding: 40px 20px; min-width: 0; }
+
+        /* 侧边栏目录 */
+        .toc-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--fg-muted);
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .toc-list { list-style: none; }
+        .toc-item {
+            padding: 10px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 6px;
+            margin: 2px 8px;
+            transition: all 0.2s;
+        }
+        .toc-item:hover { background: var(--bg-light); }
+        .toc-item.active {
+            background: var(--accent);
+            color: var(--bg);
+            font-weight: 500;
+        }
+        .toc-item a { color: inherit; text-decoration: none; }
+
+        /* 文章头部 */
+        .article-header {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 30px;
+            margin-bottom: 30px;
+        }
+        .article-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--fg);
+            margin-bottom: 12px;
+        }
+        .article-subtitle {
+            font-size: 18px;
+            color: var(--fg-muted);
+            margin-bottom: 20px;
+        }
+        .article-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            color: var(--fg-muted);
+        }
+        .meta-item { display: flex; align-items: center; gap: 6px; }
+        .meta-label { color: var(--accent); }
+
+        /* 章节 */
+        .section { margin-bottom: 40px; }
+        .section-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--accent);
+        }
+        .section-content { font-size: 16px; }
+
+        /* 卡片 */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 16px 0;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--accent-alt);
+            margin-bottom: 12px;
+        }
+
+        /* 代码块 */
+        .code-block {
+            background: var(--bg-lighter);
+            border-radius: 8px;
+            padding: 16px;
+            margin: 12px 0;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--fg-muted);
+        }
+        .code-lang {
+            background: var(--accent);
+            color: var(--bg);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        /* 提示框 */
+        .tip-box {
+            background: rgba(166, 227, 161, 0.1);
+            border: 1px solid var(--success);
+            border-radius: 8px;
+            padding: 16px;
+            margin: 12px 0;
+        }
+        .tip-box.warning {
+            background: rgba(249, 226, 175, 0.1);
+            border-color: var(--warning);
+        }
+        .tip-box.error {
+            background: rgba(243, 139, 168, 0.1);
+            border-color: var(--error);
+        }
+        .tip-label {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        .tip-box .tip-label { color: var(--success); }
+        .tip-box.warning .tip-label { color: var(--warning); }
+        .tip-box.error .tip-label { color: var(--error); }
+
+        /* 列表 */
+        .styled-list { list-style: none; margin: 12px 0; }
+        .styled-list li {
+            padding: 8px 0 8px 24px;
+            position: relative;
+        }
+        .styled-list li::before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+        }
+
+        /* 重点内容 */
+        .highlight {
+            background: rgba(137, 180, 250, 0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        /* 架构图 */
+        .architecture-diagram {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+        }
+        .diagram-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--fg-muted);
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .layer-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .layer {
+            padding: 12px 16px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            transition: transform 0.2s;
+        }
+        .layer:hover { transform: scale(1.02); }
+        .layer-static { background: var(--success); color: var(--bg); }
+        .layer-project { background: var(--accent); color: var(--bg); }
+        .layer-session { background: var(--accent-alt); color: var(--bg); }
+        .layer-dynamic { background: var(--warning); color: var(--bg); }
+        .layer-arrow {
+            text-align: center;
+            color: var(--fg-muted);
+            font-size: 20px;
+        }
+
+        /* 总结表格 */
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+        .summary-table th,
+        .summary-table td {
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+        }
+        .summary-table th {
+            background: var(--bg-lighter);
+            font-weight: 600;
+            color: var(--accent);
+            text-align: left;
+        }
+        .summary-table tr:hover td { background: var(--bg-light); }
+
+        /* 响应式 */
+        @media (max-width: 900px) {
+            .container { flex-direction: column; }
+            .sidebar {
+                width: 100%;
+                position: relative;
+                height: auto;
+                border-bottom: 1px solid var(--border);
+                padding: 10px 0;
+            }
+            .toc-list { display: flex; flex-wrap: wrap; gap: 8px; }
+            .toc-item { margin: 0; }
+            .main-content { padding: 20px; }
+            .article-title { font-size: 24px; }
+            .section-title { font-size: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 侧边栏目录 -->
+        <nav class="sidebar">
+            <div class="toc-title">目录导航</div>
+            <ul class="toc-list">
+                <li class="toc-item active"><a href="#overview">概述</a></li>
+                <li class="toc-item"><a href="#prompt-layout">Prompt布局策略</a></li>
+                <li class="toc-item"><a href="#messages-update">消息更新机制</a></li>
+                <li class="toc-item"><a href="#model-switch">模型切换陷阱</a></li>
+                <li class="toc-item"><a href="#tool-management">工具管理策略</a></li>
+                <li class="toc-item"><a href="#compaction">压缩与缓存</a></li>
+                <li class="toc-item"><a href="#summary">核心要点总结</a></li>
+                <li class="toc-item"><a href="#practice">实践建议</a></li>
+            </ul>
+        </nav>
+
+        <!-- 主内容 -->
+        <main class="main-content">
+            <header class="article-header">
+                <h1 class="article-title">Prompt Caching 最佳实践学习报告</h1>
+                <p class="article-subtitle">基于 Anthropic Claude Code 团队的工程经验总结</p>
+                <div class="article-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">来源:</span>
+                        <span>Anthropic 官方博客</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">作者:</span>
+                        <span>Thariq Shihipar</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">发布日期:</span>
+                        <span>2026年4月30日</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">阅读时长:</span>
+                        <span>约5分钟</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 概述 -->
+            <section id="overview" class="section">
+                <h2 class="section-title">概述</h2>
+                <div class="section-content">
+                    <p>在工程领域常言"<span class="highlight">缓存主宰一切</span>"（Cache rules everything around me），对于 AI Agent 产品同样如此。</p>
+
+                    <div class="card">
+                        <div class="card-title">核心论点</div>
+                        <p>长时间运行的 Agent 产品（如 Claude Code）之所以可行，完全依赖于 <span class="highlight">Prompt Caching</span> 技术。它允许复用之前轮次的计算，显著降低延迟和成本。</p>
+                    </div>
+
+                    <div class="tip-box">
+                        <div class="tip-label">关键洞察</div>
+                        <p>Claude Code 团队将整个 harness 围绕 Prompt Caching 构建。高缓存命中率可降低成本并为订阅计划提供更宽松的速率限制。团队甚至会<strong>设置警报监控缓存命中率</strong>，命中率过低时触发 SEV（严重事件）。</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Prompt布局 -->
+            <section id="prompt-layout" class="section">
+                <h2 class="section-title">Prompt 布局策略</h2>
+                <div class="section-content">
+                    <p>Prompt Caching 通过 <span class="highlight">前缀匹配</span> 工作——API 缓存从请求开头到每个 <code>cache_control</code> 断点的所有内容。这意味着内容的<strong>排列顺序至关重要</strong>。</p>
+
+                    <div class="tip-box">
+                        <div class="tip-label">核心原则</div>
+                        <p><strong>静态内容在前，动态内容在后</strong>。尽可能让多个请求共享相同的前缀。</p>
+                    </div>
+
+                    <div class="architecture-diagram">
+                        <div class="diagram-title">Claude Code Prompt 结构层次</div>
+                        <div class="layer-stack">
+                            <div class="layer layer-static">静态系统提示 + 工具定义（全局缓存）</div>
+                            <div class="layer-arrow">↓</div>
+                            <div class="layer layer-project">CLAUDE.md（项目级缓存）</div>
+                            <div class="layer-arrow">↓</div>
+                            <div class="layer layer-session">会话上下文（会话级缓存）</div>
+                            <div class="layer-arrow">↓</div>
+                            <div class="layer layer-dynamic">对话消息（动态增长）</div>
+                        </div>
+                    </div>
+
+                    <div class="tip-box error">
+                        <div class="tip-label">常见陷阱</div>
+                        <ul class="styled-list">
+                            <li>在静态系统提示中放置精确时间戳</li>
+                            <li>非确定性地随机排列工具定义顺序</li>
+                            <li>更新工具参数（如 Agent 工具可调用的 agent 列表）</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 消息更新 -->
+            <section id="messages-update" class="section">
+                <h2 class="section-title">消息更新机制</h2>
+                <div class="section-content">
+                    <p>Prompt 中的信息可能过期（如时间、文件变更）。直觉上可能想更新 Prompt，但这会导致缓存失效，代价昂贵。</p>
+
+                    <div class="tip-box">
+                        <div class="tip-label">解决方案</div>
+                        <p>通过<strong>消息传递</strong>更新信息，而非修改 Prompt。Claude Code 在下一个用户消息或工具结果中添加 <code>&lt;system-reminder&gt;</code> 标签，携带更新信息，从而保留缓存。</p>
+                    </div>
+
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-lang">XML</span>
+                            <span>system-reminder 示例</span>
+                        </div>
+                        <pre style="color: var(--fg);">&lt;system-reminder&gt;
+  当前时间: 2026-05-27 10:30:00
+  文件状态: src/app.py 已被用户修改
+&lt;/system-reminder&gt;</pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 模型切换 -->
+            <section id="model-switch" class="section">
+                <h2 class="section-title">模型切换陷阱</h2>
+                <div class="section-content">
+                    <p>Prompt 缓存是<strong>模型专属</strong>的，这使缓存的成本计算变得反直觉。</p>
+
+                    <div class="card">
+                        <div class="card-title">反直觉示例</div>
+                        <p>如果已与 Opus 进行 100k tokens 的对话，想问一个简单问题：<strong>切换到 Haiku 反而更昂贵</strong>，因为需要为 Haiku 重建整个 Prompt 缓存。</p>
+                    </div>
+
+                    <div class="tip-box warning">
+                        <div class="tip-label">正确做法</div>
+                        <p>如需切换模型，使用 <span class="highlight">子 Agent（Subagent）</span>。让 Opus 准备"交接"消息给另一模型完成任务。Claude Code 的 Explore Agent 就采用这种方式（使用 Haiku）。</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 工具管理 -->
+            <section id="tool-management" class="section">
+                <h2 class="section-title">工具管理策略</h2>
+                <div class="section-content">
+                    <p>会话中途更改工具集是<strong>最常见的缓存破坏方式</strong>。直觉上应该只给模型当前需要的工具，但工具是缓存前缀的一部分，添加/移除工具会使整个会话的缓存失效。</p>
+
+                    <div class="card">
+                        <div class="card-title">Plan Mode 设计案例</div>
+                        <p><strong>直觉方案</strong>：进入 Plan Mode 时，只保留只读工具 → <span style="color: var(--error);">破坏缓存</span></p>
+                        <p><strong>正确方案</strong>：始终保留<strong>所有工具</strong>，将 EnterPlanMode 和 ExitPlanMode 作为工具本身。模型通过系统消息获知 Plan Mode 指令，工具定义永不改变。</p>
+                    </div>
+
+                    <div class="tip-box">
+                        <div class="tip-label">附加收益</div>
+                        <p>EnterPlanMode 作为工具，模型可<strong>自主进入规划模式</strong>检测复杂问题，无需任何缓存破坏。</p>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">defer_loading 延迟加载</div>
+                        <p>Claude Code 可加载数十个 MCP 工具，每次请求全部包含代价高昂，但中途移除会破坏缓存。</p>
+                        <p><strong>解决方案</strong>：发送轻量级 stub（仅工具名 + <code>defer_loading: true</code>），模型通过 tool search"发现"时再加载完整 schema。stub 顺序固定，保持缓存前缀稳定。</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 压缩 -->
+            <section id="compaction" class="section">
+                <h2 class="section-title">压缩与缓存</h2>
+                <div class="section-content">
+                    <p>当上下文窗口耗尽时，需要压缩对话历史并继续新会话。压缩与缓存的交互容易出错。</p>
+
+                    <div class="tip-box error">
+                        <div class="tip-label">常见错误</div>
+                        <p>发送完整对话让模型生成摘要时，使用独立 API 调用 + 不同系统提示 + 无工具。这导致前缀从首个 token 就不匹配，<strong>整个缓存失效</strong>。对话越长，这次调用越昂贵。</p>
+                    </div>
+
+                    <div class="tip-box">
+                        <div class="tip-label">正确方案：Cache-Safe Forking</div>
+                        <ul class="styled-list">
+                            <li>使用与父会话<strong>完全相同</strong>的系统提示、用户上下文、系统上下文、工具定义</li>
+                            <li>prepend 父会话消息，append 压缩提示作为新用户消息</li>
+                            <li>API 视为几乎相同的请求 → 缓存前缀复用</li>
+                            <li>仅新增 token 是压缩提示本身</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">注意事项</div>
+                        <p>需预留"压缩缓冲区"，确保上下文窗口有足够空间容纳压缩消息和摘要输出 token。</p>
+                    </div>
+
+                    <div class="tip-box">
+                        <div class="tip-label">好消息</div>
+                        <p>Anthropic 已将这些经验整合到 API 的 <a href="https://platform.claude.com/docs/en/build-with-claude/compaction" style="color: var(--accent);">compaction</a> 功能中，可直接应用这些模式。</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 总结 -->
+            <section id="summary" class="section">
+                <h2 class="section-title">核心要点总结</h2>
+                <div class="section-content">
+                    <table class="summary-table">
+                        <thead>
+                            <tr>
+                                <th>原则</th>
+                                <th>说明</th>
+                                <th>错误做法</th>
+                                <th>正确做法</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="highlight">前缀匹配</span></td>
+                                <td>前缀任意位置的变化使后续全部失效</td>
+                                <td>随机排列内容顺序</td>
+                                <td>静态在前，动态在后</td>
+                            </tr>
+                            <tr>
+                                <td><span class="highlight">消息优先</span></td>
+                                <td>用消息传递更新而非修改 Prompt</td>
+                                <td>编辑系统提示更新时间/状态</td>
+                                <td>使用 system-reminder 标签</td>
+                            </tr>
+                            <tr>
+                                <td><span class="highlight">稳定工具集</span></td>
+                                <td>工具定义属于缓存前缀</td>
+                                <td>中途添加/移除工具</td>
+                                <td>工具作为状态切换器，defer_loading</td>
+                            </tr>
+                            <tr>
+                                <td><span class="highlight">避免模型切换</span></td>
+                                <td>缓存是模型专属</td>
+                                <td>会话中直接切换模型</td>
+                                <td>使用子 Agent 交接</td>
+                            </tr>
+                            <tr>
+                                <td><span class="highlight">监控命中率</span></td>
+                                <td>缓存失效严重影响成本和延迟</td>
+                                <td>忽略缓存指标</td>
+                                <td>设置警报，视失效为事故</td>
+                            </tr>
+                            <tr>
+                                <td><span class="highlight">Fork 共享前缀</span></td>
+                                <td>侧计算需复用父会话前缀</td>
+                                <td>使用不同系统提示压缩</td>
+                                <td>相同参数 + append 提示消息</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 实践建议 -->
+            <section id="practice" class="section">
+                <h2 class="section-title">实践建议</h2>
+                <div class="section-content">
+                    <div class="card">
+                        <div class="card-title">构建 Agent 时的检查清单</div>
+                        <ul class="styled-list">
+                            <li>系统提示是否完全静态？时间戳等动态信息应通过消息传递</li>
+                            <li>工具定义顺序是否固定？是否避免非确定性排序</li>
+                            <li>工具参数是否稳定？Agent 列表等应通过其他方式管理</li>
+                            <li>状态切换（如 Plan Mode）是否通过工具而非工具集变更实现</li>
+                            <li>压缩/摘要等侧计算是否使用与主会话相同的前缀参数</li>
+                            <li>是否设置了缓存命中率监控和警报</li>
+                        </ul>
+                    </div>
+
+                    <div class="tip-box">
+                        <div class="tip-label">关键心态</div>
+                        <p><strong>Claude Code 从第一天起就围绕 Prompt Caching 构建</strong>。构建 Agent 产品时，建议从一开始就将缓存作为核心约束纳入设计，而非事后优化。</p>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">延伸阅读</div>
+                        <ul class="styled-list">
+                            <li><a href="https://platform.claude.com/docs/en/build-with-claude/compaction" style="color: var(--accent);">Compaction API 文档</a></li>
+                            <li><a href="https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-search-tool" style="color: var(--accent);">Tool Search Tool 文档</a></li>
+                            <li><a href="https://code.claude.com/docs/en/overview" style="color: var(--accent);">Claude Code 入门指南</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // 目录高亮
+        const tocItems = document.querySelectorAll('.toc-item');
+        const sections = document.querySelectorAll('.section');
+
+        function updateActiveToc() {
+            let current = '';
+            sections.forEach(section => {
+                const rect = section.getBoundingClientRect();
+                if (rect.top <= 150) {
+                    current = section.id;
+                }
+            });
+
+            tocItems.forEach(item => {
+                item.classList.remove('active');
+                if (item.querySelector('a').getAttribute('href') === '#' + current) {
+                    item.classList.add('active');
+                }
+            });
+        }
+
+        window.addEventListener('scroll', updateActiveToc);
+
+        // 点击跳转
+        tocItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const targetId = item.querySelector('a').getAttribute('href').slice(1);
+                const target = document.getElementById(targetId);
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
