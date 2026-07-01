@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM 评测方法与体系 — 实用学习报告</title>
+<style>
+/* ===== Catppuccin 配色 ===== */
+:root {
+  --bg: #1e1e2e;
+  --bg-alt: #181825;
+  --surface: #313244;
+  --overlay: #45475a;
+  --text: #cdd6f4;
+  --subtext: #a6adc8;
+  --muted: #6c7086;
+  --pink: #f5c2e7;
+  --mauve: #cba6f7;
+  --blue: #89b4fa;
+  --green: #a6e3a1;
+  --peach: #fab387;
+  --red: #f38ba8;
+  --yellow: #f9e2af;
+  --teal: #94e2d5;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ===== 侧边栏 ===== */
+.sidebar {
+  width: 280px;
+  min-width: 280px;
+  background: var(--bg-alt);
+  padding: 24px 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  border-right: 1px solid var(--surface);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  padding: 0 20px 20px;
+  border-bottom: 1px solid var(--surface);
+  margin-bottom: 8px;
+}
+
+.sidebar-header h1 {
+  font-size: 1.15em;
+  color: var(--mauve);
+  line-height: 1.4;
+}
+
+.sidebar-header .date {
+  font-size: 0.8em;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.sidebar-nav { flex: 1; overflow-y: auto; padding: 8px 0; }
+
+.sidebar-nav a {
+  display: block;
+  padding: 8px 20px;
+  color: var(--subtext);
+  text-decoration: none;
+  font-size: 0.88em;
+  transition: all .15s;
+  border-left: 2px solid transparent;
+}
+
+.sidebar-nav a:hover, .sidebar-nav a.active {
+  color: var(--text);
+  background: rgba(137, 180, 250, 0.08);
+  border-left-color: var(--blue);
+}
+
+.sidebar-nav .section-title {
+  padding: 12px 20px 4px;
+  font-size: 0.72em;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+}
+
+/* ===== 主内容区 ===== */
+.main {
+  flex: 1;
+  padding: 40px 48px;
+  max-width: 960px;
+}
+
+h2 {
+  font-size: 1.6em;
+  color: var(--blue);
+  margin: 48px 0 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--surface);
+}
+
+h2:first-of-type { margin-top: 0; }
+
+h3 {
+  font-size: 1.2em;
+  color: var(--green);
+  margin: 28px 0 12px;
+}
+
+h4 {
+  font-size: 1em;
+  color: var(--peach);
+  margin: 20px 0 8px;
+}
+
+p { margin: 10px 0; }
+
+a { color: var(--teal); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ===== 代码容器 ===== */
+.code-block {
+  margin: 16px 0;
+  border-radius: 12px;
+  background: var(--bg-alt);
+  overflow: hidden;
+}
+.code-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 16px;
+  background: rgba(255,255,255,0.04);
+  font-size: 0.82em;
+  color: var(--muted);
+}
+.code-header .lang-tag {
+  background: var(--mauve); color: var(--bg);
+  padding: 2px 10px; border-radius: 4px;
+  font-size: 0.78em; font-weight: 600;
+  text-transform: uppercase;
+}
+.code-body { padding: 16px; overflow-x: auto; }
+.code-body pre { margin: 0; font-family: "Cascadia Code", "Fira Code", "JetBrains Mono", monospace; font-size: 0.85em; line-height: 1.65; }
+.code-body code { color: var(--text); }
+
+/* 语法高亮 */
+.kw  { color: #cba6f7; } /* 关键字 */
+.str { color: #a6e3a1; } /* 字符串 */
+.fn  { color: #89b4fa; } /* 函数名 */
+.bi  { color: #fab387; } /* 内置/参数 */
+.cmt { color: #6c7086; } /* 注释 */
+.op  { color: #cdd6f4; } /* 运算符/普通 */
+
+/* ===== 表格 ===== */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 0.9em;
+}
+thead th {
+  background: var(--surface);
+  color: var(--mauve);
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+}
+tbody td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--overlay);
+  vertical-align: top;
+}
+tbody tr:hover { background: rgba(137,180,250,0.04); }
+
+/* ===== 提示框 ===== */
+.callout {
+  margin: 16px 0;
+  padding: 14px 18px;
+  border-radius: 8px;
+  border-left: 3px solid;
+  font-size: 0.9em;
+}
+.callout.info    { background: rgba(137,180,250,0.08); border-color: var(--blue); }
+.callout.tip     { background: rgba(166,227,161,0.08); border-color: var(--green); }
+.callout.warning { background: rgba(250,179,135,0.08); border-color: var(--peach); }
+
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+  body { flex-direction: column; }
+  .sidebar {
+    width: 100%; min-width: 0; height: auto; position: relative;
+    border-right: none; border-bottom: 1px solid var(--surface);
+  }
+  .sidebar-nav { display: none; }
+  .sidebar-nav.open { display: block; }
+  .sidebar-toggle { display: block; }
+  .main { padding: 20px 16px; }
+}
+.sidebar-toggle {
+  display: none; position: fixed; top: 12px; right: 12px; z-index: 100;
+  background: var(--mauve); color: var(--bg); border: none;
+  width: 36px; height: 36px; border-radius: 8px; font-size: 1.2em;
+  cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<!-- 侧边栏 -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h1>LLM 评测方法与体系<br>学习报告</h1>
+    <div class="date">2026-07-01 · 实用指南型</div>
+  </div>
+  <nav class="sidebar-nav" id="toc">
+    <div class="section-title">概览</div>
+    <a href="#overview">测评体系全景图</a>
+    <a href="#comparison">八大体系速览对比</a>
+
+    <div class="section-title">国际主流体系</div>
+    <a href="#arena">Chatbot Arena (LMSYS)</a>
+    <a href="#mmlu">MMLU / MMLU-Pro</a>
+    <a href="#humaneval">HumanEval / MBPP</a>
+    <a href="#lm-eval">LM Evaluation Harness</a>
+    <a href="#alpacaeval">AlpacaEval 2.0</a>
+
+    <div class="section-title">国内主流体系</div>
+    <a href="#superclue">SuperCLUE</a>
+    <a href="#ceval">C-Eval / CMMLU</a>
+    <a href="#opencompass">OpenCompass</a>
+
+    <div class="section-title">实践建议</div>
+    <a href="#workflow">推荐评测工作流</a>
+    <a href="#refs">参考资源汇总</a>
+  </nav>
+</aside>
+
+<!-- 主内容 -->
+<main class="main">
+
+<!-- ============================================================ -->
+<h2 id="overview">一、测评体系全景图</h2>
+<!-- ============================================================ -->
+
+<svg width="100%" viewBox="0 0 880 480" style="max-width:880px; margin:16px 0;">
+  <defs>
+    <filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#111"/></filter>
+  </defs>
+
+  <!-- 中心 -->
+  <rect x="340" y="190" width="200" height="100" rx="12" fill="#313244" stroke="#cba6f7" stroke-width="2" filter="url(#shadow)"/>
+  <text x="440" y="230" text-anchor="middle" fill="#cba6f7" font-size="15" font-weight="bold">LLM 评测</text>
+  <text x="440" y="258" text-anchor="middle" fill="#cdd6f4" font-size="13">方法 &amp; 体系</text>
+
+  <!-- 国际 -->
+  <rect x="30"  y="30"  width="250" height="55" rx="8" fill="#1e1e2e" stroke="#89b4fa" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="155" y="55"  text-anchor="middle" fill="#89b4fa" font-size="14" font-weight="bold">🌍 Chatbot Arena</text>
+  <text x="155" y="73"  text-anchor="middle" fill="#a6adc8" font-size="11">人类偏好盲评 · Elo 排序</text>
+
+  <rect x="30"  y="100" width="250" height="55" rx="8" fill="#1e1e2e" stroke="#89b4fa" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="155" y="125" text-anchor="middle" fill="#89b4fa" font-size="14" font-weight="bold">📚 MMLU / MMLU-Pro</text>
+  <text x="155" y="143" text-anchor="middle" fill="#a6adc8" font-size="11">多学科知识理解 · 选择题</text>
+
+  <rect x="30"  y="170" width="250" height="55" rx="8" fill="#1e1e2e" stroke="#89b4fa" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="155" y="195" text-anchor="middle" fill="#89b4fa" font-size="14" font-weight="bold">💻 HumanEval / MBPP</text>
+  <text x="155" y="213" text-anchor="middle" fill="#a6adc8" font-size="11">代码生成 · Pass@k</text>
+
+  <rect x="30"  y="240" width="250" height="55" rx="8" fill="#1e1e2e" stroke="#89b4fa" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="155" y="265" text-anchor="middle" fill="#89b4fa" font-size="14" font-weight="bold">🔧 LM Evaluation Harness</text>
+  <text x="155" y="283" text-anchor="middle" fill="#a6adc8" font-size="11">统一评测框架 · 60+ 基准</text>
+
+  <rect x="30"  y="310" width="250" height="55" rx="8" fill="#1e1e2e" stroke="#89b4fa" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="155" y="335" text-anchor="middle" fill="#89b4fa" font-size="14" font-weight="bold">🤖 AlpacaEval 2.0</text>
+  <text x="155" y="353" text-anchor="middle" fill="#a6adc8" font-size="11">LLM-as-Judge 自动评测</text>
+
+  <!-- 国内 -->
+  <rect x="600" y="30"  width="250" height="55" rx="8" fill="#1e1e2e" stroke="#a6e3a1" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="725" y="55"  text-anchor="middle" fill="#a6e3a1" font-size="14" font-weight="bold">🏆 SuperCLUE</text>
+  <text x="725" y="73"  text-anchor="middle" fill="#a6adc8" font-size="11">中文综合评测 · 动态题库</text>
+
+  <rect x="600" y="100" width="250" height="55" rx="8" fill="#1e1e2e" stroke="#a6e3a1" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="725" y="125" text-anchor="middle" fill="#a6e3a1" font-size="14" font-weight="bold">📖 C-Eval / CMMLU</text>
+  <text x="725" y="143" text-anchor="middle" fill="#a6adc8" font-size="11">中文学科知识 · 选择题</text>
+
+  <rect x="600" y="170" width="250" height="55" rx="8" fill="#1e1e2e" stroke="#a6e3a1" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="725" y="195" text-anchor="middle" fill="#a6e3a1" font-size="14" font-weight="bold">🧭 OpenCompass</text>
+  <text x="725" y="213" text-anchor="middle" fill="#a6adc8" font-size="11">开源评测平台 · 70+ 数据集</text>
+
+  <!-- 连线 -->
+  <line x1="280" y1="57"  x2="340" y2="215" stroke="#45475a" stroke-width="1"/>
+  <line x1="280" y1="127" x2="340" y2="225" stroke="#45475a" stroke-width="1"/>
+  <line x1="280" y1="197" x2="340" y2="235" stroke="#45475a" stroke-width="1"/>
+  <line x1="280" y1="267" x2="340" y2="245" stroke="#45475a" stroke-width="1"/>
+  <line x1="280" y1="337" x2="340" y2="255" stroke="#45475a" stroke-width="1"/>
+  <line x1="600" y1="57"  x2="540" y2="215" stroke="#45475a" stroke-width="1"/>
+  <line x1="600" y1="127" x2="540" y2="225" stroke="#45475a" stroke-width="1"/>
+  <line x1="600" y1="197" x2="540" y2="235" stroke="#45475a" stroke-width="1"/>
+
+  <!-- 图例 -->
+  <rect x="30"  y="410" width="14" height="14" rx="3" fill="none" stroke="#89b4fa" stroke-width="1.5"/>
+  <text x="52"  y="423" fill="#a6adc8" font-size="12">国际体系</text>
+  <rect x="140" y="410" width="14" height="14" rx="3" fill="none" stroke="#a6e3a1" stroke-width="1.5"/>
+  <text x="162" y="423" fill="#a6adc8" font-size="12">国内体系</text>
+</svg>
+
+<!-- ============================================================ -->
+<h2 id="comparison">二、八大体系速览对比</h2>
+<!-- ============================================================ -->
+
+<table>
+<thead>
+<tr><th>测评体系</th><th>类型</th><th>核心方法</th><th>适用场景</th><th>链接</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Chatbot Arena</strong></td>
+  <td>人类偏好评测</td>
+  <td>匿名盲评 + Elo 排序</td>
+  <td>综合对话质量对比</td>
+  <td><a href="https://lmarena.ai" target="_blank">lmarena.ai</a></td>
+</tr>
+<tr>
+  <td><strong>MMLU-Pro</strong></td>
+  <td>知识基准评测</td>
+  <td>57 学科选择题 + 准确率</td>
+  <td>知识广度与推理能力</td>
+  <td><a href="https://github.com/TIGER-AI-Lab/MMLU-Pro" target="_blank">GitHub</a></td>
+</tr>
+<tr>
+  <td><strong>HumanEval</strong></td>
+  <td>代码生成评测</td>
+  <td>164 编程题 + Pass@k</td>
+  <td>代码生成能力</td>
+  <td><a href="https://github.com/openai/human-eval" target="_blank">GitHub</a></td>
+</tr>
+<tr>
+  <td><strong>LM Eval Harness</strong></td>
+  <td>评测框架</td>
+  <td>统一接口 + 200+ 基准</td>
+  <td>批量标准化评测</td>
+  <td><a href="https://github.com/EleutherAI/lm-evaluation-harness" target="_blank">GitHub</a></td>
+</tr>
+<tr>
+  <td><strong>AlpacaEval 2.0</strong></td>
+  <td>自动评测</td>
+  <td>LLM-as-Judge + 长度控制</td>
+  <td>指令遵循快速评测</td>
+  <td><a href="https://github.com/tatsu-lab/alpaca_eval" target="_blank">GitHub</a></td>
+</tr>
+<tr>
+  <td><strong>SuperCLUE</strong></td>
+  <td>中文综合评测</td>
+  <td>6 维原创题 + 动态更新</td>
+  <td>中文综合能力排行</td>
+  <td><a href="https://www.cluebenchmarks.com/superclue.html" target="_blank">官网</a></td>
+</tr>
+<tr>
+  <td><strong>C-Eval / CMMLU</strong></td>
+  <td>中文知识评测</td>
+  <td>52-67 中文学科选择题</td>
+  <td>中文知识理解</td>
+  <td><a href="https://github.com/SJTU-LIT/ceval" target="_blank">C-Eval</a> · <a href="https://github.com/haonan-li/CMMLU" target="_blank">CMMLU</a></td>
+</tr>
+<tr>
+  <td><strong>OpenCompass</strong></td>
+  <td>评测平台</td>
+  <td>模块化 + 分布式评测</td>
+  <td>国产模型全能力评测</td>
+  <td><a href="https://github.com/open-compass/opencompass" target="_blank">GitHub</a></td>
+</tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="arena">三、Chatbot Arena (LMSYS)</h2>
+<!-- ============================================================ -->
+
+<h3>3.1 体系简介</h3>
+<p>
+  <strong>Chatbot Arena</strong>（现称 <strong>LMArena</strong>）由 LMSYS Org（UC Berkeley / UCSD / CMU）于 2023 年 5 月推出，是当前最受认可的
+  <strong>人类偏好盲评排行榜</strong>。截至 2025 年已收集 <strong>300 万+ 对比较、1100 万+ 投票</strong>，评测 <strong>400+ 模型</strong>。
+  用户提交任意 prompt，同时看到两个匿名模型的回复进行投票，平台通过 Bradley-Terry 模型拟合 Elo 分数。
+</p>
+
+<div class="callout tip">
+  <strong>核心优势：</strong>人类直接评判，难以作弊，与真实用户体验高度一致。是目前"含金量"最高的 LLM 排行榜。
+</div>
+
+<h3>3.2 核心方法</h3>
+<table>
+<thead><tr><th>要素</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td><strong>评测方式</strong></td><td>匿名盲评 — 用户同时看到 A/B 两个模型的回复，投票选出更好的</td></tr>
+<tr><td><strong>统计模型</strong></td><td>Bradley-Terry 模型通过 MLE 估计潜在"强度"参数，映射到 Elo 量表（×173.7）</td></tr>
+<tr><td><strong>K-factor</strong></td><td>K=4（远低于国际象棋的 K=20），降低单日噪声</td></tr>
+<tr><td><strong>置信区间</strong></td><td>95% CI，少票数模型区间更宽（约 ±40 分）</td></tr>
+<tr><td><strong>专项赛道</strong></td><td>Agent Arena、Search Arena、RepoChat 等垂直领域</td></tr>
+</tbody>
+</table>
+
+<h3>3.3 使用方法</h3>
+<div class="code-block">
+  <div class="code-header">
+    <span class="lang-tag">URL</span>
+    <span>访问地址</span>
+  </div>
+  <div class="code-body"><pre><code><span class="cmt"># 直接访问参与盲评</span>
+<span class="str">https://lmarena.ai</span>
+
+<span class="cmt"># 查看排行榜</span>
+<span class="str">https://lmarena.ai/?leaderboard</span></code></pre></div>
+</div>
+
+<h3>3.4 解读与案例</h3>
+<p><strong>2025 典型排名（示例）：</strong></p>
+<table>
+<thead><tr><th>模型</th><th>Elo 分</th><th>95% CI</th><th>特点</th></tr></thead>
+<tbody>
+<tr><td>Gemini 2.5 Pro</td><td>~1474</td><td>±15</td><td>推理+多模态领先</td></tr>
+<tr><td>Grok-4</td><td>~1440</td><td>±18</td><td>长上下文表现优异</td></tr>
+<tr><td>DeepSeek-R1</td><td>~1424</td><td>±12</td><td>开源推理最佳</td></tr>
+</tbody>
+</table>
+
+<div class="callout warning">
+  <strong>使用注意：</strong>Elo 分差在 30 分以内视为无明显差距。建议配合 MMLU-Pro（知识）、HumanEval（代码）等专项基准综合判断。
+</div>
+
+<!-- ============================================================ -->
+<h2 id="mmlu">四、MMLU / MMLU-Pro</h2>
+<!-- ============================================================ -->
+
+<h3>4.1 体系简介</h3>
+<p>
+  <strong>MMLU（Massive Multitask Language Understanding）</strong> 由 UC Berkeley 推出，覆盖 <strong>57 个学科</strong>（人文、社科、STEM、其他），
+  ~14,000 道选择题，是使用最广泛的知识型 LLM 基准。到 2025 年，原始 MMLU 已近饱和（前沿模型超 90%），
+  因此推出了 <strong>MMLU-Pro</strong>：答案选项从 4 个扩展到 <strong>10 个</strong>，增加推理强度，减少 prompt 敏感性。
+</p>
+
+<h3>4.2 核心方法</h3>
+<table>
+<thead><tr><th>维度</th><th>MMLU</th><th>MMLU-Pro</th></tr></thead>
+<tbody>
+<tr><td>学科数</td><td>57</td><td>14 大类</td></tr>
+<tr><td>题目量</td><td>~14,000</td><td>12,000+</td></tr>
+<tr><td>选项数</td><td>4 个</td><td>10 个</td></tr>
+<tr><td>推理要求</td><td>中低</td><td>高（需 CoT 推理）</td></tr>
+<tr><td>Prompt 敏感性</td><td>4-5%</td><td>~2%</td></tr>
+<tr><td>前沿模型得分</td><td>90%+（近饱和）</td><td>60-75%（仍有区分度）</td></tr>
+</tbody>
+</table>
+
+<h3>4.3 使用方法</h3>
+<div class="code-block">
+  <div class="code-header">
+    <span class="lang-tag">BASH</span>
+    <span>通过 LM Evaluation Harness 运行</span>
+  </div>
+  <div class="code-body"><pre><code><span class="cmt"># 安装 lm-eval</span>
+pip install lm-eval
+
+<span class="cmt"># 评测 MMLU（57 科全部）</span>
+lm_eval --model <span class="kw">hf</span> \
+    --model_args <span class="str">pretrained=mistralai/Mistral-7B-v0.1</span> \
+    --tasks <span class="str">mmlu</span> \
+    --num_fewshot <span class="str">5</span> \
+    --batch_size <span class="str">auto</span> \
+    --device <span class="str">cuda:0</span>
+
+<span class="cmt"># 评测 MMLU-Pro（需加载对应 task）</span>
+lm_eval --model <span class="kw">hf</span> \
+    --model_args <span class="str">pretrained=model-name</span> \
+    --tasks <span class="str">mmlu_pro</span> \
+    --num_fewshot <span class="str">5</span> \
+    --apply_chat_template</code></pre></div>
+</div>
+
+<h3>4.4 案例：模型选型参考</h3>
+<table>
+<thead><tr><th>场景</th><th>推荐参考指标</th><th>阈值参考</th></tr></thead>
+<tbody>
+<tr><td>通用知识问答</td><td>MMLU 总分</td><td>&gt; 75% 即可用</td></tr>
+<tr><td>专业领域知识</td><td>MMLU 对应子科目</td><td>如 MMLU-Law &gt; 70%</td></tr>
+<tr><td>复杂推理需求</td><td>MMLU-Pro 总分</td><td>&gt; 55% 为较优</td></tr>
+<tr><td>多语言场景</td><td>MMLU + 对应语种评测</td><td>需额外参考</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="humaneval">五、HumanEval / MBPP</h2>
+<!-- ============================================================ -->
+
+<h3>5.1 体系简介</h3>
+<p>
+  <strong>HumanEval</strong> 由 OpenAI 推出，包含 <strong>164 道手写编程题</strong>，使用 <strong>Pass@k</strong> 指标
+  （生成 k 个候选答案中至少有一个通过单元测试的概率）。配合 <strong>MBPP</strong>（1,000 道众包 Python 题）构成代码生成的标准评测组合。
+</p>
+
+<h3>5.2 核心指标</h3>
+<p><strong>Pass@k 计算公式：</strong></p>
+<div class="code-block">
+  <div class="code-header"><span class="lang-tag">MATH</span><span>Pass@k 定义</span></div>
+  <div class="code-body"><pre><code><span class="cmt"># Pass@k: 从 n 个样本中生成 k 个，至少有一个通过测试的概率</span>
+<span class="fn">pass_at_k</span>(n, c, k) = 1 - C(n-c, k) / C(n, k)
+
+<span class="cmt"># 其中：n = 每个问题的总样本数，c = 正确的样本数，k = 选取数</span>
+<span class="cmt"># 典型取值：n=200, k=1 → Pass@1（首次生成即正确的概率）</span></code></pre></div>
+</div>
+
+<h3>5.3 使用方法</h3>
+<div class="code-block">
+  <div class="code-header">
+    <span class="lang-tag">BASH</span>
+    <span>HumanEval 评测</span>
+  </div>
+  <div class="code-body"><pre><code><span class="cmt"># 克隆仓库</span>
+git clone <span class="str">https://github.com/openai/human-eval</span>
+<span class="kw">cd</span> human-eval
+pip install -e .
+
+<span class="cmt"># 生成代码样本（以你的模型生成）</span>
+python generate_samples.py --model <span class="str">your-model</span> --output <span class="str">samples.jsonl</span>
+
+<span class="cmt"># 评估 Pass@k</span>
+evaluate_functional_correctness <span class="str">samples.jsonl</span></code></pre></div>
+</div>
+
+<div class="code-block">
+  <div class="code-header">
+    <span class="lang-tag">BASH</span>
+    <span>通过 LM Eval Harness 运行</span>
+  </div>
+  <div class="code-body"><pre><code><span class="cmt"># 一键评测 HumanEval + MBPP</span>
+lm_eval --model <span class="kw">hf</span> \
+    --model_args <span class="str">pretrained=codellama/CodeLlama-7b-hf</span> \
+    --tasks <span class="str">humaneval,mbpp</span> \
+    --batch_size <span class="str">auto</span></code></pre></div>
+</div>
+
+<h3>5.4 案例：代码模型选型</h3>
+<table>
+<thead><tr><th>模型类型</th><th>HumanEval Pass@1</th><th>适用场景</th></tr></thead>
+<tbody>
+<tr><td>基础代码模型（CodeLlama-7B）</td><td>~33%</td><td>简单代码补全</td></tr>
+<tr><td>中等代码模型（DeepSeek-Coder-33B）</td><td>~79%</td><td>日常开发辅助</td></tr>
+<tr><td>前沿模型（GPT-4o / Claude 4）</td><td>~92%</td><td>复杂算法、架构设计</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="lm-eval">六、LM Evaluation Harness</h2>
+<!-- ============================================================ -->
+
+<h3>6.1 体系简介</h3>
+<p>
+  <strong>LM Evaluation Harness</strong> 由 <strong>EleutherAI</strong> 开发，是当前最广泛使用的
+  <strong>统一评测框架</strong>，支持 200+ 基准任务。HuggingFace Open LLM Leaderboard、
+  NVIDIA、Cohere、BigScience 等均基于此框架。
+</p>
+
+<div class="callout info">
+  <strong>定位：</strong>它不是一个"基准"，而是一个<strong>评测执行引擎</strong>——你可以在同一个框架下一键运行 MMLU、HellaSwag、GSM8K、HumanEval 等数十个基准。
+</div>
+
+<h3>6.2 安装</h3>
+<div class="code-block">
+  <div class="code-header"><span class="lang-tag">BASH</span><span>安装 LM Eval Harness</span></div>
+  <div class="code-body"><pre><code><span class="cmt"># 基础安装</span>
+pip install lm-eval
+
+<span class="cmt"># 安装 HuggingFace 后端（必须！）</span>
+pip install <span class="str">"lm_eval[hf]"</span>
+
+<span class="cmt"># 安装 vLLM 后端（加速推理）</span>
+pip install <span class="str">"lm_eval[vllm]"</span>
+
+<span class="cmt"># 安装 API 后端（评测 OpenAI / Anthropic 等）</span>
+pip install <span class="str">"lm_eval[api]"</span></code></pre></div>
+</div>
+
+<h3>6.3 核心命令</h3>
+<div class="code-block">
+  <div class="code-header"><span class="lang-tag">BASH</span><span>常用评测命令</span></div>
+  <div class="code-body"><pre><code><span class="cmt"># 列出所有可用任务</span>
+lm-eval ls tasks
+
+<span class="cmt"># 基础评测（HuggingFace 模型）</span>
+lm-eval run --model <span class="kw">hf</span> \
+    --model_args <span class="str">pretrained=meta-llama/Llama-2-7b-hf</span> \
+    --tasks <span class="str">hellaswag,arc_challenge,winogrande</span> \
+    --device <span class="str">cuda:0</span> \
+    --batch_size <span class="str">auto</span>
+
+<span class="cmt"># 运行 Open LLM Leaderboard 标准套件</span>
+lm-eval --model <span class="kw">hf</span> \
+    --model_args <span class="str">pretrained=your-model</span> \
+    --tasks <span class="str">leaderboard</span>
+
+<span class="cmt"># 评测 Chat 模型（使用对话模板）</span>
+lm-eval --model <span class="kw">hf</span> \
+    --model_args <span class="str">pretrained=mistralai/Mistral-7B-Instruct-v0.2</span> \
+    --tasks <span class="str">mmlu</span> \
+    --num_fewshot <span class="str">5</span> \
+    --apply_chat_template \
+    --fewshot_as_multiturn
+
+<span class="cmt"># 使用 vLLM 后端（速度更快）</span>
+lm-eval --model <span class="kw">vllm</span> \
+    --model_args <span class="str">pretrained=model-name</span> \
+    --tasks <span class="str">gsm8k</span> \
+    --batch_size <span class="str">auto</span>
+
+<span class="cmt"># 保存结果到文件</span>
+lm-eval --model <span class="kw">hf</span> \
+    --model_args <span class="str">pretrained=model-name</span> \
+    --tasks <span class="str">mmlu</span> \
+    --output_path <span class="str">./results</span> \
+    --log_samples</code></pre></div>
+</div>
+
+<h3>6.4 自定义评测任务</h3>
+<p>通过 YAML 配置文件创建自定义任务：</p>
+<div class="code-block">
+  <div class="code-header"><span class="lang-tag">YAML</span><span>my_custom_task.yaml</span></div>
+  <div class="code-body"><pre><code><span class="kw">task</span>: <span class="str">my_custom_task</span>
+<span class="kw">dataset_path</span>: <span class="str">json</span>
+<span class="kw">dataset_kwargs</span>:
+  <span class="kw">data_files</span>: <span class="str">./my_data/val.jsonl</span>
+<span class="kw">output_type</span>: <span class="str">multiple_choice</span>
+<span class="kw">num_fewshot</span>: <span class="str">3</span>
+
+<span class="kw">doc_to_text</span>: <span class="str">"{{question}}\nA. {{A}}\nB. {{B}}\nC. {{C}}\nD. {{D}}\n答案:"</span>
+<span class="kw">doc_to_choice</span>: <span class="str">["A", "B", "C", "D"]</span>
+<span class="kw">doc_to_target</span>: <span class="str">"{{answer}}"</span>
+
+<span class="kw">metric_list</span>:
+  - <span class="kw">metric</span>: <span class="str">acc</span>
+    <span class="kw">aggregation</span>: <span class="str">mean</span>
+  - <span class="kw">metric</span>: <span class="str">acc_norm</span>
+    <span class="kw">aggregation</span>: <span class="str">mean</span>
+
+<span class="kw">metadata</span>:
+  <span class="kw">version</span>: <span class="str">1.0</span></code></pre></div>
+</div>
+
+<div class="callout tip">
+  <strong>最佳实践：</strong>评测 Chat/Instruct 模型时记得加 <code>--apply_chat_template</code>，否则会因格式不匹配导致分数严重偏低。评测推理模型（如 DeepSeek-R1）时建议配合 <code>--fewshot_as_multiturn</code>。
+</div>
+
+<!-- ============================================================ -->
+<h2 id="alpacaeval">七、AlpacaEval 2.0</h2>
+<!-- ============================================================ -->
+
+<h3>7.1 体系简介</h3>
+<p>
+  <strong>AlpacaEval</strong> 由 Stanford tatsu-lab 开发，通过 <strong>LLM-as-Judge</strong> 方式实现
+  快速自动评测（&lt;3 分钟、$3.50/次）。2.0 版本引入<strong>长度控制（Length-Controlled）Win Rate</strong>，
+  与 Chatbot Arena 的 Spearman 相关性高达 <strong>0.98</strong>。
+</p>
+
+<h3>7.2 核心方法</h3>
+<table>
+<thead><tr><th>要素</th><th>AlpacaEval 1.0</th><th>AlpacaEval 2.0</th></tr></thead>
+<tbody>
+<tr><td>评判模型</td><td>GPT-4</td><td>GPT-4 Turbo（更快更便宜）</td></tr>
+<tr><td>基线模型</td><td>text-davinci-003</td><td>GPT-4 Turbo</td></tr>
+<tr><td>长度偏差</td><td>严重（偏好长回复）</td><td>已控制（GLM 回归去偏）</td></tr>
+<tr><td>Arena 相关性</td><td>0.93</td><td>0.98</td></tr>
+<tr><td>评测成本</td><td>~$7</td><td>~$3.50</td></tr>
+</tbody>
+</table>
+
+<h3>7.3 使用方法</h3>
+<div class="code-block">
+  <div class="code-header"><span class="lang-tag">BASH</span><span>AlpacaEval 命令行评测</span></div>
+  <div class="code-body"><pre><code><span class="cmt"># 安装</span>
+pip install alpaca-eval
+
+<span class="cmt"># 准备模型输出文件 (JSON)</span>
+<span class="cmt"># 格式：[{"instruction": "...", "output": "..."}, ...]</span>
+
+<span class="cmt"># 运行评测</span>
+<span class="kw">export</span> <span class="str">OPENAI_API_KEY</span>=your_key
+alpaca_eval --model_outputs <span class="str">'./my_model_outputs.json'</span>
+
+<span class="cmt"># 从 HuggingFace 模型直接评测</span>
+alpaca_eval evaluate_from_model \
+    --model_path <span class="str">meta-llama/Llama-2-7b-chat-hf</span> \
+    --output_path <span class="str">./results</span></code></pre></div>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span class="lang-tag">PYTHON</span><span>Python API 评测</span></div>
+  <div class="code-body"><pre><code><span class="kw">from</span> alpaca_eval <span class="kw">import</span> evaluate
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+<span class="cmt"># 准备评测数据</span>
+df = pd.DataFrame([
+    {<span class="str">"instruction"</span>: <span class="str">"什么是机器学习？"</span>,
+     <span class="str">"output"</span>: <span class="str">"机器学习是..."</span>},
+])
+
+<span class="cmt"># 执行评测</span>
+leaderboard, annotations = evaluate(
+    model_outputs=df,
+    annotators_config=<span class="str">"weighted_alpaca_eval_gpt4_turbo"</span>,
+    output_path=<span class="str">"./results"</span>,
+    is_return_instead_of_print=<span class="kw">True</span>,
+)
+
+<span class="cmt"># 查看结果</span>
+<span class="kw">print</span>(leaderboard.loc[<span class="str">"MyModel"</span>])</code></pre></div>
+</div>
+
+<h3>7.4 评判模型选择</h3>
+<table>
+<thead><tr><th>Annotator</th><th>人类一致率</th><th>成本/千条</th><th>适用场景</th></tr></thead>
+<tbody>
+<tr><td>weighted_alpaca_eval_gpt4_turbo</td><td>69.2%</td><td>$5.50</td><td>标准评测（推荐）</td></tr>
+<tr><td>chatgpt_fn</td><td>57.3%</td><td>$0.80</td><td>预算有限</td></tr>
+<tr><td>alpaca_eval_llama3_70b_fn</td><td>67.5%</td><td>$0.40</td><td>完全开源方案</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="superclue">八、SuperCLUE（中文综合评测标杆）</h2>
+<!-- ============================================================ -->
+
+<h3>8.1 体系简介</h3>
+<p>
+  <strong>SuperCLUE</strong> 是 CLUE 基准的延续，专为中文大模型设计。核心特色：
+  <strong>所有题目均为原创新题</strong>，约 2 个月 100% 替换，杜绝过拟合。
+  每期 ~1200-1600 道多轮简答题，覆盖六大维度。
+</p>
+
+<div class="callout info">
+  <strong>官网：</strong><a href="https://www.cluebenchmarks.com/superclue.html" target="_blank">cluebenchmarks.com/superclue.html</a>
+</div>
+
+<h3>8.2 六大评测维度（2025）</h3>
+<table>
+<thead><tr><th>维度</th><th>评测内容</th><th>评价方式</th></tr></thead>
+<tbody>
+<tr><td><strong>数学推理</strong></td><td>几何、代数、概率统计（竞赛级别）</td><td>人工校验答案 → 0/1 得分</td></tr>
+<tr><td><strong>科学推理</strong></td><td>物理、化学、生物（研究生级别）</td><td>人工校验答案 → 0/1 得分</td></tr>
+<tr><td><strong>代码生成</strong></td><td>数据结构、算法、Web 应用（HumanEval 中文升级版）</td><td>单元测试通过 → 0/1 得分</td></tr>
+<tr><td><strong>智能体 Agent</strong></td><td>10+ 场景工具调用（汽车控制、股票交易、智能家居等）</td><td>任务完成状态比对</td></tr>
+<tr><td><strong>精确指令遵循</strong></td><td>格式约束、结构约束、量化约束</td><td>规则脚本评估</td></tr>
+<tr><td><strong>文本理解与创作</strong></td><td>摘要、阅读理解、指代消解、长文本</td><td>人工校验 + 多维评价</td></tr>
+</tbody>
+</table>
+
+<h3>8.3 模型四象限分类</h3>
+<p>SuperCLUE 按照<strong>推理能力</strong>（横轴）和<strong>应用能力</strong>（纵轴）将模型分为四个象限：</p>
+
+<svg width="100%" viewBox="0 0 600 380" style="max-width:600px; margin:16px 0;">
+  <!-- 坐标轴 -->
+  <line x1="80" y1="320" x2="530" y2="320" stroke="#45475a" stroke-width="1.5"/>
+  <line x1="80" y1="320" x2="80"  y2="30"  stroke="#45475a" stroke-width="1.5"/>
+  <line x1="305" y1="30" x2="305" y2="320" stroke="#45475a" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="80" y1="175" x2="530" y2="175" stroke="#45475a" stroke-width="1" stroke-dasharray="4,4"/>
+
+  <text x="305" y="350" text-anchor="middle" fill="#a6adc8" font-size="13">推理能力 →</text>
+  <text x="20"  y="180" text-anchor="middle" fill="#a6adc8" font-size="13" transform="rotate(-90,20,180)">应用能力 →</text>
+
+  <!-- 四象限标签 -->
+  <text x="150" y="145" text-anchor="middle" fill="#f5c2e7" font-size="15" font-weight="bold">潜力探索者</text>
+  <text x="150" y="163" text-anchor="middle" fill="#6c7086" font-size="11">推理低 · 应用高</text>
+
+  <text x="460" y="145" text-anchor="middle" fill="#a6e3a1" font-size="15" font-weight="bold">卓越领导者</text>
+  <text x="460" y="163" text-anchor="middle" fill="#6c7086" font-size="11">推理高 · 应用高</text>
+
+  <text x="150" y="300" text-anchor="middle" fill="#fab387" font-size="15" font-weight="bold">实用主义者</text>
+  <text x="150" y="318" text-anchor="middle" fill="#6c7086" font-size="11">推理低 · 应用低</text>
+
+  <text x="460" y="300" text-anchor="middle" fill="#89b4fa" font-size="15" font-weight="bold">技术领跑者</text>
+  <text x="460" y="318" text-anchor="middle" fill="#6c7086" font-size="11">推理高 · 应用低</text>
+</svg>
+
+<h3>8.4 案例：汽车之家仓颉大模型</h3>
+<p>
+  SuperCLUE 发布 <strong>SuperCLUE-AutoQA</strong> 汽车知识测评基准，覆盖 5 大维度（汽车咨询、对比、推荐、资讯、用车）11 个子维度。
+  汽车之家自研"仓颉大模型"以 <strong>72.96 分</strong>位列第一，体现出三个能力：
+</p>
+<ul style="margin-left:20px; color:var(--subtext);">
+  <li><strong>懂用户，善理解</strong>：对多条件复杂提问（"家里有两个小孩，预算20万左右，想要空间大的SUV"）答案准确</li>
+  <li><strong>不顺从，懂澄清</strong>：提问含过时/错误信息时先核实纠正</li>
+  <li><strong>不编造，给解法</strong>：不存在有效答案时明确告知并提供替代方案</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="ceval">九、C-Eval / CMMLU</h2>
+<!-- ============================================================ -->
+
+<h3>9.1 体系简介</h3>
+<table>
+<thead><tr><th>特性</th><th>C-Eval</th><th>CMMLU</th></tr></thead>
+<tbody>
+<tr><td><strong>机构</strong></td><td>上海交通大学</td><td>港中文 / 清华等</td></tr>
+<tr><td><strong>学科数</strong></td><td>52 个学科</td><td>67 个主题</td></tr>
+<tr><td><strong>题目量</strong></td><td>~14,000 道</td><td>~11,000 道</td></tr>
+<tr><td><strong>侧重</strong></td><td>中国教育体系学科</td><td>中文语境多任务理解（含法律、文化）</td></tr>
+<tr><td><strong>题目类型</strong></td><td>四选一</td><td>多选 / 单选</td></tr>
+<tr><td><strong>GitHub</strong></td><td><a href="https://github.com/SJTU-LIT/ceval" target="_blank">SJTU-LIT/ceval</a></td><td><a href="https://github.com/haonan-li/CMMLU" target="_blank">haonan-li/CMMLU</a></td></tr>
+</tbody>
+</table>
+
+<h3>9.2 使用方法</h3>
+<div class="code-block">
+  <div class="code-header"><span class="lang-tag">BASH</span><span>C-Eval 评测</span></div>
+  <div class="code-body"><pre><code><span class="cmt"># 克隆 C-Eval</span>
+git clone <span class="str">https://github.com/SJTU-LIT/ceval.git</span>
+<span class="kw">cd</span> ceval
+pip install -r requirements.txt
+
+<span class="cmt"># 评测模型（支持 GPT / LLaMA / ChatGLM 等）</span>
+python run_eval.py \
+    --model_name <span class="str">your_model</span> \
+    --dataset <span class="str">ceval</span> \
+    --num_fewshot <span class="str">5</span></code></pre></div>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span class="lang-tag">BASH</span><span>通过 LM Eval Harness 评测 C-Eval</span></div>
+  <div class="code-body"><pre><code><span class="cmt"># LM Eval Harness 已内置 ceval 任务</span>
+lm_eval --model <span class="kw">hf</span> \
+    --model_args <span class="str">pretrained=Qwen/Qwen-7B</span> \
+    --tasks <span class="str">ceval-valid</span> \
+    --num_fewshot <span class="str">5</span> \
+    --batch_size <span class="str">auto</span></code></pre></div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="opencompass">十、OpenCompass（司南）</h2>
+<!-- ============================================================ -->
+
+<h3>10.1 体系简介</h3>
+<p>
+  <strong>OpenCompass</strong> 由<strong>上海人工智能实验室</strong>主导，联合复旦大学、商汤科技等机构开发。
+  提供 <strong>70+ 评测数据集、50+ 模型支持</strong>，是国产模型评测的事实标准平台。
+</p>
+
+<div class="callout info">
+  <strong>GitHub：</strong><a href="https://github.com/open-compass/opencompass" target="_blank">open-compass/opencompass</a> ·
+  <strong>文档：</strong><a href="https://opencompass.readthedocs.io/zh-cn/latest/" target="_blank">opencompass.readthedocs.io</a>
+</div>
+
+<h3>10.2 安装与配置</h3>
+<div class="code-block">
+  <div class="code-header"><span class="lang-tag">BASH</span><span>安装 OpenCompass</span></div>
+  <div class="code-body"><pre><code><span class="cmt"># 创建环境</span>
+conda create --name opencompass <span class="str">python=3.10</span> -y
+conda activate opencompass
+
+<span class="cmt"># 安装</span>
+git clone <span class="str">https://github.com/open-compass/opencompass.git</span>
+<span class="kw">cd</span> opencompass
+pip install -e .
+pip install -r requirements.txt</code></pre></div>
+</div>
+
+<h3>10.3 评测模式对比</h3>
+<table>
+<thead><tr><th>模式</th><th>方法</th><th>适用</th><th>示例</th></tr></thead>
+<tbody>
+<tr><td><strong>ppl（困惑度）</strong></td><td>问题+候选答案拼接，计算困惑度，选最低的</td><td>Base 模型、选择题</td><td>C-Eval、MMLU</td></tr>
+<tr><td><strong>gen（生成）</strong></td><td>模型直接生成答案，规则/LLM 后处理提取</td><td>Chat 模型、开放问答</td><td>GSM8K、HumanEval</td></tr>
+<tr><td><strong>clp（条件对数概率）</strong></td><td>计算下一个 token 对数概率</td><td>高效选择题</td><td>ARC、HellaSwag</td></tr>
+</tbody>
+</table>
+
+<h3>10.4 快速开始</h3>
+<div class="code-block">
+  <div class="code-header"><span class="lang-tag">BASH</span><span>评测 HuggingFace 模型</span></div>
+  <div class="code-body"><pre><code><span class="cmt"># 评测 Qwen-7B 在 C-Eval 上的表现</span>
+python run.py \
+    --datasets <span class="str">ceval_gen</span> \
+    --hf-path <span class="str">Qwen/Qwen-7B</span> \
+    --tokenizer-path <span class="str">Qwen/Qwen-7B</span> \
+    --model-kwargs <span class="str">device_map='auto'</span> \
+    --max-out-len <span class="str">100</span> \
+    --max-seq-len <span class="str">2048</span> \
+    --batch-size <span class="str">8</span> \
+    --num-gpus <span class="str">1</span></code></pre></div>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span class="lang-tag">PYTHON</span><span>评测 API 模型配置</span></div>
+  <div class="code-body"><pre><code><span class="cmt"># 创建 configs/models/openai/custom_api.py</span>
+<span class="kw">from</span> opencompass.models <span class="kw">import</span> OpenAISDK
+
+models = [
+    <span class="kw">dict</span>(
+        type=OpenAISDK,
+        path=<span class="str">'deepseek-chat'</span>,
+        key=<span class="str">'YOUR_API_KEY'</span>,
+        openai_api_base=<span class="str">'https://api.deepseek.com/v1'</span>,
+        max_out_len=<span class="str">1024</span>,
+        max_seq_len=<span class="str">4096</span>,
+        temperature=<span class="str">0.01</span>,
+        batch_size=<span class="str">1</span>,
+    )
+]</code></pre></div>
+</div>
+
+<h3>10.5 2025 新特性</h3>
+<ul style="margin-left:20px; color:var(--subtext);">
+  <li><strong>强推理模型支持</strong>：DeepSeek-R1 系列专用评测教程，自动处理 &lt;think&gt; 标签</li>
+  <li><strong>LLM 验证器</strong>：替代纯规则验证，减少误判（尤其数学/代码题）</li>
+  <li><strong>TurboMind 后端</strong>：集成 LMDeploy 推理加速</li>
+  <li><strong>多次评测取平均</strong>：小数据集自动多次运行降低方差</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="workflow">十一、推荐评测工作流</h2>
+<!-- ============================================================ -->
+
+<svg width="100%" viewBox="0 0 880 400" style="max-width:880px; margin:16px 0;">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#89b4fa"/>
+    </marker>
+  </defs>
+
+  <!-- 步骤 -->
+  <rect x="20"  y="60"  width="180" height="80" rx="10" fill="#313244" stroke="#cba6f7" stroke-width="1.5"/>
+  <text x="110" y="90"  text-anchor="middle" fill="#cba6f7" font-size="14" font-weight="bold">Step 1</text>
+  <text x="110" y="112" text-anchor="middle" fill="#cdd6f4" font-size="12">快速了解综合排名</text>
+  <text x="110" y="130" text-anchor="middle" fill="#89b4fa" font-size="11">Chatbot Arena</text>
+
+  <line x1="200" y1="100" x2="260" y2="100" stroke="#89b4fa" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="270" y="60"  width="180" height="80" rx="10" fill="#313244" stroke="#cba6f7" stroke-width="1.5"/>
+  <text x="360" y="90"  text-anchor="middle" fill="#cba6f7" font-size="14" font-weight="bold">Step 2</text>
+  <text x="360" y="112" text-anchor="middle" fill="#cdd6f4" font-size="12">标准化知识评测</text>
+  <text x="360" y="130" text-anchor="middle" fill="#89b4fa" font-size="11">MMLU-Pro + C-Eval</text>
+
+  <line x1="450" y1="100" x2="510" y2="100" stroke="#89b4fa" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="520" y="60"  width="180" height="80" rx="10" fill="#313244" stroke="#cba6f7" stroke-width="1.5"/>
+  <text x="610" y="90"  text-anchor="middle" fill="#cba6f7" font-size="14" font-weight="bold">Step 3</text>
+  <text x="610" y="112" text-anchor="middle" fill="#cdd6f4" font-size="12">专项能力评测</text>
+  <text x="610" y="130" text-anchor="middle" fill="#89b4fa" font-size="11">HumanEval / GSM8K</text>
+
+  <!-- 第二行 -->
+  <line x1="610" y1="140" x2="610" y2="200" stroke="#89b4fa" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="520" y="240" width="180" height="80" rx="10" fill="#313244" stroke="#a6e3a1" stroke-width="1.5"/>
+  <text x="610" y="270" text-anchor="middle" fill="#a6e3a1" font-size="14" font-weight="bold">Step 6</text>
+  <text x="610" y="292" text-anchor="middle" fill="#cdd6f4" font-size="12">持续监控 &amp; 更新</text>
+  <text x="610" y="310" text-anchor="middle" fill="#a6e3a1" font-size="11">LM Eval Harness CI/CD</text>
+
+  <line x1="520" y1="280" x2="460" y2="280" stroke="#89b4fa" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="270" y="240" width="180" height="80" rx="10" fill="#313244" stroke="#a6e3a1" stroke-width="1.5"/>
+  <text x="360" y="270" text-anchor="middle" fill="#a6e3a1" font-size="14" font-weight="bold">Step 5</text>
+  <text x="360" y="292" text-anchor="middle" fill="#cdd6f4" font-size="12">自动化基准评测</text>
+  <text x="360" y="310" text-anchor="middle" fill="#a6e3a1" font-size="11">AlpacaEval / SuperCLUE</text>
+
+  <line x1="270" y1="280" x2="210" y2="280" stroke="#89b4fa" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="20"  y="240" width="180" height="80" rx="10" fill="#313244" stroke="#a6e3a1" stroke-width="1.5"/>
+  <text x="110" y="270" text-anchor="middle" fill="#a6e3a1" font-size="14" font-weight="bold">Step 4</text>
+  <text x="110" y="292" text-anchor="middle" fill="#cdd6f4" font-size="12">业务场景实测</text>
+  <text x="110" y="310" text-anchor="middle" fill="#fab387" font-size="11">自定义评测集</text>
+
+  <!-- Step 4 向上连接 -->
+  <line x1="110" y1="240" x2="110" y2="200" stroke="#89b4fa" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="110" y1="170" x2="610" y2="140" stroke="#45475a" stroke-width="1" stroke-dasharray="4,4"/>
+
+  <text x="360" y="365" text-anchor="middle" fill="#6c7086" font-size="12">↑ 浅层快速筛选（分钟级） → ··· → 深层专项验证（小时级） ↓</text>
+</svg>
+
+<div class="callout tip">
+  <strong>推荐工具组合：</strong><br>
+  ① <strong>LM Eval Harness</strong> 作为统一评测引擎，一键运行 MMLU、HumanEval、GSM8K 等国际基准<br>
+  ② <strong>OpenCompass</strong> 补充中文评测（C-Eval、CMMLU、自定义中文任务）<br>
+  ③ <strong>AlpacaEval 2.0</strong> 快速获得与人类偏好高度相关的分数<br>
+  ④ <strong>自定义评测集</strong>（LM Eval Harness YAML 格式）覆盖业务特有场景
+</div>
+
+<!-- ============================================================ -->
+<h2 id="refs">十二、参考资源汇总</h2>
+<!-- ============================================================ -->
+
+<table>
+<thead><tr><th>类别</th><th>名称</th><th>链接</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>🎯 排行榜</td><td>Chatbot Arena</td><td><a href="https://lmarena.ai" target="_blank">lmarena.ai</a></td><td>人类偏好盲评排行榜</td></tr>
+<tr><td>🎯 排行榜</td><td>HuggingFace Open LLM</td><td><a href="https://huggingface.co/spaces/open-llm-leaderboard/open_llm_leaderboard" target="_blank">HF Leaderboard</a></td><td>开源模型标准排行榜 v3</td></tr>
+<tr><td>🎯 排行榜</td><td>SuperCLUE</td><td><a href="https://www.cluebenchmarks.com/superclue.html" target="_blank">cluebenchmarks.com</a></td><td>中文综合评测排行榜</td></tr>
+<tr><td>🔧 框架</td><td>LM Evaluation Harness</td><td><a href="https://github.com/EleutherAI/lm-evaluation-harness" target="_blank">GitHub</a></td><td>统一评测框架（200+ 基准）</td></tr>
+<tr><td>🔧 框架</td><td>OpenCompass</td><td><a href="https://github.com/open-compass/opencompass" target="_blank">GitHub</a></td><td>国产开源评测平台（70+ 数据集）</td></tr>
+<tr><td>🔧 框架</td><td>FlagEval</td><td><a href="https://flageval.baai.ac.cn" target="_blank">flageval.baai.ac.cn</a></td><td>智源评测平台</td></tr>
+<tr><td>📚 基准</td><td>MMLU / MMLU-Pro</td><td><a href="https://github.com/TIGER-AI-Lab/MMLU-Pro" target="_blank">GitHub</a></td><td>多学科知识理解</td></tr>
+<tr><td>📚 基准</td><td>HumanEval</td><td><a href="https://github.com/openai/human-eval" target="_blank">GitHub</a></td><td>代码生成基准</td></tr>
+<tr><td>📚 基准</td><td>AlpacaEval 2.0</td><td><a href="https://github.com/tatsu-lab/alpaca_eval" target="_blank">GitHub</a></td><td>LLM-as-Judge 自动评测</td></tr>
+<tr><td>📚 基准</td><td>C-Eval</td><td><a href="https://github.com/SJTU-LIT/ceval" target="_blank">GitHub</a></td><td>中文基础能力评测</td></tr>
+<tr><td>📚 基准</td><td>CMMLU</td><td><a href="https://github.com/haonan-li/CMMLU" target="_blank">GitHub</a></td><td>中文多任务语言理解</td></tr>
+<tr><td>📚 基准</td><td>HELM</td><td><a href="https://github.com/stanford-crfm/helm" target="_blank">GitHub</a></td><td>Stanford 全景评测框架</td></tr>
+<tr><td>📚 基准</td><td>BIG-bench</td><td><a href="https://github.com/google/BIG-bench" target="_blank">GitHub</a></td><td>Google 204 任务基准</td></tr>
+<tr><td>📖 综述</td><td>Awesome LLM Evals</td><td><a href="https://github.com/meetrais/awesome-llm-evals" target="_blank">GitHub</a></td><td>LLM 评测资源合集</td></tr>
+</tbody>
+</table>
+
+<div class="callout warning" style="margin-top:24px;">
+  <strong>重要提醒：</strong>所有基准分数仅供参考，不能替代实际业务场景测试。建议：(1) 用标准化基准快速筛选候选模型 → (2) 构建业务相关评测集（50-200 条）→ (3) 人工抽检 5-10% 结果 → (4) 上线后持续监控。
+</div>
+
+<p style="text-align:center; color:var(--muted); margin-top:48px; font-size:0.85em;">
+  报告生成于 2026-07-01 · 基于公开资料整理 · 部分链接可能随时间变化
+</p>
+
+</main>
+
+<script>
+// 侧边栏滚动高亮
+(function() {
+  const links = document.querySelectorAll('#toc a');
+  const sections = [];
+  links.forEach(a => {
+    const id = a.getAttribute('href').slice(1);
+    const el = document.getElementById(id);
+    if (el) sections.push({ el, a });
+  });
+
+  window.addEventListener('scroll', () => {
+    let current = sections[0];
+    sections.forEach(s => {
+      if (s.el.offsetTop <= window.scrollY + 100) current = s;
+    });
+    links.forEach(a => a.classList.remove('active'));
+    if (current) current.a.classList.add('active');
+  });
+})();
+</script>
+
+</body>
+</html>

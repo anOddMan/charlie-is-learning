@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学习报告：Building Effective Human-Agent Teams — Anthropic 官方博客</title>
+<style>
+  :root {
+    --bg: #1e1e2e;
+    --surface: #282840;
+    --surface2: #313150;
+    --text: #cdd6f4;
+    --sub: #a6adc8;
+    --muted: #6c7086;
+    --accent: #89b4fa;
+    --green: #a6e3a1;
+    --purple: #cba6f7;
+    --orange: #fab387;
+    --red: #f38ba8;
+    --border: rgba(255,255,255,0.06);
+    --radius: 12px;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:system-ui,-apple-system,segoe ui,roboto,helvetica,sans-serif; background:var(--bg); color:var(--text); line-height:1.7; }
+
+  /* ===== Layout ===== */
+  .container { display:flex; min-height:100vh; }
+
+  /* Sidebar TOC */
+  .sidebar {
+    width:280px; min-width:280px; background:var(--surface);
+    border-right:1px solid var(--border);
+    padding:24px 20px; position:sticky; top:0; height:100vh;
+    overflow-y:auto; display:flex; flex-direction:column;
+  }
+  .sidebar h3 { color:var(--accent); font-size:14px; margin-bottom:16px; text-transform:uppercase; letter-spacing:0.8px; }
+  .sidebar a { color:var(--sub); text-decoration:none; font-size:13px; display:block; padding:6px 10px; border-radius:6px; transition:all .15s; }
+  .sidebar a:hover,.sidebar a.active { color:var(--text); background:rgba(255,255,255,0.05); }
+  .sidebar a.sub { padding-left:24px; font-size:12px; }
+
+  /* Main */
+  .main { flex:1; padding:40px 60px; max-width:900px; }
+
+  /* Header */
+  .hero { margin-bottom:40px; }
+  .hero .label { display:inline-block; background:var(--accent); color:var(--bg); font-size:11px; font-weight:700; padding:3px 12px; border-radius:99px; text-transform:uppercase; letter-spacing:.6px; margin-bottom:16px; }
+  .hero h1 { font-size:32px; font-weight:800; color:#fff; margin-bottom:12px; line-height:1.3; }
+  .hero .meta { color:var(--muted); font-size:13px; }
+  .hero .meta span { margin-right:20px; }
+  .hero .meta strong { color:var(--sub); }
+
+  /* Sections */
+  section { margin-bottom:48px; }
+  h2 { font-size:22px; color:var(--accent); margin-bottom:20px; padding-bottom:10px; border-bottom:2px solid rgba(137,180,250,0.15); }
+  h3 { font-size:16px; color:#fff; margin:20px 0 10px; }
+  p { margin-bottom:14px; color:var(--sub); }
+  strong { color:var(--text); }
+
+  /* Cards */
+  .card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(380px,1fr)); gap:20px; margin:20px 0; }
+  .card {
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    padding:24px; transition:border-color .2s;
+  }
+  .card:hover { border-color:rgba(137,180,250,0.25); }
+  .card .num { display:inline-flex; width:32px;height:32px; background:var(--accent); color:var(--bg); font-weight:800; font-size:14px; border-radius:50%; align-items:center; justify-content:center; margin-bottom:12px; }
+  .card h4 { color:#fff; font-size:15px; margin-bottom:8px; }
+  .card p { font-size:13px; margin-bottom:0; }
+
+  /* Blockquote */
+  blockquote {
+    background:var(--surface2); border-left:4px solid var(--accent); border-radius:0 8px 8px 0;
+    padding:16px 20px; margin:20px 0;
+    color:var(--text); font-style:italic; font-size:14px;
+  }
+
+  /* Table */
+  table { width:100%; border-collapse:collapse; margin:20px 0; font-size:13px; }
+  th { background:var(--surface2); color:var(--accent); font-weight:600; text-align:left; padding:10px 14px; border-bottom:2px solid var(--border); }
+  td { padding:10px 14px; border-bottom:1px solid var(--border); color:var(--sub); }
+  tr:hover td { background:rgba(255,255,255,0.02); }
+  td:first-child { color:var(--text); font-weight:600; }
+
+  /* Code-style inline */
+  code { background:var(--surface2); color:var(--orange); padding:2px 6px; border-radius:4px; font-size:13px; }
+
+  /* Pattern badge */
+  .pattern { display:flex; align-items:flex-start; gap:14px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; margin:16px 0; }
+  .pattern .icon { font-size:24px; flex-shrink:0; }
+  .pattern .body h5 { color:#fff; font-size:14px; margin-bottom:4px; }
+  .pattern .body p { font-size:13px; margin-bottom:0; }
+
+  /* Stats */
+  .stat-box { display:inline-flex; align-items:center; gap:8px; background:rgba(203,166,247,0.1); border:1px solid rgba(203,166,247,0.2); border-radius:8px; padding:8px 16px; margin:4px 6px 4px 0; }
+  .stat-box .val { color:var(--purple); font-weight:800; font-size:20px; }
+  .stat-box .lbl { color:var(--sub); font-size:12px; }
+
+  /* Summary box */
+  .summary { background:linear-gradient(135deg,rgba(137,180,250,0.08),rgba(203,166,247,0.06)); border:1px solid rgba(137,180,250,0.2); border-radius:var(--radius); padding:24px; margin:24px 0; }
+  .summary h4 { color:var(--accent); margin-bottom:12px; }
+  .summary ul { padding-left:20px; }
+  .summary li { color:var(--sub); font-size:14px; margin-bottom:6px; }
+
+  /* Mobile */
+  @media (max-width:768px) {
+    .container { flex-direction:column; }
+    .sidebar { width:100%; min-width:auto; height:auto; position:relative; border-right:none; border-bottom:1px solid var(--border); padding:16px; }
+    .sidebar a { display:inline-block; margin:2px 4px; }
+    .main { padding:24px 16px; }
+    .card-grid { grid-template-columns:1fr; }
+  }
+
+  /* Toggle sidebar on mobile */
+  .toc-toggle { display:none; background:var(--accent); color:var(--bg); font-weight:700; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-size:13px; }
+  @media (max-width:768px) { .toc-toggle { display:block; margin-bottom:12px; } .sidebar.collapsed { display:none; } }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<!-- ===== 侧边栏 TOC ===== -->
+<aside class="sidebar" id="toc">
+  <h3>📑 目录</h3>
+  <a href="#meta">文章信息</a>
+  <a href="#overview">核心概念</a>
+  <a href="#lesson1" class="sub">Lesson 1：在公开中工作</a>
+  <a href="#lesson2" class="sub">Lesson 2：明确角色与工具</a>
+  <a href="#lesson3" class="sub">Lesson 3：设定北极星</a>
+  <a href="#lesson4" class="sub">Lesson 4：渐进式建立信任</a>
+  <a href="#case">工程团队案例</a>
+  <a href="#patterns">实践模式提炼</a>
+  <a href="#takeaways">关键收获</a>
+  <a href="#resources">参考资源</a>
+</aside>
+
+<!-- ===== 主内容 ===== -->
+<main class="main">
+
+<!-- Hero -->
+<div class="hero">
+  <div class="label">学习报告</div>
+  <h1>Building Effective Human-Agent Teams</h1>
+  <div class="meta">
+    <span>📅 <strong>2026-06-24</strong></span>
+    <span>✍️ <strong>Kristen Swanson</strong>（Anthropic Education 团队）</span>
+    <span>⏱️ <strong>5 分钟阅读</strong></span>
+  </div>
+  <div class="meta" style="margin-top:8px;">
+    <span>📎 原文：<a href="https://claude.com/blog/building-effective-human-agent-teams" style="color:var(--accent);">claude.com/blog/building-effective-human-agent-teams</a></span>
+  </div>
+</div>
+
+<!-- ===== 文章信息 ===== -->
+<section id="meta">
+  <h2>📋 文章背景</h2>
+  <p>这是 Anthropic 官方博客于 <strong>2026 年 6 月 24 日</strong> 发布的文章，作者为教育团队的 Kristen Swanson。文章总结了 Anthropic 内部对<strong>人机团队协作</strong>的实践经验，核心论点是：</p>
+  <blockquote>
+    高效的 AI 协作不是"用不用 Agent"的问题，而是"团队是否刻意实践了人机协作的基本功"的问题。基本功扎实的团队，Agent 放大效能；基本功缺失的团队，Agent 放大混乱。
+  </blockquote>
+  <p>文章发表前一天（6 月 23 日），Anthropic 正式发布了 <strong>Claude Tag</strong>——一个嵌入 Slack 的 AI Agent 功能，使团队可以 @Claude 像同事一样调用 AI，并配备独立身份、权限体系和审计日志。</p>
+
+  <div style="margin-top:20px;">
+    <span class="stat-box"><span class="val">65%</span><span class="lbl">Anthropic 产品团队代码由内部版 Claude Tag 生成</span></span>
+    <span class="stat-box"><span class="val">500</span><span class="lbl">Agent 独立修复的 Bug 数量</span></span>
+  </div>
+</section>
+
+<!-- ===== 核心概念 ===== -->
+<section id="overview">
+  <h2>🎯 核心概念：Multiplayer Agents（多人 Agent）</h2>
+  <p>文章提出了一个关键范式转变：从 <strong>"单玩家模式"</strong>（一个人类 + 一个 Agent 私密协作）到 <strong>"多玩家模式"</strong>（多个 Agent 与多个人类在同一工作空间中同时协作）。</p>
+
+  <table>
+    <tr><th style="width:30%;">维度</th><th>单玩家（Single-player）</th><th>多玩家（Multiplayer）</th></tr>
+    <tr><td>身份</td><td>Agent 借用人类身份</td><td>Agent 拥有独立身份和凭证</td></tr>
+    <tr><td>工作空间</td><td>私密 1:1 对话</td><td>共享频道（Slack / 文档 / 代码库）</td></tr>
+    <tr><td>信息可见性</td><td>仅对话双方可见</td><td>默认公开，全团队可检索</td></tr>
+    <tr><td>上下文来源</td><td>人类主动提供</td><td>Agent 自动从公共频道、文档、代码中摄取</td></tr>
+    <tr><td>权限模型</td><td>继承人类权限</td><td>Agent 级 scope（按频道/仓库授权）</td></tr>
+  </table>
+</section>
+
+<!-- ===== Lesson 1 ===== -->
+<section id="lesson1">
+  <h2>Lesson 1：在公开中工作，给 Agent 充足的上下文</h2>
+
+  <h3>核心理念</h3>
+  <p>Agent 的信息获取能力远超人类（能快速阅读海量文本），但<strong>前提是信息必须可被检索</strong>。如果决策发生在私聊、口头沟通或未记录的会议中，Agent 就是"盲人"。</p>
+
+  <h3>实践要点</h3>
+  <div class="pattern">
+    <div class="icon">🔓</div>
+    <div class="body">
+      <h5>工作空间级安全边界，而非逐条审批</h5>
+      <p>使用清晰的工作空间级安全边界替代逐项资源共享审批。Agent 需要的不是每条信息的访问授权，而是整个工作空间的可读权限。</p>
+    </div>
+  </div>
+  <div class="pattern">
+    <div class="icon">📢</div>
+    <div class="body">
+      <h5>默认公开的沟通文化</h5>
+      <p>决策在频道、文档、会议记录中沉淀为可检索文本。Slack 消息、代码评审、设计文档、会议纪要——这些是 Agent 的"眼睛"。</p>
+    </div>
+  </div>
+  <div class="pattern">
+    <div class="icon">📚</div>
+    <div class="body">
+      <h5>异步协作优于实时同步</h5>
+      <p>Agent 不受时区限制，可以异步消化上下文。团队应优先用文档而非实时会议传递决策信息，让 Agent 能"追得上"。</p>
+    </div>
+  </div>
+
+  <blockquote>
+    "Agent 只能基于它能看到的资料工作。如果一个决策没有被写下来，它就不存在——至少对 Agent 来说不存在。"
+  </blockquote>
+</section>
+
+<!-- ===== Lesson 2 ===== -->
+<section id="lesson2">
+  <h2>Lesson 2：每个成员（人或 Agent）都有明确角色和工具</h2>
+
+  <h3>核心理念</h3>
+  <p>人机团队共享<strong>一份花名册、一套制品、一个工作空间</strong>。Agent 有清晰的角色定义、专用的 Skill 文件、独立的访问凭证和工具链。</p>
+
+  <h3>Agent 角色类型（Roster）</h3>
+  <table>
+    <tr><th>角色</th><th>职责</th><th>所需工具</th></tr>
+    <tr><td>数据分析 Agent</td><td>查询数据、生成报表、识别趋势</td><td>BigQuery、SQL、数据可视化</td></tr>
+    <tr><td>设计规范 Agent</td><td>检查 UI 实现是否符合设计系统</td><td>Figma API、CSS 分析工具</td></tr>
+    <tr><td>研究综合 Agent</td><td>整合多源信息、发现知识缺口</td><td>文档搜索、Web 检索</td></tr>
+    <tr><td>QA 测试 Agent</td><td>自动化端到端测试、回归检查</td><td>Playwright MCP、CI/CD 集成</td></tr>
+    <tr><td>发布管理 Agent</td><td>管理发版流程、变更日志、部署检查</td><td>GitHub API、部署系统</td></tr>
+    <tr><td>沟通调度 Agent</td><td>批量聚合问题、控制人类注意力消耗</td><td>Slack API、任务管理系统</td></tr>
+  </table>
+
+  <h3>关键机制：Agent 可派生子 Agent</h3>
+  <p>一个 Agent 可以"spawn"（孵化）其他 Agent，将子任务委派给拥有正确记忆和访问权限的专用 Agent。这构成了 <strong>Agent 到 Agent 的委托链</strong>，使团队能自动拆解复杂任务。</p>
+</section>
+
+<!-- ===== Lesson 3 ===== -->
+<section id="lesson3">
+  <h2>Lesson 3：设定北极星，让 Agent 更主动</h2>
+
+  <h3>核心理念</h3>
+  <p>Agent 不应该只是"等待指令"的执行者。当 Agent 拥有<strong>丰富的上下文 + 明确的角色 + 一个北极星目标</strong>时，它们会<strong>主动提议新项目和新的工作流</strong>。</p>
+
+  <h3>北极星三要素</h3>
+  <div class="card-grid">
+    <div class="card">
+      <div class="num">1</div>
+      <h4>由人类设定</h4>
+      <p>北极星始终由人类定义，根植于业务使命。Agent 可以建议，但无权修改北极星。</p>
+    </div>
+    <div class="card">
+      <div class="num">2</div>
+      <h4>宏大且具体</h4>
+      <p>足够宽泛以激发主动性（"让产品入职过程更有帮助"），足够具体以提供方向。</p>
+    </div>
+    <div class="card">
+      <div class="num">3</div>
+      <h4>显式授权</h4>
+      <p>人类明确选择<strong>哪些 Agent</strong> 有权主动提议新工作。不是所有 Agent 都需要这个权限。</p>
+    </div>
+  </div>
+
+  <h3>实际案例</h3>
+  <blockquote>
+    内部工具团队设定了北极星："让产品入职过程更有帮助"。团队中的一个 Agent 主动建议了文案修订方案，这些修订<strong>可度量地提高了入职成功率</strong>。
+  </blockquote>
+</section>
+
+<!-- ===== Lesson 4 ===== -->
+<section id="lesson4">
+  <h2>Lesson 4：渐进式建立信任</h2>
+
+  <h3>核心理念</h3>
+  <p>授予 Agent 的自主权应<strong>与其展示的可靠性成正比</strong>。就像信任一个新同事一样——从小任务开始，逐步扩大范围，过程中持续反馈。</p>
+
+  <h3>信任建设四阶段</h3>
+  <table>
+    <tr><th>阶段</th><th>人类参与度</th><th>Agent 自主范围</th><th>验证机制</th></tr>
+    <tr><td>1. 全面审核</td><td>每项决策都审核</td><td>仅限低风险任务</td><td>人工逐一检查</td></tr>
+    <tr><td>2. 引入验证者</td><td>抽查 + Agent 互查</td><td>中等复杂度任务</td><td>Doer-Verifier 模式</td></tr>
+    <tr><td>3. 建立信任记录</td><td>关注例外情况</td><td>大部分常规任务</td><td>周报复盘 + 自动化检查</td></tr>
+    <tr><td>4. 条件自主</td><td>仅参与战略决策</td><td>复杂任务 + 主动提议</td><td>多层 Agent 交叉验证</td></tr>
+  </table>
+
+  <h3>人类注意力是稀缺资源</h3>
+  <p>一旦 Agent 进入独立运行阶段，团队刻意训练它们将<strong>人类注意力视为稀缺资源</strong>：</p>
+  <div class="pattern">
+    <div class="icon">📦</div>
+    <div class="body"><h5>批量聚合问题</h5><p>不逐条 ping 人类，而是积累成摘要后一次性提审。</p></div>
+  </div>
+  <div class="pattern">
+    <div class="icon">🔄</div>
+    <div class="body"><h5>重复关键上下文</h5><p>每次提审时附上必要的背景信息，让人类能快速进入状态。</p></div>
+  </div>
+  <div class="pattern">
+    <div class="icon">📏</div>
+    <div class="body"><h5>限制每次审查量</h5><p>控制每次提交人类审查的事项数量，避免审查疲劳。</p></div>
+  </div>
+  <div class="pattern">
+    <div class="icon">🤖</div>
+    <div class="body"><h5>专门的调度 Agent</h5><p>部分团队创建了专门角色，其唯一职责就是决定如何批量汇总并仅提升最重要的沟通给人类。</p></div>
+  </div>
+
+  <h3>Doer-Verifier 模式</h3>
+  <blockquote>
+    "一个 Agent 执行任务，另一个 Agent 检查它的工作。"——团队花费正确性验证的时间，而不是从零开始完成任务的时间。
+  </blockquote>
+</section>
+
+<!-- ===== 案例 ===== -->
+<section id="case">
+  <h2>🏭 工程团队案例：500 个 Bug 独立修复之路</h2>
+
+  <h3>背景</h3>
+  <p>一位工程负责人接手了一个新团队，面对<strong>庞大的积压 Backlog</strong>。他邀请了<strong>几个人类成员和几个 Agent</strong> 加入，共同梳理和优先排序。</p>
+
+  <h3>Agent 分工</h3>
+  <table>
+    <tr><th>Agent 组</th><th>角色</th><th>具体任务</th></tr>
+    <tr><td>评估者 Agent（Evaluators）</td><td>分析 Backlog</td><td>遍历所有积压项 → 确定是否有人正在处理 → 对无主项分配复杂度评分</td></tr>
+    <tr><td>执行者 Agent（Executors）</td><td>代码修复</td><td>筛选中低复杂度项 → 创建代码变更</td></tr>
+  </table>
+
+  <h3>信任建设进程</h3>
+  <div style="position:relative; margin:24px 0;">
+    <!-- SVG Timeline -->
+    <svg viewBox="0 0 800 280" style="width:100%;max-width:800px;display:block;margin:0 auto;" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#89b4fa"/></marker>
+      </defs>
+      <!-- Timeline axis -->
+      <line x1="60" y1="140" x2="760" y2="140" stroke="rgba(255,255,255,0.1)" stroke-width="3" marker-end="url(#arrow)"/>
+      <!-- Nodes -->
+      <circle cx="80" cy="140" r="14" fill="var(--accent)"/><text x="80" y="144" text-anchor="middle" fill="var(--bg)" font-size="10" font-weight="800">1</text>
+      <circle cx="280" cy="140" r="14" fill="var(--accent)"/><text x="280" y="144" text-anchor="middle" fill="var(--bg)" font-size="10" font-weight="800">2</text>
+      <circle cx="480" cy="140" r="14" fill="var(--accent)"/><text x="480" y="144" text-anchor="middle" fill="var(--bg)" font-size="10" font-weight="800">3</text>
+      <circle cx="680" cy="140" r="14" fill="var(--accent)"/><text x="680" y="144" text-anchor="middle" fill="var(--bg)" font-size="10" font-weight="800">4</text>
+      <!-- Labels top -->
+      <text x="150" y="100" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">全面人工审核</text>
+      <text x="150" y="118" text-anchor="middle" fill="var(--muted)" font-size="10">每项决策人工过目</text>
+      <text x="380" y="100" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">教会 Agent 标记</text>
+      <text x="380" y="118" text-anchor="middle" fill="var(--muted)" font-size="10">人类标注哪些需人工决策</text>
+      <text x="580" y="100" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">周报复盘</text>
+      <text x="580" y="118" text-anchor="middle" fill="var(--muted)" font-size="10">"教训与失误" 专栏</text>
+      <text x="740" y="100" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">条件自主</text>
+      <text x="740" y="118" text-anchor="middle" fill="var(--muted)" font-size="10">递增复杂度 // 批量提审</text>
+      <!-- Connecting arcs -->
+      <path d="M94,140 C130,60 230,60 266,140" fill="none" stroke="rgba(137,180,250,0.3)" stroke-width="1.5"/>
+      <path d="M294,140 C340,60 440,60 466,140" fill="none" stroke="rgba(137,180,250,0.3)" stroke-width="1.5"/>
+      <path d="M494,140 C540,60 640,60 666,140" fill="none" stroke="rgba(137,180,250,0.3)" stroke-width="1.5"/>
+      <!-- Annotations bottom -->
+      <text x="80" y="175" text-anchor="middle" fill="var(--muted)" font-size="10">低复杂度任务</text>
+      <text x="280" y="175" text-anchor="middle" fill="var(--muted)" font-size="10">中等复杂度</text>
+      <text x="480" y="175" text-anchor="middle" fill="var(--muted)" font-size="10">递增复杂度</text>
+      <text x="680" y="175" text-anchor="middle" fill="var(--muted)" font-size="10">500 Bug 独立修复</text>
+    </svg>
+  </div>
+
+  <h3>结果</h3>
+  <p>经过持续数月的人机协作磨合，该团队的 Agent 最终<strong>独立处理了 500 个 Bug 修复</strong>，人类负责人只需关注战略层面的决策。</p>
+</section>
+
+<!-- ===== 实践模式 ===== -->
+<section id="patterns">
+  <h2>🧩 六大实践模式提炼</h2>
+
+  <div class="pattern">
+    <div class="icon">1️⃣</div>
+    <div class="body">
+      <h5>默认公开原则（Public-by-Default）</h5>
+      <p>所有讨论、决策、设计文档放入可检索的公共空间。Agent 只能基于"已写出"的知识工作。私聊 = Agent 盲区。</p>
+    </div>
+  </div>
+
+  <div class="pattern">
+    <div class="icon">2️⃣</div>
+    <div class="body">
+      <h5>Agent 角色花名册（Role Roster）</h5>
+      <p>用 Skill 文件定义每个 Agent 的角色、职责边界和工具集。Agent 角色可快速复制，新成员（人或 Agent）加入时明确各自分工。</p>
+    </div>
+  </div>
+
+  <div class="pattern">
+    <div class="icon">3️⃣</div>
+    <div class="body">
+      <h5>北极星驱动主动（North Star Proactivity）</h5>
+      <p>人类设定一个宏大目标作为"北极星"。具备此目标的 Agent 会主动提议新工作流，而非被动等待指令。</p>
+    </div>
+  </div>
+
+  <div class="pattern">
+    <div class="icon">4️⃣</div>
+    <div class="body">
+      <h5>Doer-Verifier 双重质保（Doer-Verifier）</h5>
+      <p>一个 Agent 执行，另一个 Agent 验证。人类从"执行者 + 审查者"转变为仅做"最终决策者"。</p>
+    </div>
+  </div>
+
+  <div class="pattern">
+    <div class="icon">5️⃣</div>
+    <div class="body">
+      <h5>人类注意力预算制（Attention Budgeting）</h5>
+      <p>将人类注意力视为有限预算。Agent 批量聚合问题、重复上下文、控制提审量。可设专用 Agent 进行调度。</p>
+    </div>
+  </div>
+
+  <div class="pattern">
+    <div class="icon">6️⃣</div>
+    <div class="body">
+      <h5>自主权递增模型（Progressive Autonomy）</h5>
+      <p>从小任务全审核开始 → 引入 Agent 互查 → 跟踪自主权记录 → 逐步扩大到复杂任务。信任是积累的，不是授予的。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 关键收获 ===== -->
+<section id="takeaways">
+  <h2>💡 关键收获</h2>
+
+  <div class="summary">
+    <h4>🎯 核心洞察</h4>
+    <ul>
+      <li><strong>Agent 放大的是团队基本功，不是替代它。</strong>上下文差、角色不清、无验证机制的团队引入 Agent 只会放大混乱。</li>
+      <li><strong>Agent 需要"眼睛"才能工作。</strong>如果信息不在可检索的公共空间，Agent 就是盲人。公开协作文化是 AI 协作的前提。</li>
+      <li><strong>信任不能一蹴而就。</strong>像新人入职一样，从小事开始，逐步授权，反馈循环是必需的。</li>
+      <li><strong>人类注意力的稀缺性需要被系统化管理。</strong>Agent 不仅要完成工作，还要学会"如何与人类高效对接"。</li>
+      <li><strong>Agent 角色可复制、可组合。</strong>Skill 文件 + 独立身份 + 工具链 = 可编排的 AI 团队。</li>
+    </ul>
+  </div>
+
+  <div class="summary" style="background:linear-gradient(135deg,rgba(166,227,161,0.06),rgba(166,227,161,0.02));border-color:rgba(166,227,161,0.2);">
+    <h4 style="color:var(--green);">✅ 行动检查清单</h4>
+    <ul>
+      <li>团队的决策过程是否<strong>默认公开且可被文本检索</strong>？</li>
+      <li>每个 Agent 是否有<strong>明确定义的角色、工具和权限边界</strong>？</li>
+      <li>Agent 是否知道团队的<strong>"北极星"目标</strong>？</li>
+      <li>是否有<strong>多层验证机制</strong>（自动检查 + Agent 互查 + 人工抽查）？</li>
+      <li>Agent 是否被训练将<strong>人类注意力视为稀缺资源</strong>？</li>
+      <li>是否有<strong>周报复盘</strong>机制（含"教训与失误"）？</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===== 参考资源 ===== -->
+<section id="resources">
+  <h2>📎 参考资源</h2>
+  <table>
+    <tr><th>资源</th><th>链接</th></tr>
+    <tr><td>原文：Building Effective Human-Agent Teams</td><td><a href="https://claude.com/blog/building-effective-human-agent-teams" style="color:var(--accent);">claude.com/blog/building-effective-human-agent-teams</a></td></tr>
+    <tr><td>Claude Tag 产品发布</td><td><a href="https://www.anthropic.com/news/introducing-claude-tag" style="color:var(--accent);">anthropic.com/news/introducing-claude-tag</a></td></tr>
+    <tr><td>Agent Identity 访问模型</td><td><a href="https://claude.com/blog/agent-identity-access-model" style="color:var(--accent);">claude.com/blog/agent-identity-access-model</a></td></tr>
+    <tr><td>Running an AI-Native Engineering Org</td><td><a href="https://claude.com/blog/running-an-ai-native-engineering-org" style="color:var(--accent);">claude.com/blog/running-an-ai-native-engineering-org</a></td></tr>
+    <tr><td>中文解读：如何构建高效的 AI 人机协作团队</td><td><a href="https://news.qq.com/rain/a/20260628A06JUZ00" style="color:var(--accent);">news.qq.com</a></td></tr>
+  </table>
+</section>
+
+</main>
+</div>
+
+<script>
+// Mobile TOC toggle
+(function(){
+  var btn = document.createElement('button');
+  btn.className = 'toc-toggle';
+  btn.textContent = '☰ 目录';
+  btn.onclick = function(){ document.getElementById('toc').classList.toggle('collapsed'); };
+  var main = document.querySelector('.main');
+  main.insertBefore(btn, main.firstChild);
+})();
+</script>
+
+</body>
+</html>

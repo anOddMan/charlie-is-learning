@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Agent 基础设施选型与成本评估 — 企业落地实战报告</title>
+<style>
+/* ===== Catppuccin 配色 ===== */
+:root {
+  --bg: #1e1e2e;
+  --bg-alt: #181825;
+  --surface: #313244;
+  --overlay: #45475a;
+  --text: #cdd6f4;
+  --subtext: #a6adc8;
+  --muted: #6c7086;
+  --pink: #f5c2e7;
+  --mauve: #cba6f7;
+  --blue: #89b4fa;
+  --green: #a6e3a1;
+  --peach: #fab387;
+  --red: #f38ba8;
+  --yellow: #f9e2af;
+  --teal: #94e2d5;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ===== 侧边栏 ===== */
+.sidebar {
+  width: 290px;
+  min-width: 290px;
+  background: var(--bg-alt);
+  padding: 24px 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  border-right: 1px solid var(--surface);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.sidebar-header {
+  padding: 0 20px 20px;
+  border-bottom: 1px solid var(--surface);
+  margin-bottom: 8px;
+}
+
+.sidebar-header h1 {
+  font-size: 1.1em;
+  color: var(--mauve);
+  line-height: 1.45;
+}
+
+.sidebar-header .date {
+  font-size: 0.78em;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.sidebar-nav { flex: 1; overflow-y: auto; padding: 8px 0; }
+
+.sidebar-nav a {
+  display: block;
+  padding: 7px 20px;
+  color: var(--subtext);
+  text-decoration: none;
+  font-size: 0.85em;
+  transition: all .15s;
+  border-left: 2px solid transparent;
+}
+
+.sidebar-nav a:hover, .sidebar-nav a.active {
+  color: var(--text);
+  background: rgba(137, 180, 250, 0.08);
+  border-left-color: var(--blue);
+}
+
+.sidebar-nav .section-title {
+  padding: 14px 20px 4px;
+  font-size: 0.7em;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* ===== 主内容 ===== */
+.main {
+  flex: 1;
+  padding: 40px 48px;
+  max-width: 980px;
+}
+
+h2 {
+  font-size: 1.55em;
+  color: var(--blue);
+  margin: 52px 0 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--surface);
+}
+h2:first-of-type { margin-top: 0; }
+
+h3 {
+  font-size: 1.2em;
+  color: var(--green);
+  margin: 32px 0 12px;
+}
+
+h4 {
+  font-size: 1.02em;
+  color: var(--peach);
+  margin: 22px 0 10px;
+}
+
+p { margin: 10px 0; }
+
+a { color: var(--teal); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+ul, ol { margin: 8px 0 8px 20px; color: var(--subtext); }
+li { margin: 4px 0; }
+
+strong { color: var(--text); }
+
+/* ===== 代码块 ===== */
+.code-block {
+  margin: 16px 0;
+  border-radius: 12px;
+  background: var(--bg-alt);
+  overflow: hidden;
+}
+.code-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 16px;
+  background: rgba(255,255,255,0.04);
+  font-size: 0.82em; color: var(--muted);
+}
+.code-header .lang-tag {
+  background: var(--mauve); color: var(--bg);
+  padding: 2px 10px; border-radius: 4px;
+  font-size: 0.78em; font-weight: 600; text-transform: uppercase;
+}
+.code-body { padding: 16px; overflow-x: auto; }
+.code-body pre { margin: 0; font-family: "Cascadia Code","Fira Code","JetBrains Mono",monospace; font-size: 0.83em; line-height: 1.65; }
+.code-body code { color: var(--text); }
+.kw  { color: #cba6f7; }
+.str { color: #a6e3a1; }
+.fn  { color: #89b4fa; }
+.bi  { color: #fab387; }
+.cmt { color: #6c7086; }
+.num { color: #f9e2af; }
+
+/* ===== 表格 ===== */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 0.88em;
+}
+thead th {
+  background: var(--surface);
+  color: var(--mauve);
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+}
+tbody td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--overlay);
+  vertical-align: top;
+}
+tbody tr:hover { background: rgba(137,180,250,0.04); }
+
+/* ===== 提示框 ===== */
+.callout {
+  margin: 16px 0;
+  padding: 14px 18px;
+  border-radius: 8px;
+  border-left: 3px solid;
+  font-size: 0.9em;
+}
+.callout.info    { background: rgba(137,180,250,0.08); border-color: var(--blue); }
+.callout.tip     { background: rgba(166,227,161,0.08); border-color: var(--green); }
+.callout.warning { background: rgba(250,179,135,0.08); border-color: var(--peach); }
+.callout.danger  { background: rgba(243,139,168,0.08); border-color: var(--red); }
+
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+  body { flex-direction: column; }
+  .sidebar { width: 100%; min-width: 0; height: auto; position: relative; border-right: none; border-bottom: 1px solid var(--surface); }
+  .sidebar-nav { display: none; }
+  .sidebar-nav.open { display: block; }
+  .main { padding: 20px 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- =========================== 侧边栏 =========================== -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h1>AI Agent 基础设施选型<br>与成本评估</h1>
+    <div class="date">2026-07-01 · 企业落地实战报告</div>
+  </div>
+  <nav class="sidebar-nav" id="toc">
+    <div class="section-title">🧭 总览</div>
+    <a href="#overview">报告全景图</a>
+
+    <div class="section-title">🏗️ 第一部分：基础设施选型</div>
+    <a href="#infra-arch">1.1 Agent 架构全景</a>
+    <a href="#gpu-select">1.2 GPU 与服务器选型</a>
+    <a href="#db-select">1.3 数据库与存储选型</a>
+    <a href="#orchestration">1.4 编排与部署架构</a>
+    <a href="#infra-checklist">1.5 基础设施选型清单</a>
+
+    <div class="section-title">💰 第二部分：成本评估体系</div>
+    <a href="#llm-pricing">2.1 LLM API 定价全景</a>
+    <a href="#cloud-vs-onprem">2.2 云端 vs 自建 TCO</a>
+    <a href="#cost-model">2.3 成本估算模型</a>
+    <a href="#cost-optimize">2.4 成本优化策略</a>
+
+    <div class="section-title">🏭 第三部分：行业案例</div>
+    <a href="#case-finance">3.1 金融行业</a>
+    <a href="#case-healthcare">3.2 医疗行业</a>
+    <a href="#case-manufacturing">3.3 制造行业</a>
+    <a href="#case-retail">3.4 零售与电商</a>
+    <a href="#case-comparison">3.5 案例横向对比</a>
+
+    <div class="section-title">📐 第四部分：决策框架</div>
+    <a href="#decision-framework">4.1 五步决策法</a>
+    <a href="#calculator">4.2 成本计算器模型</a>
+    <a href="#industry-template">4.3 跨行业复用模板</a>
+
+    <div class="section-title">📎 附录</div>
+    <a href="#refs">参考资源汇总</a>
+  </nav>
+</aside>
+
+<!-- =========================== 主内容 =========================== -->
+<main class="main">
+
+<!-- ============================================================ -->
+<h2 id="overview">报告全景图</h2>
+<!-- ============================================================ -->
+
+<svg width="100%" viewBox="0 0 920 460" style="max-width:920px; margin:16px 0;">
+  <defs>
+    <filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#111"/></filter>
+    <linearGradient id="g-infra" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#313244"/><stop offset="100%" stop-color="#1e1e2e"/></linearGradient>
+    <linearGradient id="g-cost"  x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#313244"/><stop offset="100%" stop-color="#1e1e2e"/></linearGradient>
+    <linearGradient id="g-case"  x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#313244"/><stop offset="100%" stop-color="#1e1e2e"/></linearGradient>
+    <linearGradient id="g-df"    x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#313244"/><stop offset="100%" stop-color="#1e1e2e"/></linearGradient>
+  </defs>
+
+  <!-- 四大模块 -->
+  <rect x="30"  y="20"  width="410" height="195" rx="14" fill="url(#g-infra)" stroke="#89b4fa" stroke-width="2" filter="url(#shadow)"/>
+  <text x="235" y="55"  text-anchor="middle" fill="#89b4fa" font-size="17" font-weight="bold">🏗️ 基础设施选型</text>
+  <text x="55"  y="85"  fill="#a6adc8" font-size="13">GPU → H100/H200/L40S 按模型规模选型</text>
+  <text x="55"  y="110" fill="#a6adc8" font-size="13">数据库 → PGVector / Milvus / Weaviate</text>
+  <text x="55"  y="135" fill="#a6adc8" font-size="13">编排 → Kubernetes + Karpenter 动态扩缩</text>
+  <text x="55"  y="160" fill="#a6adc8" font-size="13">消息队列 → Redis / Kafka 异步任务</text>
+  <text x="55"  y="185" fill="#a6adc8" font-size="13">框架 → LangGraph / CrewAI / AutoGen</text>
+
+  <rect x="480" y="20"  width="410" height="195" rx="14" fill="url(#g-cost)" stroke="#f9e2af" stroke-width="2" filter="url(#shadow)"/>
+  <text x="685" y="55"  text-anchor="middle" fill="#f9e2af" font-size="17" font-weight="bold">💰 成本评估体系</text>
+  <text x="505" y="85"  fill="#a6adc8" font-size="13">API 定价 → $0.15~$75.00/1M tokens</text>
+  <text x="505" y="110" fill="#a6adc8" font-size="13">TCO 模型 → 云端 vs 自建盈亏平衡点</text>
+  <text x="505" y="135" fill="#a6adc8" font-size="13">Token 估算 → 输入/输出/Cache 三级</text>
+  <text x="505" y="160" fill="#a6adc8" font-size="13">优化策略 → 路由分发 省 60-80%</text>
+  <text x="505" y="185" fill="#a6adc8" font-size="13">ROI 公式 → 量化投入产出比</text>
+
+  <rect x="30"  y="245" width="410" height="195" rx="14" fill="url(#g-case)" stroke="#a6e3a1" stroke-width="2" filter="url(#shadow)"/>
+  <text x="235" y="280" text-anchor="middle" fill="#a6e3a1" font-size="17" font-weight="bold">🏭 行业落地案例</text>
+  <text x="55"  y="310" fill="#a6adc8" font-size="13">🏦 金融 — 信贷审批省 1.1 亿/年</text>
+  <text x="55"  y="335" fill="#a6adc8" font-size="13">🏥 医疗 — 影像诊断敏感度 96.7%</text>
+  <text x="55"  y="360" fill="#a6adc8" font-size="13">🏭 制造 — 停机减少 75%，年省 200 万</text>
+  <text x="55"  y="385" fill="#a6adc8" font-size="13">🛒 零售 — 导购订单 +26%，响应 +60%</text>
+  <text x="55"  y="410" fill="#a6adc8" font-size="13">📊 横向对比 — 成本结构 + ROI 周期</text>
+
+  <rect x="480" y="245" width="410" height="195" rx="14" fill="url(#g-df)" stroke="#cba6f7" stroke-width="2" filter="url(#shadow)"/>
+  <text x="685" y="280" text-anchor="middle" fill="#cba6f7" font-size="17" font-weight="bold">📐 决策框架与方法论</text>
+  <text x="505" y="310" fill="#a6adc8" font-size="13">五步决策法 → 场景→ 规模→ 架构→ 成本→ 决策</text>
+  <text x="505" y="335" fill="#a6adc8" font-size="13">成本计算器 → 参数化 Excel 模型</text>
+  <text x="505" y="360" fill="#a6adc8" font-size="13">行业复用模板 → 通用框架 + 行业参数</text>
+  <text x="505" y="385" fill="#a6adc8" font-size="13">风险清单 → 20+ 常见决策陷阱</text>
+  <text x="505" y="410" fill="#a6adc8" font-size="13">参考资源 → 15+ 工具与平台链接</text>
+</svg>
+
+<!-- ======================================================================== -->
+<!-- 第一部分：基础设施选型 -->
+<!-- ======================================================================== -->
+<h2 id="infra-arch">1.1 Agent 架构全景</h2>
+
+<p>
+  AI Agent 系统可抽象为 <strong>五个核心组件</strong>，每个组件有其基础设施需求：
+</p>
+
+<svg width="100%" viewBox="0 0 920 280" style="max-width:920px; margin:16px 0;">
+  <!-- 用户入口 -->
+  <rect x="30"  y="100" width="130" height="60" rx="10" fill="#313244" stroke="#f5c2e7" stroke-width="1.5"/>
+  <text x="95"  y="125" text-anchor="middle" fill="#f5c2e7" font-size="13" font-weight="bold">👤 用户入口</text>
+  <text x="95"  y="145" text-anchor="middle" fill="#a6adc8" font-size="10">Web / API / 飞书 / 企微</text>
+
+  <!-- 箭头 -->
+  <line x1="160" y1="130" x2="200" y2="130" stroke="#45475a" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- 编排层 -->
+  <rect x="210" y="15"  width="170" height="60" rx="10" fill="#313244" stroke="#89b4fa" stroke-width="1.5"/>
+  <text x="295" y="40"  text-anchor="middle" fill="#89b4fa" font-size="13" font-weight="bold">🧠 编排引擎</text>
+  <text x="295" y="60"  text-anchor="middle" fill="#a6adc8" font-size="10">LangGraph / CrewAI / AutoGen</text>
+
+  <rect x="210" y="100" width="170" height="60" rx="10" fill="#313244" stroke="#89b4fa" stroke-width="1.5"/>
+  <text x="295" y="125" text-anchor="middle" fill="#89b4fa" font-size="13" font-weight="bold">📋 任务规划</text>
+  <text x="295" y="145" text-anchor="middle" fill="#a6adc8" font-size="10">Plan → Execute → Observe</text>
+
+  <rect x="210" y="185" width="170" height="60" rx="10" fill="#313244" stroke="#89b4fa" stroke-width="1.5"/>
+  <text x="295" y="210" text-anchor="middle" fill="#89b4fa" font-size="13" font-weight="bold">🔧 工具管理层</text>
+  <text x="295" y="230" text-anchor="middle" fill="#a6adc8" font-size="10">MCP / Function Calling</text>
+
+  <!-- 箭头 -->
+  <line x1="380" y1="45"  x2="430" y2="45"  stroke="#45475a" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="380" y1="130" x2="430" y2="130" stroke="#45475a" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="380" y1="215" x2="430" y2="215" stroke="#45475a" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- 推理层 -->
+  <rect x="440" y="10"  width="180" height="80" rx="10" fill="#1e1e2e" stroke="#cba6f7" stroke-width="2"/>
+  <text x="530" y="40"  text-anchor="middle" fill="#cba6f7" font-size="14" font-weight="bold">⚡ 推理服务</text>
+  <text x="530" y="60"  text-anchor="middle" fill="#a6adc8" font-size="11">vLLM / NVIDIA NIM</text>
+  <text x="530" y="78"  text-anchor="middle" fill="#6c7086" font-size="10">GPU: H100 / L40S / A10G</text>
+
+  <rect x="440" y="105" width="180" height="65" rx="10" fill="#1e1e2e" stroke="#a6e3a1" stroke-width="2"/>
+  <text x="530" y="130" text-anchor="middle" fill="#a6e3a1" font-size="14" font-weight="bold">🧠 记忆系统</text>
+  <text x="530" y="150" text-anchor="middle" fill="#a6adc8" font-size="11">短时 → 长期 → 情景记忆</text>
+
+  <rect x="440" y="185" width="180" height="65" rx="10" fill="#1e1e2e" stroke="#fab387" stroke-width="2"/>
+  <text x="530" y="210" text-anchor="middle" fill="#fab387" font-size="14" font-weight="bold">🔍 知识检索</text>
+  <text x="530" y="230" text-anchor="middle" fill="#a6adc8" font-size="11">RAG · Embedding · Reranker</text>
+
+  <!-- 箭头 -->
+  <line x1="620" y1="45"  x2="670" y2="45"  stroke="#45475a" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="620" y1="137" x2="670" y2="137" stroke="#45475a" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="620" y1="217" x2="670" y2="217" stroke="#45475a" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- 数据层 -->
+  <rect x="680" y="10"  width="210" height="65" rx="10" fill="#313244" stroke="#f9e2af" stroke-width="1.5"/>
+  <text x="785" y="37"  text-anchor="middle" fill="#f9e2af" font-size="13" font-weight="bold">🗄️ 数据存储</text>
+  <text x="785" y="58"  text-anchor="middle" fill="#a6adc8" font-size="10">PGVector · Milvus · Redis · PostgreSQL</text>
+
+  <rect x="680" y="95"  width="210" height="55" rx="10" fill="#313244" stroke="#f9e2af" stroke-width="1.5"/>
+  <text x="785" y="118" text-anchor="middle" fill="#f9e2af" font-size="13" font-weight="bold">📊 可观测性</text>
+  <text x="785" y="138" text-anchor="middle" fill="#a6adc8" font-size="10">Prometheus · Grafana · Langfuse</text>
+
+  <rect x="680" y="165" width="210" height="55" rx="10" fill="#313244" stroke="#f9e2af" stroke-width="1.5"/>
+  <text x="785" y="188" text-anchor="middle" fill="#f9e2af" font-size="13" font-weight="bold">🔐 安全与网关</text>
+  <text x="785" y="208" text-anchor="middle" fill="#a6adc8" font-size="10">API Gateway · Auth · Rate Limit</text>
+
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#45475a"/>
+    </marker>
+  </defs>
+</svg>
+
+<div class="callout info">
+  <strong>Agent 执行循环：</strong>用户输入 → 检索记忆 → 规划步骤 → 调用工具 → 观察结果 → 更新记忆 → 输出响应。<br>
+  关键基础设施需求：<strong>GPU（推理）→ 向量数据库（RAG）→ 消息队列（异步）→ 关系数据库（状态）→ 缓存（会话）</strong>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="gpu-select">1.2 GPU 与服务器选型</h2>
+
+<h3>1.2.1 GPU 选型决策矩阵</h3>
+
+<table>
+<thead><tr><th>GPU 型号</th><th>显存</th><th>适用模型规模</th><th>典型场景</th><th>云上参考价 ($/h)</th><th>推荐指数</th></tr></thead>
+<tbody>
+<tr>
+  <td><strong>A10G</strong></td><td>24 GB</td><td>≤ 8B</td><td>轻量 RAG、嵌入、Reranker</td><td>$1.01</td><td>⭐⭐⭐</td>
+</tr>
+<tr>
+  <td><strong>L40S</strong></td><td>48 GB</td><td>≤ 13B / 多模型</td><td>中等 RAG、Agent 推理</td><td>$1.50</td><td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+  <td><strong>A100-80G</strong></td><td>80 GB</td><td>≤ 70B (单卡)</td><td>大模型推理、训练</td><td>$3.00</td><td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+  <td><strong>H100</strong></td><td>80 GB</td><td>≤ 70B+</td><td>高吞吐推理（2.5x A100）</td><td>$3.90</td><td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+  <td><strong>H200</strong></td><td>141 GB</td><td>≤ 130B</td><td>超大模型单卡推理</td><td>$4.50+</td><td>⭐⭐⭐</td>
+</tr>
+<tr>
+  <td><strong>RTX 6000 Ada</strong></td><td>48 GB</td><td>≤ 13B</td><td>企业本地部署</td><td>—</td><td>⭐⭐⭐⭐</td>
+</tr>
+</tbody>
+</table>
+
+<h3>1.2.2 按模型规模的选型速查</h3>
+
+<table>
+<thead><tr><th>应用层级</th><th>模型规模</th><th>推荐 GPU</th><th>最少 GPU 数</th><th>月云成本估算</th></tr></thead>
+<tbody>
+<tr><td><strong>轻量</strong>（路由/分类/摘要）</td><td>1-8B</td><td>A10G / L4</td><td>1×</td><td>$200–$600</td></tr>
+<tr><td><strong>标准</strong>（RAG/Agent主推理）</td><td>7-13B</td><td>L40S</td><td>1-2×</td><td>$800–$2,500</td></tr>
+<tr><td><strong>高级</strong>（复杂推理/代码）</td><td>34-70B</td><td>A100 / H100</td><td>2-4×</td><td>$4,000–$12,000</td></tr>
+<tr><td><strong>旗舰</strong>（多模型并行）</td><td>70B+ / 多模型</td><td>H100×8 / H200×8</td><td>8×</td><td>$20,000–$50,000+</td></tr>
+</tbody>
+</table>
+
+<h3>1.2.3 服务器硬件配置建议</h3>
+
+<table>
+<thead><tr><th>部署规模</th><th>GPU 配置</th><th>CPU / 内存</th><th>存储</th><th>网络</th><th>参考整机</th></tr></thead>
+<tbody>
+<tr>
+  <td><strong>开发测试</strong></td>
+  <td>1× L40S</td>
+  <td>32核 / 128GB</td>
+  <td>2TB NVMe</td>
+  <td>25GbE</td>
+  <td>Dell XE7745 基础版</td>
+</tr>
+<tr>
+  <td><strong>小规模生产</strong></td>
+  <td>4× L40S</td>
+  <td>64核 / 512GB</td>
+  <td>10TB NVMe</td>
+  <td>100GbE</td>
+  <td>Dell XE7745 中配</td>
+</tr>
+<tr>
+  <td><strong>中规模生产</strong></td>
+  <td>8× H100</td>
+  <td>128核 / 1TB</td>
+  <td>30TB NVMe</td>
+  <td>400GbE RoCEv2</td>
+  <td>Dell XE9680</td>
+</tr>
+<tr>
+  <td><strong>大规模集群</strong></td>
+  <td>64× H100 (8节点)</td>
+  <td>每节点同上</td>
+  <td>分布式存储</td>
+  <td>InfiniBand</td>
+  <td>多节点集群</td>
+</tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="db-select">1.3 数据库与存储选型</h2>
+
+<h3>1.3.1 向量数据库（RAG 核心）</h3>
+
+<table>
+<thead><tr><th>方案</th><th>类型</th><th>核心优势</th><th>适用场景</th><th>参考成本</th></tr></thead>
+<tbody>
+<tr>
+  <td><strong>PGVector (PostgreSQL)</strong></td>
+  <td>扩展型</td>
+  <td>ACID 事务，一套数据库同时存业务+向量数据</td>
+  <td>中小规模，已有 PG 基础设施</td>
+  <td>免费开源</td>
+</tr>
+<tr>
+  <td><strong>Milvus</strong></td>
+  <td>专用型</td>
+  <td>GPU 加速索引（cuVS），十亿级向量</td>
+  <td>大规模 RAG，多租户隔离</td>
+  <td>开源 / Zilliz Cloud $0.10/GB</td>
+</tr>
+<tr>
+  <td><strong>Weaviate</strong></td>
+  <td>专用型</td>
+  <td>GPU-build + CPU-serve 混合架构</td>
+  <td>成本敏感的 RAG</td>
+  <td>开源 / Cloud $0.07/GB</td>
+</tr>
+<tr>
+  <td><strong>Qdrant</strong></td>
+  <td>专用型</td>
+  <td>K8s 原生，高性能</td>
+  <td>云原生部署</td>
+  <td>开源 / Cloud $0.10/GB</td>
+</tr>
+<tr>
+  <td><strong>Amazon OpenSearch Serverless</strong></td>
+  <td>托管型</td>
+  <td>完全 Serverless，自动扩缩</td>
+  <td>AWS 生态，零运维</td>
+  <td>按 OCU 计费</td>
+</tr>
+</tbody>
+</table>
+
+<h3>1.3.2 其他必要存储组件</h3>
+
+<table>
+<thead><tr><th>类型</th><th>推荐方案</th><th>用途</th></tr></thead>
+<tbody>
+<tr><td><strong>关系数据库</strong></td><td>PostgreSQL / MySQL 8.0</td><td>用户数据、Agent 状态、配置管理</td></tr>
+<tr><td><strong>缓存</strong></td><td>Redis / Valkey</td><td>会话状态（&lt; 1ms）、Prompt Cache、限流计数器</td></tr>
+<tr><td><strong>消息队列</strong></td><td>Redis Streams（轻量）/ Kafka（大规模）</td><td>异步 Agent 任务、事件驱动编排</td></tr>
+<tr><td><strong>对象存储</strong></td><td>MinIO（自建）/ S3（云）</td><td>文档存储、日志归档、模型文件</td></tr>
+<tr><td><strong>图数据库</strong></td><td>Neo4j / NebulaGraph</td><td>知识图谱、GraphRAG（可选）</td></tr>
+<tr><td><strong>全文检索</strong></td><td>Elasticsearch</td><td>关键词搜索 + 向量混合检索</td></tr>
+</tbody>
+</table>
+
+<div class="callout tip">
+  <strong>最小可行存储栈（适合 MVP）：</strong>PostgreSQL（含 PGVector）+ Redis + MinIO<br>
+  <strong>生产级存储栈（适合规模化）：</strong>PostgreSQL + Milvus + Redis + Kafka + S3<br>
+  <strong>核心原则：</strong>不要为 Agent 项目引入全新数据库类型——尽量复用企业现有基础设施，PGVector 是平衡成本与能力的最佳起点。
+</div>
+
+<!-- ============================================================ -->
+<h2 id="orchestration">1.4 编排与部署架构</h2>
+
+<h3>1.4.1 Agent 编排框架选型</h3>
+
+<table>
+<thead><tr><th>框架</th><th>编排模式</th><th>核心能力</th><th>学习曲线</th><th>适用场景</th></tr></thead>
+<tbody>
+<tr>
+  <td><strong>LangGraph</strong></td>
+  <td>状态机 / DAG</td>
+  <td>Checkpoint、Human-in-loop、Streaming</td>
+  <td>中高</td>
+  <td>复杂多步 Agent 工作流</td>
+</tr>
+<tr>
+  <td><strong>CrewAI</strong></td>
+  <td>角色委派</td>
+  <td>Role-based、工具调用、MCP 协议</td>
+  <td>低</td>
+  <td>团队协作式多 Agent</td>
+</tr>
+<tr>
+  <td><strong>AutoGen</strong></td>
+  <td>对话驱动</td>
+  <td>多 Agent 对话、GroupChat、Handoff</td>
+  <td>中</td>
+  <td>对话式多 Agent 协作</td>
+</tr>
+<tr>
+  <td><strong>Dify</strong></td>
+  <td>可视化编排</td>
+  <td>拖拽式工作流、低代码</td>
+  <td>低</td>
+  <td>快速原型、非技术人员可用</td>
+</tr>
+<tr>
+  <td><strong>OpenAgents</strong></td>
+  <td>去中心化网络</td>
+  <td>Agent 自动发现、持久化社区</td>
+  <td>高</td>
+  <td>大规模去中心化 Agent 网络</td>
+</tr>
+</tbody>
+</table>
+
+<h3>1.4.2 部署架构推荐</h3>
+
+<svg width="100%" viewBox="0 0 880 320" style="max-width:880px; margin:16px 0;">
+  <!-- 入口层 -->
+  <rect x="30"  y="30"  width="190" height="260" rx="10" fill="#1e1e2e" stroke="#f5c2e7" stroke-width="1.5"/>
+  <text x="125" y="60"  text-anchor="middle" fill="#f5c2e7" font-size="14" font-weight="bold">🌐 流量入口</text>
+  <line x1="50" y1="72" x2="200" y2="72" stroke="#45475a" stroke-width="1"/>
+  <text x="125" y="100" fill="#a6adc8" font-size="11">Nginx / Kong</text>
+  <text x="125" y="120" fill="#a6adc8" font-size="11">API Gateway</text>
+  <text x="125" y="145" fill="#6c7086" font-size="10">认证鉴权</text>
+  <text x="125" y="165" fill="#6c7086" font-size="10">速率限制</text>
+  <text x="125" y="185" fill="#6c7086" font-size="10">负载均衡</text>
+  <text x="125" y="210" fill="#6c7086" font-size="10">TLS 终止</text>
+
+  <!-- 应用层 -->
+  <rect x="260" y="30"  width="190" height="260" rx="10" fill="#1e1e2e" stroke="#89b4fa" stroke-width="1.5"/>
+  <text x="355" y="60"  text-anchor="middle" fill="#89b4fa" font-size="14" font-weight="bold">⚙️ 应用服务层</text>
+  <line x1="280" y1="72" x2="430" y2="72" stroke="#45475a" stroke-width="1"/>
+  <text x="355" y="100" fill="#a6adc8" font-size="11">Agent 编排引擎</text>
+  <text x="355" y="122" fill="#a6adc8" font-size="11">（LangGraph/CrewAI）</text>
+  <text x="355" y="150" fill="#a6adc8" font-size="11">Memory Manager</text>
+  <text x="355" y="172" fill="#a6adc8" font-size="11">Tool Manager (MCP)</text>
+  <text x="355" y="200" fill="#6c7086" font-size="10">K8s Deployment</text>
+  <text x="355" y="220" fill="#6c7086" font-size="10">HPA 自动扩缩</text>
+  <text x="355" y="240" fill="#6c7086" font-size="10">Pod 反亲和</text>
+
+  <!-- 推理层 -->
+  <rect x="490" y="30"  width="170" height="260" rx="10" fill="#1e1e2e" stroke="#cba6f7" stroke-width="2"/>
+  <text x="575" y="60"  text-anchor="middle" fill="#cba6f7" font-size="14" font-weight="bold">⚡ GPU 推理层</text>
+  <line x1="510" y1="72" x2="640" y2="72" stroke="#45475a" stroke-width="1"/>
+  <text x="575" y="100" fill="#a6adc8" font-size="11">vLLM / TGI</text>
+  <text x="575" y="122" fill="#a6adc8" font-size="11">NVIDIA NIM</text>
+  <text x="575" y="150" fill="#a6adc8" font-size="11">Embedding 服务</text>
+  <text x="575" y="172" fill="#a6adc8" font-size="11">Reranker 服务</text>
+  <text x="575" y="200" fill="#6c7086" font-size="10">GPU Node Pool</text>
+  <text x="575" y="220" fill="#6c7086" font-size="10">Karpenter 扩缩</text>
+  <text x="575" y="240" fill="#6c7086" font-size="10">Spot 实例优先</text>
+
+  <!-- 数据层 -->
+  <rect x="700" y="30"  width="155" height="260" rx="10" fill="#1e1e2e" stroke="#a6e3a1" stroke-width="1.5"/>
+  <text x="777" y="60"  text-anchor="middle" fill="#a6e3a1" font-size="14" font-weight="bold">🗄️ 数据层</text>
+  <line x1="715" y1="72" x2="840" y2="72" stroke="#45475a" stroke-width="1"/>
+  <text x="777" y="100" fill="#a6adc8" font-size="11">PGVector</text>
+  <text x="777" y="122" fill="#a6adc8" font-size="11">Redis</text>
+  <text x="777" y="145" fill="#a6adc8" font-size="11">Kafka</text>
+  <text x="777" y="168" fill="#a6adc8" font-size="11">MinIO / S3</text>
+  <text x="777" y="195" fill="#a6adc8" font-size="11">Milvus</text>
+  <text x="777" y="218" fill="#6c7086" font-size="10">StatefulSet</text>
+  <text x="777" y="238" fill="#6c7086" font-size="10">PVC 持久化</text>
+
+  <!-- 箭头 -->
+  <line x1="220" y1="145" x2="258" y2="145" stroke="#45475a" stroke-width="1.5"/>
+  <line x1="450" y1="145" x2="488" y2="145" stroke="#45475a" stroke-width="1.5"/>
+  <line x1="660" y1="145" x2="698" y2="145" stroke="#45475a" stroke-width="1.5"/>
+</svg>
+
+<h3>1.4.3 关键部署决策</h3>
+
+<table>
+<thead><tr><th>决策点</th><th>推荐方案</th><th>原因</th></tr></thead>
+<tbody>
+<tr><td><strong>容器编排</strong></td><td>Kubernetes</td><td>GPU 调度 + 自动扩缩 + 生态成熟</td></tr>
+<tr><td><strong>GPU 扩缩</strong></td><td>Karpenter</td><td>动态 GPU 节点管理，Spot 实例优先</td></tr>
+<tr><td><strong>推理框架</strong></td><td>vLLM（开源）/ NIM（企业）</td><td>Continuous Batching，吞吐提升 10-20x</td></tr>
+<tr><td><strong>推理路由</strong></td><td>LiteLLM / OpenRouter</td><td>多模型统一网关，成本路由分发</td></tr>
+<tr><td><strong>可观测性</strong></td><td>Langfuse + Prometheus + Grafana</td><td>LLM 调用链追踪 + Token 用量 + 延迟监控</td></tr>
+<tr><td><strong>CI/CD</strong></td><td>GitHub Actions + ArgoCD</td><td>GitOps 部署 Agent 应用</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="infra-checklist">1.5 基础设施选型清单</h2>
+
+<div class="callout info">
+  <strong>以下清单可直接用于任何行业的 Agent 项目技术选型评审：</strong>
+</div>
+
+<table>
+<thead><tr><th>#</th><th>检查项</th><th>选项 A（轻量）</th><th>选项 B（标准）</th><th>选项 C（企业级）</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>LLM 推理</strong></td><td>API 调用（GPT-4o-mini）</td><td>vLLM + L40S 自建</td><td>NVIDIA NIM + H100 集群</td></tr>
+<tr><td>2</td><td><strong>Embedding 模型</strong></td><td>OpenAI text-embedding-3</td><td>BGE-M3 自建</td><td>NeMo Retriever 多模态</td></tr>
+<tr><td>3</td><td><strong>向量数据库</strong></td><td>PGVector</td><td>Milvus 单机</td><td>Milvus 集群 + cuVS</td></tr>
+<tr><td>4</td><td><strong>关系数据库</strong></td><td>PostgreSQL</td><td>PostgreSQL + 读写分离</td><td>PostgreSQL + Patroni HA</td></tr>
+<tr><td>5</td><td><strong>缓存</strong></td><td>Redis 单机</td><td>Redis Sentinel</td><td>Redis Cluster</td></tr>
+<tr><td>6</td><td><strong>消息队列</strong></td><td>Redis Streams</td><td>Kafka 单节点</td><td>Kafka 集群</td></tr>
+<tr><td>7</td><td><strong>对象存储</strong></td><td>S3 / MinIO</td><td>MinIO 集群</td><td>Ceph / 企业 NAS</td></tr>
+<tr><td>8</td><td><strong>编排框架</strong></td><td>Dify / n8n</td><td>LangGraph / CrewAI</td><td>自研 + 多框架混合</td></tr>
+<tr><td>9</td><td><strong>容器平台</strong></td><td>Docker Compose</td><td>K8s (EKS/AKS)</td><td>OpenShift / Rancher</td></tr>
+<tr><td>10</td><td><strong>监控体系</strong></td><td>Langfuse 免费版</td><td>Langfuse + Grafana 自建</td><td>Datadog / Dynatrace 全家桶</td></tr>
+</tbody>
+</table>
+
+<!-- ======================================================================== -->
+<!-- 第二部分：成本评估体系 -->
+<!-- ======================================================================== -->
+<h2 id="llm-pricing">2.1 LLM API 定价全景</h2>
+
+<h3>2.1.1 主流模型定价对比（每百万 Token，美元）</h3>
+
+<table>
+<thead><tr><th>等级</th><th>模型</th><th>输入 $/1M</th><th>输出 $/1M</th><th>上下文窗口</th><th>缓存输入 $/1M</th></tr></thead>
+<tbody>
+<tr style="background:rgba(166,227,161,0.06)">
+  <td><strong>入门</strong></td>
+  <td>GPT-4o-mini</td>
+  <td>$0.15</td>
+  <td>$0.60</td>
+  <td>128K</td>
+  <td>$0.075</td>
+</tr>
+<tr style="background:rgba(166,227,161,0.06)">
+  <td><strong>入门</strong></td>
+  <td>Gemini 2.5 Flash</td>
+  <td>$0.30</td>
+  <td>$2.50</td>
+  <td>~1M</td>
+  <td>—</td>
+</tr>
+<tr style="background:rgba(166,227,161,0.06)">
+  <td><strong>入门</strong></td>
+  <td>DeepSeek V3.2</td>
+  <td>$0.14</td>
+  <td>$0.28</td>
+  <td>128K</td>
+  <td>—</td>
+</tr>
+<tr style="background:rgba(137,180,250,0.06)">
+  <td><strong>标准</strong></td>
+  <td>Claude Haiku 4.5</td>
+  <td>$1.00</td>
+  <td>$5.00</td>
+  <td>200K</td>
+  <td>$0.10</td>
+</tr>
+<tr style="background:rgba(137,180,250,0.06)">
+  <td><strong>标准</strong></td>
+  <td>Claude Sonnet 4.6</td>
+  <td>$3.00</td>
+  <td>$15.00</td>
+  <td>200K</td>
+  <td>$0.30</td>
+</tr>
+<tr style="background:rgba(137,180,250,0.06)">
+  <td><strong>标准</strong></td>
+  <td>GPT-4.1</td>
+  <td>$2.00</td>
+  <td>$8.00</td>
+  <td>1M</td>
+  <td>$1.00</td>
+</tr>
+<tr style="background:rgba(203,166,247,0.06)">
+  <td><strong>高级</strong></td>
+  <td>Claude Opus 4.8</td>
+  <td>$15.00</td>
+  <td>$75.00</td>
+  <td>200K</td>
+  <td>$1.50</td>
+</tr>
+<tr style="background:rgba(203,166,247,0.06)">
+  <td><strong>高级</strong></td>
+  <td>GPT-5</td>
+  <td>$1.25</td>
+  <td>$10.00</td>
+  <td>1M</td>
+  <td>$0.625</td>
+</tr>
+<tr>
+  <td><strong>推理</strong></td>
+  <td>DeepSeek-R1</td>
+  <td>$0.55</td>
+  <td>$2.19</td>
+  <td>128K</td>
+  <td>—</td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout warning">
+  <strong>关键发现：</strong>最贵与最便宜的模型输出价格相差 <strong>~268倍</strong>（Claude Opus $75 vs DeepSeek $0.28）。输出 Token 成本通常是输入的 3-10 倍。<br>
+  <strong>缓存可节省 50-90% 输入成本。</strong>对于固定 System Prompt 的 Agent，必须启用 Prompt Cache。
+</div>
+
+<h3>2.1.2 Token 消耗估算速查</h3>
+
+<table>
+<thead><tr><th>场景</th><th>输入 Token（约）</th><th>输出 Token（约）</th><th>单次成本（Sonnet 级）</th></tr></thead>
+<tbody>
+<tr><td>简单问答</td><td>200-500</td><td>100-300</td><td>$0.002–$0.006</td></tr>
+<tr><td>RAG 检索问答</td><td>2,000-5,000</td><td>300-800</td><td>$0.01–$0.03</td></tr>
+<tr><td>多步 Agent 推理</td><td>5,000-15,000</td><td>1,000-3,000</td><td>$0.03–$0.09</td></tr>
+<tr><td>代码生成</td><td>2,000-8,000</td><td>500-2,000</td><td>$0.015–$0.05</td></tr>
+<tr><td>长文档摘要</td><td>20,000-50,000</td><td>500-1,500</td><td>$0.07–$0.17</td></tr>
+<tr><td>复杂多 Agent 协作</td><td>30,000-100,000</td><td>5,000-15,000</td><td>$0.15–$0.50</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="cloud-vs-onprem">2.2 云端 vs 自建 TCO 对比</h2>
+
+<h3>2.2.1 8×H100 系统三年 TCO 详细拆解</h3>
+
+<table>
+<thead><tr><th>成本项</th><th>云端（AWS p5.48xlarge）</th><th>自建机房</th><th>托管（Colocation）</th></tr></thead>
+<tbody>
+<tr><td><strong>硬件采购</strong></td><td>—</td><td>$240,000</td><td>$240,000</td></tr>
+<tr><td><strong>GPU 算力</strong></td><td>$420,000 (3yr Rsvd)</td><td>—</td><td>—</td></tr>
+<tr><td><strong>存储 (1PB)</strong></td><td>$360,000</td><td>$100,000</td><td>$100,000</td></tr>
+<tr><td><strong>网络</strong></td><td>$110,000 (含 Egress)</td><td>$50,000</td><td>$35,000</td></tr>
+<tr><td><strong>电费 + 冷却</strong></td><td>含在算力中</td><td>$105,000</td><td>$80,000</td></tr>
+<tr><td><strong>运维人力</strong></td><td>$30,000 (云管)</td><td>$450,000</td><td>$200,000</td></tr>
+<tr><td><strong>软件许可</strong></td><td>—</td><td>$50,000</td><td>$30,000</td></tr>
+<tr style="font-weight:bold; background:rgba(203,166,247,0.08)">
+  <td><strong>三年总计</strong></td>
+  <td><strong>~$920,000</strong></td>
+  <td><strong>~$995,000</strong></td>
+  <td><strong>~$685,000</strong></td>
+</tr>
+</tbody>
+</table>
+
+<h3>2.2.2 盈亏平衡点——最关键的因素</h3>
+
+<svg width="100%" viewBox="0 0 850 280" style="max-width:850px; margin:16px 0;">
+  <!-- 坐标 -->
+  <line x1="100" y1="240" x2="780" y2="240" stroke="#45475a" stroke-width="1"/>
+  <line x1="100" y1="30"  x2="100" y2="240" stroke="#45475a" stroke-width="1"/>
+  <text x="440" y="270" text-anchor="middle" fill="#a6adc8" font-size="12">每日 GPU 使用小时</text>
+  <text x="30"  y="140" text-anchor="middle" fill="#a6adc8" font-size="12" transform="rotate(-90,30,140)">三年总成本 (万美元)</text>
+
+  <!-- 刻度 -->
+  <text x="175" y="258" fill="#6c7086" font-size="10">4h</text>
+  <text x="250" y="258" fill="#6c7086" font-size="10">6h</text>
+  <text x="325" y="258" fill="#6c7086" font-size="10">8h</text>
+  <text x="400" y="258" fill="#6c7086" font-size="10">10h</text>
+  <text x="475" y="258" fill="#6c7086" font-size="10">12h</text>
+  <text x="550" y="258" fill="#6c7086" font-size="10">14h</text>
+  <text x="625" y="258" fill="#6c7086" font-size="10">16h</text>
+  <text x="700" y="258" fill="#6c7086" font-size="10">18h</text>
+  <text x="775" y="258" fill="#6c7086" font-size="10">20h+</text>
+
+  <!-- 云端曲线 -->
+  <polyline points="110,50 250,65 400,85 550,110 700,140 770,160" fill="none" stroke="#89b4fa" stroke-width="2.5"/>
+  <text x="780" y="155" fill="#89b4fa" font-size="12" font-weight="bold">云端 (Rsvd)</text>
+
+  <!-- 自建 -->
+  <line x1="100" y1="100" x2="800" y2="100" stroke="#fab387" stroke-width="2.5"/>
+  <text x="780" y="95" fill="#fab387" font-size="12" font-weight="bold">自建</text>
+
+  <!-- 托管 -->
+  <line x1="100" y1="70" x2="800" y2="70" stroke="#a6e3a1" stroke-width="2.5"/>
+  <text x="780" y="65" fill="#a6e3a1" font-size="12" font-weight="bold">托管</text>
+
+  <!-- 交点标注 -->
+  <circle cx="500" cy="100" r="5" fill="#f38ba8"/>
+  <text x="510" y="90" fill="#f38ba8" font-size="11">盈亏平衡 ≈ 12h/天</text>
+
+  <!-- 区域标签 -->
+  <text x="230" y="170" fill="#89b4fa" font-size="13" font-weight="bold">云端更优</text>
+  <text x="600" y="170" fill="#a6e3a1" font-size="13" font-weight="bold">托管更优</text>
+</svg>
+
+<table>
+<thead><tr><th>每日 GPU 利用率</th><th>推荐方案</th><th>盈亏平衡时间</th></tr></thead>
+<tbody>
+<tr><td><strong>&lt; 6 小时/天</strong></td><td>纯云端（按需实例 + Spot）</td><td>永不回本</td></tr>
+<tr><td><strong>6–12 小时/天</strong></td><td>云端预留实例，可评估混合方案</td><td>18-24 个月</td></tr>
+<tr><td><strong>12–18 小时/天</strong></td><td>托管 Colocation 或混合部署</td><td>12-18 个月</td></tr>
+<tr><td><strong>&gt; 18 小时/天</strong></td><td>自建机房或长期托管合约</td><td>7-12 个月</td></tr>
+</tbody>
+</table>
+
+<div class="callout warning">
+  <strong>大多数企业实际利用率仅 35-55%（含周末和夜间空闲），远低于盈亏平衡点。</strong>
+  除非是 7×24 高负载 Agent 系统（如银行客服、电商平台），否则云端的总体 TCO 更低、更灵活。
+</div>
+
+<!-- ============================================================ -->
+<h2 id="cost-model">2.3 成本估算模型</h2>
+
+<h3>2.3.1 Agent 月度总成本公式</h3>
+
+<div class="code-block">
+  <div class="code-header"><span class="lang-tag">MATH</span><span>Agent 月度 TCO 计算公式</span></div>
+  <div class="code-body"><pre><code><span class="fn">月总成本</span> = <span class="str">LLM推理成本</span> + <span class="str">Embedding成本</span> + <span class="str">基础设施成本</span> + <span class="str">人力运维成本</span> + <span class="str">第三方服务成本</span>
+
+<span class="cmt"># 1. LLM 推理成本</span>
+LLM推理成本 = 月请求数 × 每请求平均Token × (输入占比 × 输入单价 + 输出占比 × 输出单价)
+            × (1 - 缓存命中率 × 缓存折扣)
+
+<span class="cmt"># 2. Embedding 成本（RAG 场景）</span>
+Embedding成本 = (文档块数 × 块Token数 × Embedding单价)  <span class="cmt"># 离线索引</span>
+              + (月查询数 × 查询Token数 × Embedding单价)  <span class="cmt"># 在线查询</span>
+
+<span class="cmt"># 3. 基础设施成本</span>
+基础设施 = GPU实例成本(实例数 × 小时单价 × 月运行小时)
+         + 存储成本(向量库 + 关系库 + 对象存储 + 日志)
+         + 网络成本(跨AZ流量 + 公网出向)
+
+<span class="cmt"># 4. 人力运维成本</span>
+人力成本 = (DevOps人力 + ML工程人力) × 月工资 × Agent项目时间占比
+
+<span class="cmt"># 5. 第三方服务</span>
+第三方成本 = 监控工具($200-2000/月) + API管理 (LiteLLM/网关) + 安全审计</code></pre></div>
+</div>
+
+<h3>2.3.2 典型场景成本估算示例</h3>
+
+<table>
+<thead><tr><th>场景</th><th>月请求量</th><th>推荐模型路由</th><th>月 LLM 成本</th><th>月基础设施</th><th>月总成本</th></tr></thead>
+<tbody>
+<tr>
+  <td><strong>PoC 原型</strong></td>
+  <td>1,000</td>
+  <td>100% Sonnet</td>
+  <td>$15–$40</td>
+  <td>$50 (单云服务器)</td>
+  <td><strong>$65–$90</strong></td>
+</tr>
+<tr>
+  <td><strong>内部工具</strong></td>
+  <td>10,000</td>
+  <td>70% Haiku + 20% Sonnet + 10% Opus</td>
+  <td>$150–$400</td>
+  <td>$300 (K8s + GPU)</td>
+  <td><strong>$450–$700</strong></td>
+</tr>
+<tr>
+  <td><strong>业务系统</strong></td>
+  <td>100,000</td>
+  <td>70% Haiku + 20% Sonnet + 5% Opus + 5% R1</td>
+  <td>$1,200–$3,500</td>
+  <td>$1,500 (GPU + DB)</td>
+  <td><strong>$2,700–$5,000</strong></td>
+</tr>
+<tr>
+  <td><strong>核心平台</strong></td>
+  <td>1,000,000</td>
+  <td>80% Flash + 15% Sonnet + 5% 高级</td>
+  <td>$8,000–$20,000</td>
+  <td>$8,000 (GPU集群)</td>
+  <td><strong>$16,000–$28,000</strong></td>
+</tr>
+<tr>
+  <td><strong>企业级 7×24</strong></td>
+  <td>10,000,000</td>
+  <td>自建 vLLM + API 兜底</td>
+  <td>$15,000–$40,000</td>
+  <td>$30,000 (H100集群)</td>
+  <td><strong>$45,000–$70,000</strong></td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout tip">
+  <strong>三个降本杠杆：</strong><br>
+  ① <strong>模型路由</strong>：简单任务 → 低价模型，复杂任务 → 高级模型，可省 60-80%<br>
+  ② <strong>Prompt Cache</strong>：System Prompt 和少样本示例命中缓存，输入成本降 90%<br>
+  ③ <strong>Batch API</strong>：非实时任务走异步批处理，再省 50%
+</div>
+
+<!-- ============================================================ -->
+<h2 id="cost-optimize">2.4 成本优化策略矩阵</h2>
+
+<table>
+<thead><tr><th>策略</th><th>节省比例</th><th>实施难度</th><th>适用条件</th></tr></thead>
+<tbody>
+<tr><td><strong>模型分级路由</strong></td><td>60-80%</td><td>中</td><td>请求复杂度差异大</td></tr>
+<tr><td><strong>Prompt Cache</strong></td><td>50-90%（输入）</td><td>低</td><td>固定 System Prompt</td></tr>
+<tr><td><strong>Batch API</strong></td><td>50%</td><td>低</td><td>非实时场景（24h内返回）</td></tr>
+<tr><td><strong>Spot 实例</strong></td><td>60-70%</td><td>中</td><td>可中断推理任务</td></tr>
+<tr><td><strong>空闲自动停机</strong></td><td>66% (8h×5d vs 24h×7d)</td><td>低</td><td>有明确闲时段的场景</td></tr>
+<tr><td><strong>量化部署 (INT8/INT4)</strong></td><td>40-60%</td><td>中</td><td>可接受精度损失 1-2%</td></tr>
+<tr><td><strong>语义缓存</strong></td><td>20-40%</td><td>中</td><td>高频相似查询</td></tr>
+<tr><td><strong>自建替代 API</strong></td><td>50-80%</td><td>高</td><td>日请求 &gt;10M Token</td></tr>
+</tbody>
+</table>
+
+<!-- ======================================================================== -->
+<!-- 第三部分：行业案例 -->
+<!-- ======================================================================== -->
+<h2 id="case-finance">3.1 金融行业案例</h2>
+
+<h3>案例一：某商业银行智能信贷审批 Agent</h3>
+
+<table>
+<thead><tr><th>维度</th><th>详情</th></tr></thead>
+<tbody>
+<tr><td><strong>应用场景</strong></td><td>7×24 小时自动信贷审批，替代人工初审</td></tr>
+<tr><td><strong>Agent 架构</strong></td><td>LangGraph 编排 + GPT-4o 推理 + PGVector RAG（政策文档检索）+ 自研风控模型 API</td></tr>
+<tr><td><strong>技术栈</strong></td><td>推理层：vLLM + 2× H100（私有云部署） | 数据层：PostgreSQL + Redis Cluster | 编排：K8s + Karpenter</td></tr>
+<tr><td><strong>日均处理量</strong></td><td>~5,000 笔申请，峰值 15,000</td></tr>
+<tr><td><strong>成本结构（月）</strong></td><td>GPU 推理：$8,000 | 基础设施：$5,000 | 人工运维：$4,000 | <strong>合计：~$17,000/月</strong></td></tr>
+<tr><td><strong>效益</strong></td><td>节省人力约 <strong>¥1.1 亿/年</strong>（约 $1,500 万），审批不良率下降 <strong>0.3%</strong></td></tr>
+<tr><td><strong>ROI 周期</strong></td><td>约 <strong>5 个月</strong>（含建设期 3 个月）</td></tr>
+<tr><td><strong>关键经验</strong></td><td>必须私有化部署满足监管合规；敏感数据不出内网；风控规则需人工复核</td></tr>
+</tbody>
+</table>
+
+<h3>案例二：保险智能核保 Agent（司普科技）</h3>
+
+<table>
+<thead><tr><th>维度</th><th>详情</th></tr></thead>
+<tbody>
+<tr><td><strong>应用场景</strong></td><td>保险核保自动化——体检报告、病历等非结构化文档解析与风险评估</td></tr>
+<tr><td><strong>技术栈</strong></td><td>文档解析 LLM + 核保规则引擎 + 医学知识图谱（Neo4j）+ Dify 工作流编排</td></tr>
+<tr><td><strong>效果</strong></td><td>核保从 <strong>90 分钟 → 3 分钟</strong>（提效 30×），准确率 <strong>95%+</strong></td></tr>
+<tr><td><strong>成本</strong></td><td>单次核保成本仅为人工的 <strong>10%</strong></td></tr>
+<tr><td><strong>关键经验</strong></td><td>采用 LLM + 规则引擎混合架构（简单规则直接判定，复杂案例走 LLM），兼顾成本与准确性</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="case-healthcare">3.2 医疗行业案例</h2>
+
+<h3>案例三：某三甲医院影像诊断辅助 Agent</h3>
+
+<table>
+<thead><tr><th>维度</th><th>详情</th></tr></thead>
+<tbody>
+<tr><td><strong>应用场景</strong></td><td>肺癌 CT/MRI 影像辅助诊断——放射科医生 + AI Agent 双签模式</td></tr>
+<tr><td><strong>Agent 架构</strong></td><td>视觉模型（CT 影像分析）+ LLM（生成结构化报告）+ RAG（既往病例相似检索）+ Human-in-the-loop</td></tr>
+<tr><td><strong>技术栈</strong></td><td>推理层：NVIDIA NIM + 4× A100（医院私有云） | 影像存储：PACS 系统对接 + MinIO | RAG：Milvus + text-embedding-3-large</td></tr>
+<tr><td><strong>日均处理量</strong></td><td>~300 例 CT 阅片</td></tr>
+<tr><td><strong>成本结构（月）</strong></td><td>GPU 推理：$12,000 | 基础设施：$6,000 | <strong>合计：~$18,000/月</strong></td></tr>
+<tr><td><strong>效果</strong></td><td>诊断敏感度 <strong>96.7%</strong>，阅片时间缩短 <strong>60%</strong>，漏诊率下降 <strong>42%</strong></td></tr>
+<tr><td><strong>关键经验</strong></td><td>医疗场景必须 Human-in-the-loop；私有化部署满足 HIPAA / 等保三级；模型幻觉需二次确认</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="case-manufacturing">3.3 制造行业案例</h2>
+
+<h3>案例四：某汽车工厂预测性维护 Agent</h3>
+
+<table>
+<thead><tr><th>维度</th><th>详情</th></tr></thead>
+<tbody>
+<tr><td><strong>应用场景</strong></td><td>冲压线设备预测性维护——通过传感器数据 + Agent 分析提前预警故障</td></tr>
+<tr><td><strong>Agent 架构</strong></td><td>时序异常检测模型 + LLM（告警解释与操作建议）+ 工单自动生成（对接 MES 系统）</td></tr>
+<tr><td><strong>技术栈</strong></td><td>推理：L40S × 2（工厂本地边缘部署） | 时序库：TimescaleDB | 消息：Kafka（IoT 数据管道） | 编排：K3s 轻量 K8s</td></tr>
+<tr><td><strong>成本结构（月）</strong></td><td>边缘服务器折旧：$800 | 推理成本：$300 | <strong>合计：~$1,100/月</strong></td></tr>
+<tr><td><strong>效果</strong></td><td>意外停机从 <strong>12h/月 → 3h/月</strong>（减少 75%），年节省 <strong>¥200 万+</strong></td></tr>
+<tr><td><strong>ROI 周期</strong></td><td>约 <strong>3 个月</strong></td></tr>
+<tr><td><strong>关键经验</strong></td><td>工厂边缘部署选 L40S 足以运行 7-13B 模型；推理延迟需 &lt;500ms；需支持离线降级</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="case-retail">3.4 零售与电商案例</h2>
+
+<h3>案例五：伊利导购智能体（基于腾讯云 ADP）</h3>
+
+<table>
+<thead><tr><th>维度</th><th>详情</th></tr></thead>
+<tbody>
+<tr><td><strong>应用场景</strong></td><td>门店导购辅助——通过 Agent 为导购员提供实时产品知识、销售话术和库存查询</td></tr>
+<tr><td><strong>技术栈</strong></td><td>腾讯云智能体开发平台（ADP）+ 企业微信集成 + RAG（产品知识库）</td></tr>
+<tr><td><strong>效果</strong></td><td>订单数提升 <strong>26%</strong>，销售额提升 <strong>20.4%</strong></td></tr>
+<tr><td><strong>成本</strong></td><td>平台订阅模式，约 ¥5,000-15,000/月</td></tr>
+<tr><td><strong>关键经验</strong></td><td>零售场景优先选择低代码平台（Dify/ADP）快速验证；移动端优先（企微/飞书集成）；知识库冷启动需要 2-4 周</td></tr>
+</tbody>
+</table>
+
+<h3>案例六：某电商平台多 Agent 客服系统</h3>
+
+<table>
+<thead><tr><th>维度</th><th>详情</th></tr></thead>
+<tbody>
+<tr><td><strong>应用场景</strong></td><td>售前咨询、售后工单、退换货处理——三个专业 Agent 通过 Superviser 编排协作</td></tr>
+<tr><td><strong>技术栈</strong></td><td>CrewAI 多 Agent 编排 + GPT-4o-mini（路由）+ Claude Sonnet（复杂售后）+ PGVector RAG</td></tr>
+<tr><td><strong>日均会话</strong></td><td>~50,000 次</td></tr>
+<tr><td><strong>成本结构（月）</strong></td><td>LLM API：$3,500 | 基础设施：$2,000 | <strong>合计：~$5,500/月</strong></td></tr>
+<tr><td><strong>效果</strong></td><td>响应速度提升 <strong>60%</strong>，人工坐席需求减少 <strong>45%</strong>（年省 ~$500,000）</td></tr>
+<tr><td><strong>ROI 周期</strong></td><td>约 <strong>2-3 个月</strong></td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="case-comparison">3.5 行业案例横向对比</h2>
+
+<table>
+<thead><tr><th>行业</th><th>月成本范围</th><th>核心 GPU</th><th>部署模式</th><th>ROI 周期</th><th>年效益量级</th><th>关键技术决策</th></tr></thead>
+<tbody>
+<tr><td>🏦 <strong>金融</strong></td><td>$15K–$50K</td><td>H100 × 2-8</td><td>私有云 / 自建</td><td>4-8 个月</td><td>$1M–$15M</td><td>合规驱动 → 私有化必选</td></tr>
+<tr><td>🏥 <strong>医疗</strong></td><td>$10K–$30K</td><td>A100 × 2-4</td><td>医院私有云</td><td>6-12 个月</td><td>$500K–$3M</td><td>安全驱动 → Human-in-the-loop</td></tr>
+<tr><td>🏭 <strong>制造</strong></td><td>$500–$3K</td><td>L40S × 1-2</td><td>边缘 / 混合云</td><td>2-4 个月</td><td>$100K–$500K</td><td>延迟驱动 → 边缘部署</td></tr>
+<tr><td>🛒 <strong>零售</strong></td><td>$2K–$10K</td><td>API / L40S</td><td>云端 / 低代码</td><td>1-3 个月</td><td>$200K–$1M</td><td>速度驱动 → 平台优先</td></tr>
+<tr><td>💻 <strong>科技/SaaS</strong></td><td>$5K–$25K</td><td>混合 API+自建</td><td>多云混合</td><td>3-6 个月</td><td>$500K–$5M</td><td>成本驱动 → 分层路由</td></tr>
+</tbody>
+</table>
+
+<!-- ======================================================================== -->
+<!-- 第四部分：决策框架 -->
+<!-- ======================================================================== -->
+<h2 id="decision-framework">4.1 五步决策法</h2>
+
+<svg width="100%" viewBox="0 0 880 160" style="max-width:880px; margin:16px 0;">
+  <defs>
+    <marker id="a2" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#89b4fa"/>
+    </marker>
+  </defs>
+
+  <rect x="10"  y="30"  width="150" height="90" rx="10" fill="#313244" stroke="#cba6f7" stroke-width="2"/>
+  <text x="85"  y="60"  text-anchor="middle" fill="#cba6f7" font-size="14" font-weight="bold">Step 1</text>
+  <text x="85"  y="80"  text-anchor="middle" fill="#cdd6f4" font-size="12">定义场景</text>
+  <text x="85"  y="100" text-anchor="middle" fill="#6c7086" font-size="10">Agent 类型·并发·延迟</text>
+
+  <line x1="160" y1="75" x2="215" y2="75" stroke="#89b4fa" stroke-width="1.5" marker-end="url(#a2)"/>
+
+  <rect x="225" y="30"  width="150" height="90" rx="10" fill="#313244" stroke="#cba6f7" stroke-width="2"/>
+  <text x="300" y="60"  text-anchor="middle" fill="#cba6f7" font-size="14" font-weight="bold">Step 2</text>
+  <text x="300" y="80"  text-anchor="middle" fill="#cdd6f4" font-size="12">估算规模</text>
+  <text x="300" y="100" text-anchor="middle" fill="#6c7086" font-size="10">日请求·Token·存储</text>
+
+  <line x1="375" y1="75" x2="430" y2="75" stroke="#89b4fa" stroke-width="1.5" marker-end="url(#a2)"/>
+
+  <rect x="440" y="30"  width="150" height="90" rx="10" fill="#313244" stroke="#cba6f7" stroke-width="2"/>
+  <text x="515" y="60"  text-anchor="middle" fill="#cba6f7" font-size="14" font-weight="bold">Step 3</text>
+  <text x="515" y="80"  text-anchor="middle" fill="#cdd6f4" font-size="12">设计架构</text>
+  <text x="515" y="100" text-anchor="middle" fill="#6c7086" font-size="10">模型·DB·编排框架</text>
+
+  <line x1="590" y1="75" x2="645" y2="75" stroke="#89b4fa" stroke-width="1.5" marker-end="url(#a2)"/>
+
+  <rect x="655" y="30"  width="150" height="90" rx="10" fill="#313244" stroke="#cba6f7" stroke-width="2"/>
+  <text x="730" y="60"  text-anchor="middle" fill="#cba6f7" font-size="14" font-weight="bold">Step 4</text>
+  <text x="730" y="80"  text-anchor="middle" fill="#cdd6f4" font-size="12">成本测算</text>
+  <text x="730" y="100" text-anchor="middle" fill="#6c7086" font-size="10">TCO·ROI·盈亏点</text>
+
+  <line x1="805" y1="75" x2="835" y2="75" stroke="#89b4fa" stroke-width="1.5"/>
+</svg>
+
+<table>
+<thead><tr><th>步骤</th><th>核心问题</th><th>输出物</th><th>关键参数</th></tr></thead>
+<tbody>
+<tr>
+  <td><strong>Step 1：定义场景</strong></td>
+  <td>Agent 做什么？是内部工具还是面向客户？</td>
+  <td>场景描述 + SLA 要求</td>
+  <td>并发用户数、延迟要求（&lt;500ms / &lt;2s / &lt;10s）、可用性（99% / 99.9% / 99.99%）</td>
+</tr>
+<tr>
+  <td><strong>Step 2：估算规模</strong></td>
+  <td>每天多少请求？每次消耗多少 Token？</td>
+  <td>容量规划表</td>
+  <td>日请求量、平均 Token/请求、峰值倍数、数据量（文档数 × 块数）</td>
+</tr>
+<tr>
+  <td><strong>Step 3：设计架构</strong></td>
+  <td>用什么模型？自建还是 API？什么数据库？</td>
+  <td>架构图 + 技术选型文档</td>
+  <td>模型列表、GPU 选型、存储方案、编排框架</td>
+</tr>
+<tr>
+  <td><strong>Step 4：成本测算</strong></td>
+  <td>LLM、基础设施、人力各多少钱？</td>
+  <td>TCO 模型 + ROI 分析</td>
+  <td>月 Token 量 × 单价 + 基础设施月费 + 人力成本</td>
+</tr>
+<tr>
+  <td><strong>Step 5：做决策</strong></td>
+  <td>Build vs Buy？云端 vs 自建？</td>
+  <td>决策报告</td>
+  <td>TCO 对比、ROI 周期、风险清单</td>
+</tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="calculator">4.2 成本计算器模型</h2>
+
+<p>以下是一个参数化的 Agent 成本估算模型，可直接填入参数获得月/年成本预估：</p>
+
+<div class="code-block">
+  <div class="code-header"><span class="lang-tag">MODEL</span><span>Agent 成本参数化计算模型</span></div>
+  <div class="code-body"><pre><code><span class="cmt">╔══════════════════════════════════════════════════════════╗</span>
+<span class="cmt">║          AI Agent 成本估算模型 v1.0                      ║</span>
+<span class="cmt">╚══════════════════════════════════════════════════════════╝</span>
+
+<span class="cmt">## 一、业务参数（填入你的数值）</span>
+<span class="bi">月活跃用户数</span>          = <span class="num">10,000</span>          <span class="cmt"># MAU</span>
+<span class="bi">人均日请求数</span>          = <span class="num">5</span>               <span class="cmt"># 每用户每天平均请求</span>
+<span class="bi">峰值倍数</span>              = <span class="num">3</span>               <span class="cmt"># 峰值 QPS / 平均 QPS</span>
+<span class="bi">平均输入Token/请求</span>    = <span class="num">3,000</span>           <span class="cmt"># 含 System Prompt + 检索结果 + 对话历史</span>
+<span class="bi">平均输出Token/请求</span>    = <span class="num">600</span>             <span class="cmt"># Agent 生成的最终回复</span>
+
+<span class="cmt">## 二、模型路由策略（输入占比%）</span>
+<span class="bi">入门模型</span> (Haiku/Flash)   = <span class="num">60%</span>         <span class="cmt"># 简单问答、检索、分类</span>
+<span class="bi">标准模型</span> (Sonnet/GPT4o)   = <span class="num">30%</span>         <span class="cmt"># 复杂推理、代码生成</span>
+<span class="bi">高级模型</span> (Opus/GPT5)      = <span class="num">8%</span>          <span class="cmt"># 关键业务决策</span>
+<span class="bi">推理模型</span> (DeepSeek-R1)     = <span class="num">2%</span>          <span class="cmt"># 数学/逻辑复杂题</span>
+
+<span class="cmt">## 三、定价参数（$/1M tokens）</span>
+<span class="bi">入门输入/输出</span>  = <span class="num">0.3</span> / <span class="num">2.5</span>
+<span class="bi">标准输入/输出</span>  = <span class="num">3.0</span> / <span class="num">15.0</span>
+<span class="bi">高级输入/输出</span>  = <span class="num">15.0</span> / <span class="num">75.0</span>
+<span class="bi">推理输入/输出</span>  = <span class="num">0.55</span> / <span class="num">2.19</span>
+<span class="bi">缓存命中率</span>      = <span class="num">40%</span>
+<span class="bi">缓存折扣</span>        = <span class="num">0.1</span>
+
+<span class="cmt">## 四、计算结果</span>
+<span class="bi">月有效请求</span>      = <span class="num">1,500,000</span>       <span class="cmt"># MAU × 人均日请求 × 30</span>
+<span class="bi">月输入Token总量</span>  = <span class="num">4,500,000,000</span>   <span class="cmt"># 45 亿 Token</span>
+<span class="bi">月输出Token总量</span>  = <span class="num">900,000,000</span>     <span class="cmt"># 9 亿 Token</span>
+<span class="bi">缓存后实际输入</span>   = <span class="num">4,140,000,000</span>   <span class="cmt"># 扣除缓存命中</span>
+
+<span class="cmt">## 五、月成本汇总</span>
+<span class="str">LLM API 成本</span>      = <span class="num">$2,835</span>           <span class="cmt"># 加权平均</span>
+<span class="str">基础设施成本</span>      = <span class="num">$2,000</span>           <span class="cmt"># 含 GPU / 数据库 / 网络</span>
+<span class="str">人力运维成本</span>      = <span class="num">$4,000</span>           <span class="cmt"># 0.5 FTE DevOps + 0.5 FTE MLE</span>
+<span class="str">─────────────────────────────────</span>
+<span class="str">月度总成本</span>        = <span class="num">$8,835</span>
+<span class="str">单次请求成本</span>      = <span class="num">$0.0059</span></code></pre></div>
+</div>
+
+<div class="callout tip">
+  <strong>如何使用此模型：</strong><br>
+  1. 替换「业务参数」中的数值为你实际的 MAU、日请求数、Token 量<br>
+  2. 根据你的模型选择调整「路由策略」和「定价参数」<br>
+  3. 对比不同路由策略下的成本差异——调整入门/标准/高级占比看变化<br>
+  4. 单次请求成本 &lt;$0.01 是健康状态，&gt;$0.05 需要优化
+</div>
+
+<!-- ============================================================ -->
+<h2 id="industry-template">4.3 跨行业复用模板</h2>
+
+<p><strong>此模板可直接用于任何行业的 Agent 项目可行性评估：</strong></p>
+
+<table>
+<thead><tr><th>评估维度</th><th>填写内容</th><th>数据来源</th></tr></thead>
+<tbody>
+<tr><td><strong>行业 / 部门</strong></td><td>________</td><td>—</td></tr>
+<tr><td><strong>Agent 类型</strong></td><td>☐ 内部效率工具 ☐ 外部客户服务 ☐ 核心业务系统</td><td>业务方确认</td></tr>
+<tr><td><strong>SLA 要求</strong></td><td>延迟 &lt;____s | 可用性 ____% | 数据驻留 ____</td><td>业务方 + 合规</td></tr>
+<tr><td><strong>预估日请求量</strong></td><td>____ 请求/天 | 峰值倍数 ____×</td><td>业务量推算</td></tr>
+<tr><td><strong>每请求 Token 估算</strong></td><td>输入 ____ Token | 输出 ____ Token</td><td>原型实测</td></tr>
+<tr><td><strong>部署模式</strong></td><td>☐ 纯 API ☐ 混合（自建+API）☐ 纯自建</td><td>TCO 分析</td></tr>
+<tr><td><strong>GPU 选型</strong></td><td>型号 ____ | 数量 ____ | 部署位置 ____</td><td>模型规模 × 并发</td></tr>
+<tr><td><strong>数据库选型</strong></td><td>向量库 ____ | 关系库 ____ | 缓存 ____ | 队列 ____</td><td>架构设计</td></tr>
+<tr><td><strong>月成本预算</strong></td><td>LLM $____ | 基础设施 $____ | 人力 $____ | <strong>合计 $____</strong></td><td>成本模型计算</td></tr>
+<tr><td><strong>预期月效益</strong></td><td>$____（人工替代 + 效率提升 + 收入增长）</td><td>业务部门预估</td></tr>
+<tr><td><strong>ROI 周期</strong></td><td>____ 个月</td><td>效益/成本</td></tr>
+<tr><td><strong>关键风险</strong></td><td>________</td><td>风险评估</td></tr>
+<tr><td><strong>决策结论</strong></td><td>☐ 推荐推进 ☐ 需调整 ☐ 不推荐</td><td>综合判断</td></tr>
+</tbody>
+</table>
+
+<div class="callout danger">
+  <strong>20+ 常见决策陷阱（自检清单）：</strong><br><br>
+  ① 高估 GPU 利用率（实际通常不到 50%）<br>
+  ② 忽略数据 Egress 费用（云→自建迁移可达数万美元）<br>
+  ③ 低估运维人力（自建 GPU 集群需至少 2 名专职工程师）<br>
+  ④ 未考虑 GPU 硬件更新周期（H100 → B200 仅 2 年代差）<br>
+  ⑤ 忽视 Prompt Cache 的降本效果（系统 Prompt 命中率通常 40-60%）<br>
+  ⑥ 只选最贵模型（大部分请求用入门模型即可）<br>
+  ⑦ 未做并发压测（GPU 显存不足导致 OOM）<br>
+  ⑧ 忽略监管合规成本（金融/医疗需额外投入安全审计）<br>
+  ⑨ 未评估供应商锁定风险<br>
+  ⑩ 没有建立 Token 用量实时监控
+</div>
+
+<!-- ============================================================ -->
+<h2 id="refs">附录：参考资源汇总</h2>
+
+<table>
+<thead><tr><th>类别</th><th>资源名称</th><th>链接</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>🏗️ 架构</td><td>NVIDIA AI-Q Blueprint</td><td><a href="https://developer.nvidia.com/blog/build-and-run-secure-data-driven-ai-agents/" target="_blank">NVIDIA Blog</a></td><td>多 Agent RAG 参考架构</td></tr>
+<tr><td>🏗️ 架构</td><td>Agentic Design Patterns Book</td><td><a href="https://github.com/Mathews-Tom/Agentic-Design-Patterns" target="_blank">GitHub</a></td><td>21 种 Agent 设计模式</td></tr>
+<tr><td>🔧 框架</td><td>LangGraph</td><td><a href="https://github.com/langchain-ai/langgraph" target="_blank">GitHub</a></td><td>状态机编排框架</td></tr>
+<tr><td>🔧 框架</td><td>CrewAI</td><td><a href="https://github.com/crewAIInc/crewAI" target="_blank">GitHub</a></td><td>多 Agent 角色协作</td></tr>
+<tr><td>🔧 框架</td><td>AutoGen</td><td><a href="https://github.com/microsoft/autogen" target="_blank">GitHub</a></td><td>微软多 Agent 框架</td></tr>
+<tr><td>🔧 框架</td><td>Dify</td><td><a href="https://github.com/langgenius/dify" target="_blank">GitHub</a></td><td>低代码 Agent 平台</td></tr>
+<tr><td>🧠 推理</td><td>vLLM</td><td><a href="https://github.com/vllm-project/vllm" target="_blank">GitHub</a></td><td>高性能 LLM 推理引擎</td></tr>
+<tr><td>🧠 推理</td><td>NVIDIA NIM</td><td><a href="https://build.nvidia.com/explore/discover" target="_blank">NVIDIA</a></td><td>企业级模型推理微服务</td></tr>
+<tr><td>🗄️ 向量库</td><td>Milvus</td><td><a href="https://github.com/milvus-io/milvus" target="_blank">GitHub</a></td><td>分布式向量数据库</td></tr>
+<tr><td>🗄️ 向量库</td><td>Weaviate</td><td><a href="https://github.com/weaviate/weaviate" target="_blank">GitHub</a></td><td>GPU 加速向量数据库</td></tr>
+<tr><td>💰 定价</td><td>LLM API Pricing 2026</td><td><a href="https://iternal.ai/llm-pricing-calculator" target="_blank">ItErnal</a></td><td>实时 LLM 定价计算器</td></tr>
+<tr><td>💰 定价</td><td>LLM TokenSage</td><td><a href="https://github.com/VedantS5/llm-tokensage" target="_blank">GitHub</a></td><td>Token 计算与成本估算工具</td></tr>
+<tr><td>📊 可观测</td><td>Langfuse</td><td><a href="https://github.com/langfuse/langfuse" target="_blank">GitHub</a></td><td>LLM 调用追踪与成本监控</td></tr>
+<tr><td>📖 案例</td><td>Dust: Build vs Buy</td><td><a href="https://dust.tt/blog/build-vs-buy-ai-agents" target="_blank">Dust Blog</a></td><td>1000+ 企业部署经验总结</td></tr>
+<tr><td>📖 案例</td><td>Fin TCO Calculator</td><td><a href="https://fin.ai/learn/ai-customer-service-agent-tco-calculator" target="_blank">Fin.ai</a></td><td>客服 Agent TCO 对比工具</td></tr>
+</tbody>
+</table>
+
+<!-- ===== 页脚 ===== -->
+<p style="text-align:center; color:var(--muted); margin-top:56px; font-size:0.82em; padding-top:24px; border-top:1px solid var(--surface);">
+  报告生成于 2026-07-01 · 基于公开资料与行业实践整理 · 所有价格为参考值，请以供应商最新报价为准<br>
+  本报告方法论可复用到任何行业的 Agent 基础设施选型与成本评估
+</p>
+
+</main>
+
+<!-- ===== 侧边栏滚动高亮 ===== -->
+<script>
+(function() {
+  var links = document.querySelectorAll('#toc a');
+  var sections = [];
+  links.forEach(function(a) {
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) sections.push({ el: el, a: a });
+  });
+  window.addEventListener('scroll', function() {
+    var cur = sections[0];
+    sections.forEach(function(s) {
+      if (s.el.offsetTop <= window.scrollY + 120) cur = s;
+    });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (cur) cur.a.classList.add('active');
+  });
+})();
+</script>
+
+</body>
+</html>

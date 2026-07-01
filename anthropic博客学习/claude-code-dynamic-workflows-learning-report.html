@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code 动态工作流 — 学习报告</title>
+<style>
+  :root {
+    --bg: #1e1e2e;
+    --surface: #181825;
+    --surface2: #313244;
+    --text: #cdd6f4;
+    --subtext: #a6adc8;
+    --mauve: #cba6f7;
+    --green: #a6e3a1;
+    --blue: #89b4fa;
+    --peach: #fab387;
+    --red: #f38ba8;
+    --yellow: #f9e2af;
+    --teal: #94e2d5;
+    --comment: #6c7086;
+    --border: #45475a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Microsoft YaHei", "PingFang SC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.8;
+    display: flex;
+  }
+  /* 侧边栏 TOC */
+  .toc {
+    position: sticky; top: 0; left: 0;
+    width: 280px; min-width: 280px; height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    overflow-y: auto;
+    font-size: 14px;
+  }
+  .toc h2 {
+    color: var(--mauve);
+    font-size: 16px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .toc a { color: var(--subtext); text-decoration: none; display: block; padding: 3px 0; transition: color .15s; }
+  .toc a:hover, .toc a.active { color: var(--text); }
+  .toc .l2 { padding-left: 16px; font-size: 13px; }
+  /* 主内容 */
+  .main {
+    flex: 1; max-width: 900px; padding: 32px 48px 80px;
+  }
+  h1 { font-size: 28px; color: var(--mauve); margin-bottom: 8px; }
+  h2 { font-size: 22px; color: var(--blue); margin: 40px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 17px; color: var(--teal); margin: 24px 0 8px; }
+  p { margin: 8px 0; }
+  .meta { color: var(--subtext); font-size: 14px; margin-bottom: 24px; }
+  .highlight {
+    background: var(--surface2); border-left: 3px solid var(--mauve);
+    padding: 12px 16px; margin: 16px 0; border-radius: 0 8px 8px 0;
+  }
+  table {
+    width: 100%; border-collapse: collapse; margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    padding: 10px 14px; text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th { color: var(--peach); font-weight: 600; background: var(--surface); }
+  td { color: var(--text); }
+  tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+  /* 代码容器 */
+  .code-block {
+    background: #11111b; border-radius: 12px; margin: 16px 0;
+    overflow: hidden;
+  }
+  .code-header {
+    background: rgba(255,255,255,0.04); padding: 8px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px; color: var(--subtext);
+  }
+  .code-header .lang { color: var(--mauve); font-weight: 600; text-transform: uppercase; }
+  .code-block pre { padding: 16px; overflow-x: auto; margin: 0; }
+  .code-block code {
+    font-family: "Cascadia Code", "Fira Code", "JetBrains Mono", monospace;
+    font-size: 13px; line-height: 1.6;
+  }
+  .kw { color: #cba6f7; } .str { color: #a6e3a1; } .fn { color: #89b4fa; }
+  .cm { color: #6c7086; } .op { color: #cdd6f4; } .num { color: #fab387; }
+  /* 卡片 */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin: 16px 0; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px;
+  }
+  .card h4 { color: var(--peach); font-size: 15px; margin-bottom: 6px; }
+  .card p { font-size: 13px; color: var(--subtext); }
+  .tag {
+    display: inline-block; padding: 2px 10px; border-radius: 12px;
+    font-size: 12px; margin: 2px 4px 2px 0;
+  }
+  .tag-green { background: rgba(166,227,161,0.15); color: var(--green); }
+  .tag-red { background: rgba(243,139,168,0.15); color: var(--red); }
+  .tag-blue { background: rgba(137,180,250,0.15); color: var(--blue); }
+  .tag-yellow { background: rgba(249,226,175,0.15); color: var(--yellow); }
+.tag-peach { background: rgba(250,179,135,0.15); color: var(--peach); }
+  /* 响应式 */
+  @media (max-width: 768px) {
+    body { flex-direction: column; }
+    .toc {
+      position: relative; width: 100%; min-width: 100%; height: auto; max-height: 40vh;
+      border-right: none; border-bottom: 1px solid var(--border);
+    }
+    .main { padding: 20px 16px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ========== 侧边栏 TOC ========== -->
+<nav class="toc">
+  <h2>📑 目录</h2>
+  <a href="#overview">1. 概述与背景</a>
+  <a href="#problem" class="l2">1.1 解决的问题</a>
+  <a href="#failure-modes" class="l2">1.2 三大失败模式</a>
+  <a href="#architecture">2. 架构设计</a>
+  <a href="#harness" class="l2">2.1 Harness 机制</a>
+  <a href="#api" class="l2">2.2 JavaScript API 接口</a>
+  <a href="#constraints" class="l2">2.3 运行时约束</a>
+  <a href="#trigger" class="l2">2.4 触发方式</a>
+  <a href="#patterns">3. 六大编排模式</a>
+  <a href="#p1" class="l2">3.1 Classify-and-Act</a>
+  <a href="#p2" class="l2">3.2 Fan-out-and-Synthesize</a>
+  <a href="#p3" class="l2">3.3 Adversarial Verification</a>
+  <a href="#p4" class="l2">3.4 Generate-and-Filter</a>
+  <a href="#p5" class="l2">3.5 Tournament</a>
+  <a href="#p6" class="l2">3.6 Loop-Until-Done</a>
+  <a href="#examples">4. 实际案例</a>
+  <a href="#best-practices">5. 最佳实践</a>
+  <a href="#ecosystem">6. 生态系统</a>
+  <a href="#comparison">7. 竞品对比</a>
+  <a href="#takeaway">8. 核心启示</a>
+</nav>
+
+<!-- ========== 主内容 ========== -->
+<div class="main">
+
+<h1>🔧 A Harness for Every Task: Dynamic Workflows in Claude Code</h1>
+<p class="meta">
+  原文作者：Thariq Shihipar &amp; Sid Bidasaria（Anthropic 技术团队）<br>
+  发布日期：2026-06-02 &nbsp;|&nbsp; 报告生成：2026-07-01
+</p>
+
+<!-- ====== 1. 概述 ====== -->
+<h2 id="overview">1. 概述与背景</h2>
+
+<p>
+  2026年6月2日，Anthropic 发布了一篇里程碑式的博客文章，正式介绍了 <strong>Claude Code 动态工作流（Dynamic Workflows）</strong>——这是 Claude Code 迄今最重要的能力升级。核心思想是：<strong>Claude 不再依赖单一的默认上下文窗口，而是在每次任务中动态"编写"一套专属的编排层（Harness）</strong>，通过 JavaScript 脚本生成并协调多个子代理（sub-agent），每个子代理拥有独立的上下文窗口和 git worktree 隔离环境。
+</p>
+
+<div class="highlight">
+  <strong>核心理念：</strong>将编排逻辑从上下文窗口转移到代码中。Claude 不再在脑子里"想"该怎么分工，而是"写"一段 JavaScript 程序来精确控制分工、并行、验证和资源消耗。
+</div>
+
+<h3 id="problem">1.1 解决了什么问题</h3>
+<p>
+  传统单代理（single-agent）模式在复杂任务中会遭遇瓶颈：随着任务规模增长，上下文窗口被大量中间结果污染，模型出现"注意力稀释"。动态工作流通过<strong>结构化分解 + 独立上下文 + 代码级编排</strong>解决了这个问题。
+</p>
+
+<h3 id="failure-modes">1.2 三大失败模式</h3>
+<table>
+  <tr><th>失败模式</th><th>描述</th><th>动态工作流的应对</th></tr>
+  <tr>
+    <td><strong>Agentic Laziness</strong><br>代理惰性</td>
+    <td>模型在长会话中倾向于抄近路、跳过步骤、敷衍了事</td>
+    <td>每个子代理只负责一个明确的小任务，独立上下文减少认知负担，code 级编排强制执行完整流程</td>
+  </tr>
+  <tr>
+    <td><strong>Self-Preferential Bias</strong><br>自我偏好偏差</td>
+    <td>模型"信任自己生成的输出"，自己写的代码自己检查不出问题</td>
+    <td>Adversarial Verification 模式：验证者是一个独立代理，从未见过生产者上下文，结构性地消除盲点</td>
+  </tr>
+  <tr>
+    <td><strong>Goal Drift</strong><br>目标漂移</td>
+    <td>长时间运行后模型逐渐偏离原始目标，产出与需求不对齐</td>
+    <td>前期问题分解层明确目标边界，合成阶段强制执行面向目标的输出校验</td>
+  </tr>
+</table>
+
+<!-- ====== 2. 架构设计 ====== -->
+<h2 id="architecture">2. 架构设计</h2>
+
+<h3 id="harness">2.1 Harness 机制 — 从"思考"到"编程"</h3>
+<p>
+  动态工作流的核心创新在于：<strong>编排不是 prompt engineering，而是真正的编程。</strong>Claude 生成一个 JavaScript 文件，该文件在一个沙盒化运行时中执行，通过注入的 DSL 原语来生成和协调子代理。
+</p>
+
+<div class="highlight">
+  <strong>ultracode 的本质：</strong>它不是一个新的 API effort level，而是 <strong>xhigh effort + 会话中系统消息注入</strong>的组合。这给了编排者（Orchestrator）足够的推理深度来做规划，同时赋予了启动工作代理的"常设权限"。
+</div>
+
+<h3 id="api">2.2 JavaScript Harness API 接口</h3>
+<p>脚本在一个受限的沙盒 JS 环境中运行，以下全局函数被注入（无需 import）：</p>
+
+<table>
+  <tr><th>API</th><th>签名</th><th>功能</th></tr>
+  <tr>
+    <td><code>agent()</code></td>
+    <td><code>agent(prompt, opts?) → Promise</code></td>
+    <td>生成一个子代理，返回其结果。支持 <code>schema</code>（结构化输出校验）、<code>model</code>、<code>provider</code>、<code>agentType</code>、<code>isolation: 'worktree'</code>、<code>label</code>、<code>phase</code></td>
+  </tr>
+  <tr>
+    <td><code>parallel()</code></td>
+    <td><code>parallel(thunks[]) → Promise</code></td>
+    <td>并行执行一组函数，等待全部完成（显式 barrier）</td>
+  </tr>
+  <tr>
+    <td><code>pipeline()</code></td>
+    <td><code>pipeline(items, ...stages) → Promise</code></td>
+    <td>每个 item 依次通过所有 stage 处理，stage 间无 barrier</td>
+  </tr>
+  <tr>
+    <td><code>workflow()</code></td>
+    <td><code>workflow(nameOrRef, args?) → Promise</code></td>
+    <td>调用已保存的工作流（仅支持一层嵌套）</td>
+  </tr>
+  <tr>
+    <td><code>phase()</code></td>
+    <td><code>phase(name)</code></td>
+    <td>在进度视图中标记一个阶段标签</td>
+  </tr>
+  <tr>
+    <td><code>log()</code></td>
+    <td><code>log(...args)</code></td>
+    <td>向用户输出进度信息</td>
+  </tr>
+  <tr>
+    <td><code>budget</code></td>
+    <td><code>{ total, spent(), remaining() }</code></td>
+    <td>共享 token 池，耗尽时 agent() 抛出异常（硬上限）</td>
+  </tr>
+  <tr>
+    <td><code>args</code></td>
+    <td>全局变量</td>
+    <td>调用工作流时传入的结构化参数，使保存的工作流可参数化</td>
+  </tr>
+</table>
+
+<p><strong>代码示例 — 对抗性审查工作流：</strong></p>
+<div class="code-block">
+<div class="code-header"><span class="lang">JavaScript</span><span>adversarial-review.js</span></div>
+<pre><code><span class="kw">export const</span> meta = { <span class="str">name</span>: <span class="str">"adversarial-review"</span>, <span class="str">description</span>: <span class="str">"find bugs, cross-examine them"</span> }
+
+<span class="fn">phase</span>(<span class="str">"Find"</span>)
+<span class="kw">const</span> findings = <span class="kw">await</span> <span class="fn">parallel</span>(
+  [<span class="str">"correctness"</span>, <span class="str">"security"</span>, <span class="str">"performance"</span>].<span class="fn">map</span>(<span class="kw">lens</span> => () =>
+    <span class="fn">agent</span>(<span class="str">`Review the diff through the ${lens} lens. List concrete issues.`</span>, { <span class="str">schema</span>: FINDINGS })),
+)
+
+<span class="fn">phase</span>(<span class="str">"Verify"</span>)
+<span class="kw">return await</span> <span class="fn">pipeline</span>(
+  findings.<span class="fn">filter</span>(<span class="kw">Boolean</span>).<span class="fn">flatMap</span>(<span class="kw">f</span> => f.issues),
+  <span class="kw">issue</span> => <span class="fn">agent</span>(<span class="str">`Try to refute: ${issue.desc}`</span>, { <span class="str">provider</span>: <span class="str">"claude-code"</span>, <span class="str">schema</span>: VERDICT }),
+)</code></pre>
+</div>
+
+<h3 id="constraints">2.3 运行时约束</h3>
+<table>
+  <tr><th>约束项</th><th>值</th><th>说明</th></tr>
+  <tr><td>并发上限</td><td><code>min(16, cores−2)</code></td><td>同时运行的代理数不超过此值</td></tr>
+  <tr><td>总代理上限</td><td>1,000 / 次运行</td><td>防止失控的资源消耗</td></tr>
+  <tr><td>嵌套层级</td><td>仅 1 层 workflow() 嵌套</td><td>防止无限递归</td></tr>
+  <tr><td>沙盒限制</td><td>无 fs / shell / Node API</td><td>仅注入 DSL + 标准 JS（JSON, Math, Array）</td></tr>
+  <tr><td>确定性</td><td><code>Date.now()</code> / <code>Math.random()</code> 抛出异常</td><td>确保日志可回放恢复</td></tr>
+  <tr><td>用户交互</td><td>不支持中途输入</td><td>仅权限弹窗可暂停；分阶段签核需拆分为多个工作流</td></tr>
+  <tr><td>子代理模式</td><td>acceptEdits</td><td>子代理自动接受编辑，无需逐次确认</td></tr>
+</table>
+
+<h3 id="trigger">2.4 触发方式</h3>
+<ul>
+  <li>在 prompt 中包含关键词 <strong><code>ultracode</code></strong></li>
+  <li>设置 <code>/effort ultracode</code> 使整个会话自动启用工作流编排</li>
+  <li>运行内置工作流如 <code>/deep-research</code></li>
+  <li>从 <code>~/.claude/workflows/</code> 加载并运行保存的工作流（按 <code>s</code> 键保存）</li>
+</ul>
+
+<!-- ====== 3. 六大模式 ====== -->
+<h2 id="patterns">3. 六大编排模式</h2>
+
+<div class="card-grid">
+  <div class="card" id="p1">
+    <h4>🔀 3.1 Classify-and-Act</h4>
+    <p><strong>分类 → 路由：</strong>一个分类代理判断任务类型，然后路由到对应的专家代理。适合有明确边界和分类标准的场景（如 issue 分诊、按复杂度路由）。</p>
+    <span class="tag tag-blue">分类</span><span class="tag tag-green">路由</span>
+  </div>
+  <div class="card" id="p2">
+    <h4>⚡ 3.2 Fan-out-and-Synthesize</h4>
+    <p><strong>拆分 → 并行 → 合并：</strong>将大任务拆成 N 个独立子任务并行处理，最后合成结果。总耗时 ≈ 最慢子任务。适合大规模迁移、代码库审计。</p>
+    <span class="tag tag-green">并行</span><span class="tag tag-yellow">合并</span>
+  </div>
+  <div class="card" id="p3">
+    <h4>🛡️ 3.3 Adversarial Verification</h4>
+    <p><strong>独立验证者挑战每个输出：</strong>对每个生成结果，运行一个独立代理尝试在特定维度上"驳倒"它。只有足够多验证者无法驳倒的声明才被接受。这是消除自我偏好偏差的核心机制。</p>
+    <span class="tag tag-red">安全</span><span class="tag tag-blue">验证</span>
+  </div>
+  <div class="card" id="p4">
+    <h4>💡 3.4 Generate-and-Filter</h4>
+    <p><strong>生成 → 评分 → 筛选：</strong>生成多个候选方案，按评分标准筛选，去重，返回验证过的结果。适合创意类/探索性任务。</p>
+    <span class="tag tag-yellow">创意</span><span class="tag tag-green">筛选</span>
+  </div>
+  <div class="card" id="p5">
+    <h4>🏆 3.5 Tournament</h4>
+    <p><strong>多代理竞争 → 两两评判 → 优选：</strong>多个代理执行同一任务（不同策略），通过两两比较选出最佳方案。适合需要相对判断的 Best-of-N 场景。</p>
+    <span class="tag tag-peach">竞争</span><span class="tag tag-blue">评判</span>
+  </div>
+  <div class="card" id="p6">
+    <h4>🔄 3.6 Loop-Until-Done</h4>
+    <p><strong>迭代直到收敛：</strong>循环生成代理直到停止条件满足——如"连续两轮无新发现"、"无新错误"。适合 bug 清扫、内存泄漏审计等探索性任务。</p>
+    <span class="tag tag-red">迭代</span><span class="tag tag-yellow">收敛</span>
+  </div>
+</div>
+
+<!-- ====== 4. 实际案例 ====== -->
+<h2 id="examples">4. 实际案例</h2>
+
+<h3>4.1 Bun 的 Zig → Rust 移植（Jarred Sumner）</h3>
+<p>一个被多次引用的外部案例：使用 fan-out 模式将大规模代码移植任务拆分到多个并行工作代理中。如果这种规模的重写可行，那么常规的依赖升级、API 迁移完全在射程之内。</p>
+
+<h3>4.2 Flutter Material 2 → Material 3 迁移（Very Good Ventures）</h3>
+<p>典型模式：<strong>fan-out-and-synthesize + adversarial verification + git worktree 隔离</strong></p>
+<ul>
+  <li>每个受影响的 package 获得独立的 git worktree</li>
+  <li>迁移代理执行代码变更</li>
+  <li>对抗性审查代理以 Material 3 兼容性标准检查每个修复</li>
+  <li>CI 门禁在合并后运行——与人类 PR 相同的质量关卡</li>
+</ul>
+
+<h3>4.3 Bug 清扫（Bug Sweep）</h3>
+<p>模式：<strong>fan-out + loop-until-done + analyzer 验证</strong></p>
+<ul>
+  <li>按组件 fan-out：每个组件一个子代理，独立上下文避免交叉污染</li>
+  <li>每个子代理在多个维度上检查（正确性 / 安全 / 性能）</li>
+  <li>Loop-until-done：修复后重新扫描直到 analyzer 干净</li>
+</ul>
+
+<h3>4.4 深度研究（Deep Research）</h3>
+<p>fan-out 到多个信息源并行检索，adversarial verification 交叉验证事实声明，loop-until-done 持续搜索直到无新发现。这也是 <code>/deep-research</code> 内置命令的底层机制。</p>
+
+<h3>4.5 更多场景</h3>
+<ul>
+  <li><strong>简历筛选：</strong>classify-and-act 按岗位分类，fan-out 并行评估，tournament 选出最优</li>
+  <li><strong>商业计划分析：</strong>每个代理从不同角度（市场/财务/技术/风险）评估</li>
+  <li><strong>规则挖掘：</strong>从会话历史中提取隐含规则模式</li>
+  <li><strong>Evals 评估：</strong>fan-out 并行运行测试用例 + adversarial verification</li>
+</ul>
+
+<!-- ====== 5. 最佳实践 ====== -->
+<h2 id="best-practices">5. 最佳实践与注意事项</h2>
+
+<h3>5.1 何时使用动态工作流</h3>
+<div class="highlight">
+  ✅ <strong>适合：</strong>大规模迁移/重构、深度研究、多维度代码审查、bug 清扫、"宽"而非"深"的任务——需要并行 + 逐单元独立判断的场景。
+</div>
+
+<h3>5.2 何时<em>不</em>使用</h3>
+<div class="highlight" style="border-left-color: var(--red);">
+  ❌ <strong>不适合：</strong>动态工作流消耗的 token 是单次对话的<strong>数十倍</strong>。对于简单的日常编码任务（修一个 typo、加一个简单函数），使用动态工作流是杀鸡用牛刀，得不偿失。
+</div>
+
+<h3>5.3 关键技巧</h3>
+<ul>
+  <li><strong>设置 Token 预算：</strong>使用 <code>"use 10k tokens"</code> 显式设置上限，防止失控</li>
+  <li><strong>保存可复用工作流：</strong>在工作流菜单按 <code>s</code> 保存，之后通过 <code>~/.claude/workflows/</code> 或 SKILL.md 引用共享</li>
+  <li><strong>分阶段签核：</strong>一个工作流 = 一个阶段，跨阶段决策需人工确认时拆分为多个工作流</li>
+  <li><strong>模型路由：</strong>编排者用 Opus（推理深度），执行者用 Sonnet（成本效率），在 <code>agent()</code> 的 <code>model</code> 参数中指定</li>
+  <li><strong>结构化输出：</strong>使用 <code>schema</code> 参数确保子代理返回可机器处理的结构化数据</li>
+</ul>
+
+<!-- ====== 6. 生态系统 ====== -->
+<h2 id="ecosystem">6. 生态系统</h2>
+
+<table>
+  <tr><th>项目</th><th>类型</th><th>说明</th></tr>
+  <tr>
+    <td><strong>workflow-pack</strong></td>
+    <td>npm 包</td>
+    <td>11 个预构建工作流：/bug-sweep, /codebase-survey, /compare-options, /dependency-audit, /test-gap-finder, /release-notes, /doc-audit, /api-surface-map, /scaffold-feature, /jira-digest</td>
+  </tr>
+  <tr>
+    <td><strong>pantheon-skills</strong></td>
+    <td>GitHub</td>
+    <td>Plan → N 并行实现 → 对抗性验证 → 评判者。支持纯 Claude 和跨模型（GPT-5.5）验证</td>
+  </tr>
+  <tr>
+    <td><strong>Open Dynamic Workflow (odw)</strong></td>
+    <td>开源</td>
+    <td>官方运行时的独立重实现，支持异构模型，声称比内置工具节省约 3× token</td>
+  </tr>
+  <tr>
+    <td><strong>omegacode</strong></td>
+    <td>npm 包</td>
+    <td>代理无关的实现，支持 Claude Code / Codex / OpenCode / pi 多种后端</td>
+  </tr>
+  <tr>
+    <td><strong>oc-dw</strong></td>
+    <td>npm 包</td>
+    <td>OpenCode 平台的动态工作流实现</td>
+  </tr>
+  <tr>
+    <td><strong>awesome-claude-dynamic-workflows</strong></td>
+    <td>GitHub</td>
+    <td>社区维护的资源汇总仓库</td>
+  </tr>
+</table>
+
+<!-- ====== 7. 竞品对比 ====== -->
+<h2 id="comparison">7. 竞品对比</h2>
+
+<table>
+  <tr><th>维度</th><th>Claude Code DW</th><th>Cursor 3</th><th>GitHub Copilot</th><th>AutoGen / MetaGPT</th></tr>
+  <tr>
+    <td>编排方式</td>
+    <td><strong>代码驱动</strong></td>
+    <td>UI 驱动</td>
+    <td>单代理循环</td>
+    <td>对话驱动</td>
+  </tr>
+  <tr>
+    <td>最大并行代理</td>
+    <td><strong>1,000</strong></td>
+    <td>有限</td>
+    <td>无真正并行</td>
+    <td>受 N×T² 约束</td>
+  </tr>
+  <tr>
+    <td>对抗性验证</td>
+    <td>✅ 内置</td>
+    <td>❌</td><td>❌</td><td>部分</td>
+  </tr>
+  <tr>
+    <td>检查点恢复</td>
+    <td>✅ 日志回放</td>
+    <td>❌</td><td>❌</td><td>部分</td>
+  </tr>
+  <tr>
+    <td>Git Worktree 隔离</td>
+    <td>✅ 内置</td>
+    <td>❌</td><td>❌</td><td>❌</td>
+  </tr>
+  <tr>
+    <td>Token 预算控制</td>
+    <td>✅ 硬上限</td>
+    <td>❌</td><td>❌</td><td>❌</td>
+  </tr>
+</table>
+
+<!-- ====== 8. 核心启示 ====== -->
+<h2 id="takeaway">8. 核心启示与思考</h2>
+
+<div class="highlight">
+  <h3 style="margin-top:0;color:var(--yellow);">编排是新战场</h3>
+  <p>
+    动态工作流标志着 AI 编程工具从<strong>"更好的模型"</strong>竞争转向<strong>"更好的编排"</strong>竞争。单代理能力已接近天花板，下一个数量级的提升来自多代理协作。这本质上是对 <strong>LangChain、CrewAI 等传统 Agent 框架的"压缩"</strong>——当基础模型足够强大时，它可以直接生成编排代码，而不需要用户手写复杂的代理图。
+  </p>
+</div>
+
+<h3>关键洞察</h3>
+<ol>
+  <li><strong>代码优于 Prompt：</strong>编排逻辑用 JavaScript 表达比用自然语言 prompt 更精确、更可复用、更可调试。</li>
+  <li><strong>结构消除偏见：</strong>Adversarial Verification 不是"让 AI 更努力检查"，而是通过架构设计（独立代理 + 隔离上下文）结构性消除自我偏好。</li>
+  <li><strong>宽优于深：</strong>动态工作流的核心优势在于并行宽度，而非单个代理的深度。适合天然可并行的任务。</li>
+  <li><strong>Token 换质量：</strong>数十倍的 token 消耗换取结构性的质量保证。这是一个值得的权衡——但仅在任务复杂度匹配时。</li>
+  <li><strong>可组合性：</strong>六大模式不是孤立的，可以组合使用——例如 fan-out 做广度、adversarial 做深度、loop-until-done 做收敛。</li>
+</ol>
+
+<h3>对实际开发的启示</h3>
+<ul>
+  <li><strong>任务拆解能力成为关键技能：</strong>能否把一个复杂需求拆成可并行、可独立验证的子任务，决定了能多好地利用动态工作流。</li>
+  <li><strong>保存和共享工作流：</strong>好的工作流应该被保存、版本化、团队共享——这将成为团队知识资产的一部分。</li>
+  <li><strong>混合模型策略：</strong>编排用 Opus（推理深度），执行用 Sonnet（成本效率），这是成本最优解。</li>
+  <li><strong>与现有流程集成：</strong>工作流可以对接 CI/CD，使用与人类 PR 相同的质量门禁。</li>
+</ul>
+
+<hr style="border-color:var(--border);margin:40px 0 16px;">
+<p style="color:var(--comment);font-size:13px;">
+  报告基于 Anthropic 官方博客文章及社区分析整理。原文链接：
+  <a href="https://claude.com/blog/a-harness-for-every-task-dynamic-workflows-in-claude-code" style="color:var(--blue);">A harness for every task: dynamic workflows in Claude Code</a>
+</p>
+
+</div>
+</body>
+</html>

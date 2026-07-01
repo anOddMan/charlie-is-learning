@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code Loops 学习报告 — 从入门到工程化</title>
+<style>
+:root {
+  --bg: #1e1e2e;
+  --bg-alt: #181825;
+  --surface: #313244;
+  --overlay: #45475a;
+  --text: #cdd6f4;
+  --subtext: #a6adc8;
+  --muted: #6c7086;
+  --pink: #f5c2e7;
+  --mauve: #cba6f7;
+  --blue: #89b4fa;
+  --green: #a6e3a1;
+  --peach: #fab387;
+  --red: #f38ba8;
+  --yellow: #f9e2af;
+  --teal: #94e2d5;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.75;
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ===== 侧边栏 ===== */
+.sidebar {
+  width: 285px; min-width: 285px;
+  background: var(--bg-alt);
+  padding: 24px 0;
+  position: sticky; top: 0; height: 100vh;
+  overflow-y: auto;
+  border-right: 1px solid var(--surface);
+  z-index: 10;
+}
+.sidebar-header { padding: 0 20px 20px; border-bottom: 1px solid var(--surface); margin-bottom: 8px; }
+.sidebar-header h1 { font-size: 1.1em; color: var(--mauve); line-height: 1.45; }
+.sidebar-header .meta { font-size: 0.78em; color: var(--muted); margin-top: 6px; }
+.sidebar-nav { flex: 1; overflow-y: auto; padding: 8px 0; }
+.sidebar-nav a {
+  display: block; padding: 7px 20px; color: var(--subtext);
+  text-decoration: none; font-size: 0.84em;
+  transition: all .15s; border-left: 2px solid transparent;
+}
+.sidebar-nav a:hover, .sidebar-nav a.active {
+  color: var(--text); background: rgba(137,180,250,0.08); border-left-color: var(--blue);
+}
+.sidebar-nav .section-title {
+  padding: 14px 20px 4px; font-size: 0.7em;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: var(--muted); font-weight: 600;
+}
+
+/* ===== 主内容 ===== */
+.main { flex: 1; padding: 40px 48px; max-width: 960px; }
+
+h2 { font-size: 1.55em; color: var(--blue); margin: 52px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--surface); }
+h2:first-of-type { margin-top: 0; }
+h3 { font-size: 1.18em; color: var(--green); margin: 32px 0 12px; }
+h4 { font-size: 1em; color: var(--peach); margin: 22px 0 10px; }
+p { margin: 10px 0; }
+a { color: var(--teal); text-decoration: none; }
+a:hover { text-decoration: underline; }
+ul, ol { margin: 8px 0 8px 20px; color: var(--subtext); }
+li { margin: 4px 0; }
+blockquote {
+  margin: 16px 0; padding: 12px 18px;
+  border-left: 3px solid var(--mauve);
+  background: rgba(203,166,247,0.06);
+  color: var(--subtext); font-style: italic;
+  border-radius: 0 8px 8px 0;
+}
+
+/* ===== 代码块 ===== */
+.code-block {
+  margin: 16px 0; border-radius: 12px;
+  background: var(--bg-alt); overflow: hidden;
+}
+.code-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 16px; background: rgba(255,255,255,0.04);
+  font-size: 0.8em; color: var(--muted);
+}
+.code-header .lang-tag {
+  background: var(--mauve); color: var(--bg);
+  padding: 2px 10px; border-radius: 4px;
+  font-size: 0.78em; font-weight: 600; text-transform: uppercase;
+}
+.code-body { padding: 14px 16px; overflow-x: auto; }
+.code-body pre { margin: 0; font-family: "Cascadia Code","Fira Code","JetBrains Mono",monospace; font-size: 0.83em; line-height: 1.65; }
+.code-body code { color: var(--text); }
+.kw  { color: #cba6f7; }
+.str { color: #a6e3a1; }
+.fn  { color: #89b4fa; }
+.bi  { color: #fab387; }
+.cmt { color: #6c7086; }
+.num { color: #f9e2af; }
+
+/* ===== 表格 ===== */
+table {
+  width: 100%; border-collapse: collapse;
+  margin: 16px 0; font-size: 0.88em;
+}
+thead th {
+  background: var(--surface); color: var(--mauve);
+  padding: 10px 14px; text-align: left; font-weight: 600;
+}
+tbody td {
+  padding: 9px 14px; border-bottom: 1px solid var(--overlay); vertical-align: top;
+}
+tbody tr:hover { background: rgba(137,180,250,0.04); }
+
+/* ===== 提示框 ===== */
+.callout {
+  margin: 16px 0; padding: 14px 18px; border-radius: 8px;
+  border-left: 3px solid; font-size: 0.88em;
+}
+.callout.info    { background: rgba(137,180,250,0.08); border-color: var(--blue); }
+.callout.tip     { background: rgba(166,227,161,0.08); border-color: var(--green); }
+.callout.warning { background: rgba(250,179,135,0.08); border-color: var(--peach); }
+.callout.danger  { background: rgba(243,139,168,0.08); border-color: var(--red); }
+
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+  body { flex-direction: column; }
+  .sidebar { width: 100%; min-width: 0; height: auto; position: relative; border-right: none; border-bottom: 1px solid var(--surface); }
+  .sidebar-nav { display: none; }
+  .sidebar-nav.open { display: block; }
+  .main { padding: 20px 16px; }
+}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h1>Claude Code Loops<br>从入门到工程化</h1>
+    <div class="meta">2026-07-01 · 学习报告<br>原文: <a href="https://claude.com/blog/getting-started-with-loops" target="_blank" style="color:var(--teal);">Blog ↗</a></div>
+  </div>
+  <nav class="sidebar-nav" id="toc">
+    <div class="section-title">📖 概述</div>
+    <a href="#overview">什么是 Loops</a>
+    <a href="#philosophy">核心思想</a>
+
+    <div class="section-title">🔄 四种循环类型</div>
+    <a href="#turn-based">1. Turn-Based（默认对话循环）</a>
+    <a href="#goal">2. /goal（目标驱动循环）</a>
+    <a href="#loop">3. /loop（定时循环）</a>
+    <a href="#proactive">4. Proactive Loops（主动循环）</a>
+
+    <div class="section-title">📊 对比与决策</div>
+    <a href="#comparison">四种循环对比矩阵</a>
+    <a href="#decision">决策指南：何时用哪个</a>
+
+    <div class="section-title">🛡️ 工程质量</div>
+    <a href="#code-quality">代码质量保障</a>
+    <a href="#token">Token 成本管理</a>
+    <a href="#hard-stops">三道硬停机制</a>
+
+    <div class="section-title">🚀 实战指南</div>
+    <a href="#getting-started">从 Prompt 到 Loop</a>
+    <a href="#components">循环系统六组件</a>
+    <a href="#cheatsheet">命令速查表</a>
+    <a href="#refs">参考资源</a>
+  </nav>
+</aside>
+
+<main class="main">
+
+<h2 id="overview">什么是 Loops？</h2>
+
+<p>
+  <strong>Loops（循环）</strong> 是 Claude Code 团队在 <strong>2026 年 6 月 30 日</strong> 正式提出的核心概念。它指的是：
+</p>
+
+<blockquote>
+  "Agents repeating cycles of work until a stop condition is met."
+  <br>— 智能体以循环方式重复工作，直到满足停止条件。
+</blockquote>
+
+<p>
+  这篇博客由 Claude Code 团队的 <strong>Delba de Oliveira</strong> 和 <strong>Michael Segner</strong> 撰写，系统性地阐述了
+  如何从"手动向 AI 发指令"跃迁到<strong>"设计自动循环系统"</strong>。
+</p>
+
+<svg width="100%" viewBox="0 0 860 310" style="max-width:860px; margin:20px 0;">
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#45475a"/>
+    </marker>
+    <filter id="sh"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#111"/></filter>
+  </defs>
+
+  <!-- 四种循环类型卡片 -->
+  <rect x="20"  y="20" width="190" height="120" rx="12" fill="#1e1e2e" stroke="#f5c2e7" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="115" y="52" text-anchor="middle" fill="#f5c2e7" font-size="15" font-weight="bold">Turn-Based</text>
+  <text x="115" y="72" text-anchor="middle" fill="#a6adc8" font-size="12">默认对话循环</text>
+  <text x="115" y="100" text-anchor="middle" fill="#6c7086" font-size="11">触发：用户每次 Prompt</text>
+  <text x="115" y="120" text-anchor="middle" fill="#6c7086" font-size="11">停止：Claude 判定完成</text>
+
+  <rect x="230" y="20" width="190" height="120" rx="12" fill="#1e1e2e" stroke="#89b4fa" stroke-width="2" filter="url(#sh)"/>
+  <text x="325" y="52" text-anchor="middle" fill="#89b4fa" font-size="15" font-weight="bold">/goal</text>
+  <text x="325" y="72" text-anchor="middle" fill="#a6adc8" font-size="12">目标驱动循环</text>
+  <text x="325" y="100" text-anchor="middle" fill="#6c7086" font-size="11">触发：手动 + 条件</text>
+  <text x="325" y="120" text-anchor="middle" fill="#6c7086" font-size="11">停止：条件满足 / 轮数上限</text>
+
+  <rect x="440" y="20" width="190" height="120" rx="12" fill="#1e1e2e" stroke="#a6e3a1" stroke-width="2" filter="url(#sh)"/>
+  <text x="535" y="52" text-anchor="middle" fill="#a6e3a1" font-size="15" font-weight="bold">/loop</text>
+  <text x="535" y="72" text-anchor="middle" fill="#a6adc8" font-size="12">定时循环</text>
+  <text x="535" y="100" text-anchor="middle" fill="#6c7086" font-size="11">触发：时间间隔</text>
+  <text x="535" y="120" text-anchor="middle" fill="#6c7086" font-size="11">停止：手动取消 / 任务完成</text>
+
+  <rect x="650" y="20" width="190" height="120" rx="12" fill="#1e1e2e" stroke="#cba6f7" stroke-width="2.5" filter="url(#sh)"/>
+  <text x="745" y="52" text-anchor="middle" fill="#cba6f7" font-size="15" font-weight="bold">Proactive</text>
+  <text x="745" y="72" text-anchor="middle" fill="#a6adc8" font-size="12">主动循环</text>
+  <text x="745" y="100" text-anchor="middle" fill="#6c7086" font-size="11">触发：事件 / 计划 / 无人在场</text>
+  <text x="745" y="120" text-anchor="middle" fill="#6c7086" font-size="11">停止：任务完成 / 手动关闭</text>
+
+  <!-- 能力递增箭头 -->
+  <text x="430" y="180" text-anchor="middle" fill="#6c7086" font-size="12">← 简单 · 交互式 · 人工在场 → ··· → 复杂 · 自动化 · 无人值守 →</text>
+
+  <!-- 底部核心概念 -->
+  <rect x="180" y="210" width="500" height="75" rx="10" fill="#313244" stroke="#cba6f7" stroke-width="1.5"/>
+  <text x="430" y="238" text-anchor="middle" fill="#cdd6f4" font-size="13"><tspan font-weight="bold" fill="#cba6f7">核心理念</tspan>：你不是在 Prompt AI，而是在 <tspan font-weight="bold" fill="#fab387">设计循环</tspan> 来驱动 AI</text>
+  <text x="430" y="262" text-anchor="middle" fill="#a6adc8" font-size="12">Loops = Trigger（触发） + Work（工作） + Verify（验证） + Stop（停止）</text>
+</svg>
+
+<h2 id="philosophy">核心思想 — 从手动到自动</h2>
+
+<p>博客引用了几位关键人物的核心观点：</p>
+
+<blockquote>
+  <p>"You shouldn't be prompting coding agents anymore. You should be <strong>designing loops</strong> that prompt your agents."</p>
+  <p style="margin-top:8px; font-size:0.9em;">
+    — <strong>Boris Cherny</strong>（Claude Code 创始人）& <strong>Peter Steinberger</strong>（OpenAI）
+  </p>
+</blockquote>
+
+<blockquote>
+  <p>"The romantic version of a loop is 'you write loops, a thousand agents build your company overnight.'</p>
+  <p style="margin-top:4px;">"The production version is 'you write loops, <strong>then most of your job is making sure they stop</strong>.'"</p>
+</blockquote>
+
+<p>这段精辟的对比揭示了一个现实：循环系统的难点不在于"让 AI 干活"，而在于<strong>精确地定义停止条件和失败边界</strong>。</p>
+
+<!-- ============================================================ -->
+<h2 id="turn-based">1. Turn-Based Loop — 默认对话循环</h2>
+<!-- ============================================================ -->
+
+<h3>工作原理</h3>
+<p>
+  每次你向 Claude Code 发 Prompt，就启动了一个 <strong>Turn-Based Loop</strong>。Claude 会：
+</p>
+<ol>
+  <li>收集上下文（读取文件、查看 Git 状态）</li>
+  <li>执行操作（写代码、运行命令）</li>
+  <li>自我检查（测试是否通过、构建是否成功）</li>
+  <li>如需要，重复上述步骤</li>
+  <li>回复用户</li>
+</ol>
+
+<h3>关键特征</h3>
+<table>
+<thead><tr><th>属性</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>触发方式</td><td>用户每次发送 Prompt</td></tr>
+<tr><td>停止条件</td><td>Claude 判定任务完成，或需要更多上下文</td></tr>
+<tr><td>适用场景</td><td>单次任务、非周期性工作</td></tr>
+<tr><td>Token 管控</td><td>写具体明确的 Prompt；用 Skills 强化验证能力</td></tr>
+</tbody>
+</table>
+
+<h3>优化技巧</h3>
+<div class="code-block">
+  <div class="code-header"><span class="lang-tag">SKILL.md</span><span>将手动验证编码为 Skills</span></div>
+  <div class="code-body"><pre><code><span class="cmt"># 把"我每次手动做的检查"写成 SKILL.md</span>
+<span class="cmt"># Claude 会据此自动完成端到端的自我验证</span>
+
+<span class="cmt">## 示例：编码代码质量标准</span>
+<span class="kw">检查清单</span>:
+<span class="num">1.</span> <span class="str">`npm run build`</span> 通过
+<span class="num">2.</span> <span class="str">`npm test`</span> 全部通过
+<span class="num">3.</span> 没有 <span class="kw">console.log</span> 残留
+<span class="num">4.</span> TypeScript 类型检查零错误
+<span class="num">5.</span> 新增代码有对应的测试覆盖</code></pre></div>
+</div>
+
+<div class="callout tip">
+  <strong>核心教训：</strong>用<strong>可量化的检查</strong>（测试通过、构建成功、0 错误）替代主观判断，让 Claude 能自动化自我验证。模糊的"做好一点"远不如"测试全部通过"有效。
+</div>
+
+<!-- ============================================================ -->
+<h2 id="goal">2. /goal — 目标驱动循环</h2>
+<!-- ============================================================ -->
+
+<h3>工作原理</h3>
+<p>
+  <code>/goal</code> 延长 Claude 的迭代轮数，持续工作直到<strong>验证条件满足</strong>或达到轮数上限。
+  其关键是 <strong>Evaluator 模型</strong>（默认 Haiku，一个小而快的模型）——它独立于执行模型，每轮检查条件是否满足，<strong>避免自我评估偏差</strong>。
+</p>
+
+<svg width="100%" viewBox="0 0 820 180" style="max-width:820px; margin:16px 0;">
+  <!-- 主循环可视化 -->
+  <rect x="20"  y="50" width="160" height="70" rx="8" fill="#313244" stroke="#89b4fa" stroke-width="1.5"/>
+  <text x="100" y="80" text-anchor="middle" fill="#89b4fa" font-size="13" font-weight="bold">Claude 工作模型</text>
+  <text x="100" y="100" text-anchor="middle" fill="#a6adc8" font-size="11">执行 → 输出</text>
+
+  <line x1="180" y1="85" x2="235" y2="85" stroke="#89b4fa" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <rect x="245" y="50" width="160" height="70" rx="8" fill="#313244" stroke="#a6e3a1" stroke-width="1.5"/>
+  <text x="325" y="80" text-anchor="middle" fill="#a6e3a1" font-size="13" font-weight="bold">Evaluator 模型</text>
+  <text x="325" y="100" text-anchor="middle" fill="#a6adc8" font-size="11">检查条件 → 判定</text>
+
+  <line x1="405" y1="85" x2="460" y2="85" stroke="#6c7086" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- 判定分支 -->
+  <rect x="470" y="30"  width="140" height="45" rx="8" fill="#1e1e2e" stroke="#a6e3a1" stroke-width="1"/>
+  <text x="540" y="58" text-anchor="middle" fill="#a6e3a1" font-size="13">✅ 条件满足</text>
+
+  <rect x="470" y="90"  width="140" height="45" rx="8" fill="#1e1e2e" stroke="#fab387" stroke-width="1"/>
+  <text x="540" y="118" text-anchor="middle" fill="#fab387" font-size="13">❌ 条件未满足</text>
+
+  <!-- 循环回去 -->
+  <path d="M470 112 C440 112, 430 150, 100 150 C50 150, 40 128, 20 128 L20 100" fill="none" stroke="#fab387" stroke-width="1" stroke-dasharray="6,3"/>
+  <text x="260" y="162" text-anchor="middle" fill="#fab387" font-size="11">Re-loop（继续迭代）</text>
+</svg>
+
+<h3>命令用法</h3>
+<div class="code-block">
+  <div class="code-header"><span class="lang-tag">BASH</span><span>/goal 命令示例</span></div>
+  <div class="code-body"><pre><code><span class="cmt"># 基本用法：设定可验证目标</span>
+/goal <span class="str">get the homepage Lighthouse score to 90 or above, stop after 5 tries</span>
+
+<span class="cmt"># 非交互模式（headless 执行）</span>
+<span class="bi">claude</span> -p <span class="str">"/goal CHANGELOG.md has an entry for every PR merged this week"</span>
+
+<span class="cmt"># 恢复会话中的活跃目标</span>
+<span class="bi">claude</span> --resume          <span class="cmt"># 活跃的 /goal 会自动恢复</span>
+<span class="bi">claude</span> --continue
+
+<span class="cmt"># 查看当前目标状态和 Token 用量</span>
+/goal                        <span class="cmt"># 裸命令 → 显示状态 + 使用量</span>
+
+<span class="cmt"># 清除当前目标</span>
+/goal clear</code></pre></div>
+</div>
+
+<h3>编写有效条件的技巧</h3>
+<table>
+<thead><tr><th>原则</th><th>好例子</th><th>差例子</th></tr></thead>
+<tbody>
+<tr><td><strong>可测量的终点</strong></td><td>"All tests in test/auth pass"</td><td>"Make the auth better"</td></tr>
+<tr><td><strong>明确的检查机制</strong></td><td>"npm test -- --coverage exceeds 80%"</td><td>"The code looks good"</td></tr>
+<tr><td><strong>相关约束</strong></td><td>"No ESLint errors, stop after 5 retries"</td><td>"Fix everything"</td></tr>
+</tbody>
+</table>
+
+<div class="callout info">
+  <strong>关键洞察：</strong>条件必须写成 Claude <strong>自己输出就能证明</strong>的东西。例如 "All tests pass" 有效，因为 Claude 执行 <code>npm test</code> 后结果就在当前 transcript 中。Evaluator 模型默认使用 <strong>Haiku</strong>（小、快、便宜），与大模型分工——"干活的模型"和"检查的模型"不是同一个，消除自我评价偏差。
+</div>
+
+<div class="callout warning">
+  <strong>技术限制：</strong>同一时间只有一个活跃的 /goal；条件最长 4,000 字符；Evaluator 每次返回简短理由说明条件为何满足/不满足；版本要求 v2.1.139+。
+</div>
+
+<!-- ============================================================ -->
+<h2 id="loop">3. /loop — 定时循环</h2>
+<!-- ============================================================ -->
+
+<h3>工作原理</h3>
+<p>
+  <code>/loop</code> 本质上是 <strong>cron + prompt</strong>：按指定时间间隔重复执行 Prompt。所有"智能"都由你的 Prompt 提供——何时停止、如何处理错误、如何判断完成。
+</p>
+
+<h3>两种模式</h3>
+<table>
+<thead><tr><th>模式</th><th>语法</th><th>行为</th><th>适用</th></tr></thead>
+<tbody>
+<tr>
+  <td><strong>固定间隔</strong></td>
+  <td><code>/loop 5m check the deploy</code></td>
+  <td>转为 Cron 表达式，按固定频率执行<br>单位：s / m / h / d，最少 1 分钟<br>7 天后自动过期</td>
+  <td>CI 轮询、部署监控、定期检查</td>
+</tr>
+<tr>
+  <td><strong>动态间隔（自调节）</strong></td>
+  <td><code>/loop check whether CI passed</code></td>
+  <td>Claude 根据当前情况自己选择间隔（1 分钟 ~ 1 小时）<br>每次迭代打印选择理由</td>
+  <td>状态未知的任务、需要"聪明等待"的场景</td>
+</tr>
+</tbody>
+</table>
+
+<h3>命令示例</h3>
+<div class="code-block">
+  <div class="code-header"><span class="lang-tag">BASH</span><span>/loop 命令示例</span></div>
+  <div class="code-body"><pre><code><span class="cmt"># 固定间隔：每 5 分钟检查一次部署状态</span>
+/loop <span class="num">5m</span> <span class="str">check the deploy</span>
+
+<span class="cmt"># 动态间隔：Babysit 所有 PR（Boris Cherny 的真实案例）</span>
+/loop <span class="str">babysit all my PRs. Auto-fix build issues,</span>
+       <span class="str">and when comments come in, use a worktree agent to fix them.</span>
+
+<span class="cmt"># 检查 CI 状态（自定义间隔）</span>
+/loop <span class="str">check whether CI passed</span>
+
+<span class="cmt"># 停止循环</span>
+<span class="cmt"># 按 Esc 键 —— 在下一次迭代前</span></code></pre></div>
+</div>
+
+<div class="callout warning">
+  <strong>重要限制：</strong><code>/loop</code> 在你的<strong>本地电脑</strong>上运行。电脑关机，循环就停止了。
+  需要跨重启持久化，使用桌面定时任务或云端 Routines（<code>/schedule</code>）。
+</div>
+
+<h3>架构解析</h3>
+<p>
+  <code>/loop</code> 的核心实现非常简约：<code>loop.ts</code> 解析器将时间间隔转为 Cron 表达式 → 创建定时任务 → 立即执行第一次迭代。
+  这意味着 <strong>基础设施部分极薄</strong>——所有"智能"（停止判断、错误处理、任务分派）都在 Prompt 层面实现，
+  你不需要写 YAML 配置、DAG 定义或工作流 DSL。
+</p>
+
+<!-- ============================================================ -->
+<h2 id="proactive">4. Proactive Loops — 主动循环（无人值守）</h2>
+<!-- ============================================================ -->
+
+<h3>工作原理</h3>
+<p>
+  <strong>Proactive Loops</strong> 是最高级形态：<strong>在没有人实时参与的情况下</strong>，由事件或计划触发，自动完成完整工作流。
+  它由前面的原语组合而成，再加上几个关键能力：
+</p>
+
+<table>
+<thead><tr><th>组件</th><th>作用</th></tr></thead>
+<tbody>
+<tr><td><strong>Auto Mode</strong></td><td>去掉每次工具调用的确认弹窗——Claude 在单轮内自动批准所有工具调用</td></tr>
+<tr><td><strong>Dynamic Workflows</strong>（研究预览）</td><td>Claude 编写 JS 编排脚本，并行派发最多 <strong>1,000 个子 Agent</strong>（16 个并发），内置对抗性验证</td></tr>
+<tr><td><strong>/schedule</strong></td><td>云端持久化的定时 Routine——不依赖本地电脑，跨重启运行</td></tr>
+</tbody>
+</table>
+
+<h3>组合示例</h3>
+<div class="code-block">
+  <div class="code-header"><span class="lang-tag">BASH</span><span>Proactive Loop 组合案例</span></div>
+  <div class="code-body"><pre><code><span class="cmt"># 一个完整的 Bug Triage 自动化循环</span>
+/schedule <span class="str">every hour</span>: <span class="str">\
+  check #project-feedback for bug reports. \
+  /goal: don't stop until every report found this run \
+  is triaged, actioned, and responded to. \
+  When fixing a bug, use a workflow to explore three \
+  solutions in parallel worktrees and have a judge \
+  adversarially review them.</span></code></pre></div>
+</div>
+
+<p>这个例子展示了三个层次的能力叠加：</p>
+<ol>
+  <li><strong>/schedule every hour</strong>：云端定时触发</li>
+  <li><strong>/goal + 停止条件</strong>：每个 bug 报告必须被分类、处理、回复才算完成</li>
+  <li><strong>Dynamic Workflow</strong>：三个并行解决方案 + 对抗性评审（Judge 模型）</li>
+</ol>
+
+<!-- ============================================================ -->
+<h2 id="comparison">四种循环对比矩阵</h2>
+<!-- ============================================================ -->
+
+<table>
+<thead><tr><th>维度</th><th>Turn-Based</th><th>/goal</th><th>/loop</th><th>Proactive</th></tr></thead>
+<tbody>
+<tr><td><strong>触发方式</strong></td><td>用户 Prompt</td><td>手动 /goal 命令</td><td>时间间隔</td><td>事件 / 计划</td></tr>
+<tr><td><strong>停止条件</strong></td><td>Claude 自动判定</td><td>条件满足 / 轮数上限</td><td>手动取消 / 任务完成</td><td>任务完成 / 关闭 Routine</td></tr>
+<tr><td><strong>人是否在场</strong></td><td>是</td><td>是（启动时）</td><td>否</td><td>否</td></tr>
+<tr><td><strong>验证机制</strong></td><td>Claude 自我验证</td><td>Evaluator 模型（独立）</td><td>Prompt 内置逻辑</td><td>Evaluator + 对抗性评审</td></tr>
+<tr><td><strong>持续时间</strong></td><td>单轮或数轮</td><td>数轮 → 数十轮</td><td>小时 → 7 天</td><td>无限（持续运行）</td></tr>
+<tr><td><strong>Token 风险</strong></td><td>低</td><td>中</td><td>中高</td><td>高（需严格预算管控）</td></tr>
+<tr><td><strong>版本要求</strong></td><td>—</td><td>v2.1.139+</td><td>v2.1.72+</td><td>v2.1.154+</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="decision">决策指南：何时用哪个</h2>
+<!-- ============================================================ -->
+
+<table>
+<thead><tr><th>任务类型</th><th>推荐原语</th><th>理由</th></tr></thead>
+<tbody>
+<tr><td>简单单次修改</td><td><strong>直接 Prompt</strong></td><td>不需要循环的开销</td></tr>
+<tr><td>有明确可验证目标的复杂任务</td><td><strong>/goal</strong></td><td>自动迭代到目标，Evaluator 保证质量</td></tr>
+<tr><td>持续监控 / 轮询外部状态</td><td><strong>/loop</strong></td><td>定时触发，外部系统状态变化时响应</td></tr>
+<tr><td>大规模代码迁移 / 批处理</td><td><strong>Dynamic Workflows</strong></td><td>并行 + 对抗验证，处理大量独立任务</td></tr>
+<tr><td>周期性重复任务</td><td><strong>/schedule</strong> 或系统定时任务</td><td>持久化执行，不依赖本地电脑</td></tr>
+</tbody>
+</table>
+
+<div class="callout warning">
+  <strong>关键决策原则：</strong>任务越小、越确定，就越不应该用重循环。<strong>简单任务用复杂循环，是纯 Token 浪费。</strong>
+  相反，复杂且有明确验证条件的任务，不用循环而手动轮番 Prompt，是纯人力浪费。
+</div>
+
+<!-- ============================================================ -->
+<h2 id="code-quality">代码质量保障</h2>
+<!-- ============================================================ -->
+
+<p>当 AI 大量生成代码时，质量保障变得关键。博客提出了四条原则：</p>
+
+<h3>1. 保持代码库整洁</h3>
+<p>Claude 会遵循项目中<strong>已有的模式和规范</strong>。良好的代码基础 → 良好的 AI 输出。</p>
+
+<h3>2. 给 Claude 自我验证的能力</h3>
+<p>用 <strong>Skills（SKILL.md）</strong> 编码质量标准——不是写给别人看的，是写给 Claude 读的验证清单。</p>
+
+<h3>3. 让文档易于获取</h3>
+<p>框架和库的最新最佳实践文档应该放在 Claude 能访问到的地方（项目中的 docs/ 或 CLAUDE.md 引用）。</p>
+
+<h3>4. 使用第二个 Agent 做代码审查</h3>
+<p>一个<strong>全新上下文的 Reviewer</strong> 偏见更少。使用 <code>/code-review</code> skill 或 GitHub Code Review。</p>
+
+<blockquote>
+  "When an individual result doesn't meet the standard, don't stop at fixing the issue — <strong>encode the lesson</strong> to improve the system for all future iterations."
+  <br>— 某个结果不达标时，不要止步于修复问题——把教训编码进系统，改进所有未来的迭代。
+</blockquote>
+
+<!-- ============================================================ -->
+<h2 id="token">Token 成本管理 — 最关键的工程问题</h2>
+<!-- ============================================================ -->
+
+<h3>成本残酷现实</h3>
+
+<table>
+<thead><tr><th>场景</th><th>Token 放大倍数</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>普通聊天</td><td>1×（基准）</td><td>单次 Q&A</td></tr>
+<tr><td>单 Agent 循环</td><td>~4×</td><td>多次工具调用 + 自我验证</td></tr>
+<tr><td>多 Agent 协作</td><td>~15×</td><td>Opus + Sonnet 协作可提升 90%+ 性能</td></tr>
+</tbody>
+</table>
+
+<div class="callout danger">
+  <strong>真实翻车案例：</strong>Uber 在 4 个月内烧完了全年 AI 预算，随后对每个员工设置了 $1,500/月 的 AI 工具费用上限
+  （包括 Claude Code 和 Cursor）——来源：TechCrunch / Bloomberg，2026 年 6 月。
+</div>
+
+<h3>六个成本管理策略</h3>
+
+<table>
+<thead><tr><th>#</th><th>策略</th><th>具体做法</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>选对原语和模型</strong></td><td>小任务不需要多 Agent 或循环；简单分类用 Haiku 而非 Opus</td></tr>
+<tr><td>2</td><td><strong>定义明确的成功/停止条件</strong></td><td>具体的"done"定义让 Claude 更快到达终点，减少无效迭代</td></tr>
+<tr><td>3</td><td><strong>大规模前先小范围试点</strong></td><td>先在 10 个任务上测用量，再推 1,000 个</td></tr>
+<tr><td>4</td><td><strong>确定性工作用脚本</strong></td><td>运行脚本的成本远低于让模型推理每一步</td></tr>
+<tr><td>5</td><td><strong>间隔匹配实际变化频率</strong></td><td>不要比事件发生频率更频繁地运行 Routine</td></tr>
+<tr><td>6</td><td><strong>监控用量</strong></td><td><code>/usage</code>（按 skills/subagents/MCP 拆分）、<code>/goal</code> 裸命令（显示 turns/tokens）、<code>/workflows</code>（按 Agent 的 Token 用量）</td></tr>
+</tbody>
+</table>
+
+<h3>成本路由策略</h3>
+<div class="code-block">
+  <div class="code-header"><span class="lang-tag">STRATEGY</span><span>按任务类型分配模型</span></div>
+  <div class="code-body"><pre><code><span class="cmt"># 不同任务 → 不同模型 → 不同成本</span>
+<span class="str">路由/分类/摘要</span>    → <span class="bi">Haiku</span>  ($1.00/1M in)     <span class="cmt"># 便宜</span>
+<span class="str">标准编码/RAG</span>      → <span class="bi">Sonnet</span> ($3.00/1M in)    <span class="cmt"># 适中</span>
+<span class="str">复杂推理/架构决策</span>  → <span class="bi">Opus</span>   ($15.00/1M in)   <span class="cmt"># 最贵——少用</span>
+<span class="str">Evaluator（验证）</span>  → <span class="bi">Haiku</span>  (默认)           <span class="cmt"># 检查模型应与执行模型分离</span></code></pre></div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="hard-stops">三道硬停机制 — 生产环境必备</h2>
+<!-- ============================================================ -->
+
+<p>博客特别强调了三个<strong>生产环境必备的熔断机制</strong>：</p>
+
+<table>
+<thead><tr><th>熔断机制</th><th>触发条件</th><th>环境变量示例</th></tr></thead>
+<tbody>
+<tr>
+  <td><strong>无进展熔断</strong></td>
+  <td>3 轮无文件改动 → 判定为"熔毁"</td>
+  <td><code>CB_NO_PROGRESS_THRESHOLD=3</code></td>
+</tr>
+<tr>
+  <td><strong>重复错误熔断</strong></td>
+  <td>同一错误出现 5 次</td>
+  <td><code>CB_SAME_ERROR_THRESHOLD=5</code></td>
+</tr>
+<tr>
+  <td><strong>用量预算上限</strong></td>
+  <td>每小时调用数 / Token 数达上限</td>
+  <td><code>MAX_CALLS_PER_HOUR</code>、<code>MAX_TOKENS_PER_HOUR</code></td>
+</tr>
+</tbody>
+</table>
+
+<div class="callout danger">
+  <strong>不做硬停 = 财务风险。</strong>没有预算上限的循环系统就像没有刹车的高速列车。Uber 的例子就是最直接的警示。
+</div>
+
+<!-- ============================================================ -->
+<h2 id="getting-started">从 Prompt 到 Loop — 三步转换法</h2>
+<!-- ============================================================ -->
+
+<table>
+<thead><tr><th>步骤</th><th>从</th><th>到</th></tr></thead>
+<tbody>
+<tr>
+  <td><strong>1. 可验证的停止条件</strong></td>
+  <td>"把这个功能做好"</td>
+  <td>"<code>npm run build</code> 通过 + 所有页面正常渲染"</td>
+</tr>
+<tr>
+  <td><strong>2. 状态追踪</strong></td>
+  <td>无状态，Claude 靠记忆</td>
+  <td>维护 <code>PROGRESS.md</code>：当前阶段 + 已完成项 + 遇到的问题</td>
+</tr>
+<tr>
+  <td><strong>3. 反馈循环</strong></td>
+  <td>做完就结束</td>
+  <td>每个模块后 → 构建/测试 → 修复错误 → 继续下一个模块；同一问题最多重试 5 次</td>
+</tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="components">循环系统六组件 — Addy Osmani 框架</h2>
+<!-- ============================================================ -->
+
+<p>Google Chrome 工程负责人 <strong>Addy Osmani</strong> 提出的 Loop Engineering 框架，将循环系统拆解为六个组件：</p>
+
+<svg width="100%" viewBox="0 0 860 300" style="max-width:860px; margin:16px 0;">
+  <defs>
+    <marker id="a" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#45475a"/>
+    </marker>
+  </defs>
+
+  <!-- 1. Automations -->
+  <rect x="20"  y="20"  width="250" height="70" rx="10" fill="#1e1e2e" stroke="#f38ba8" stroke-width="1.5"/>
+  <text x="145" y="48" text-anchor="middle" fill="#f38ba8" font-size="14" font-weight="bold">1. Automations 自动化触发器</text>
+  <text x="145" y="70" text-anchor="middle" fill="#a6adc8" font-size="11">心跳：定时器 / 事件 / /loop / /schedule</text>
+
+  <!-- 2. Worktrees -->
+  <rect x="300" y="20"  width="250" height="70" rx="10" fill="#1e1e2e" stroke="#fab387" stroke-width="1.5"/>
+  <text x="425" y="48" text-anchor="middle" fill="#fab387" font-size="14" font-weight="bold">2. Worktrees 隔离工作区</text>
+  <text x="425" y="70" text-anchor="middle" fill="#a6adc8" font-size="11">git worktree · 并行 Agent 互不干扰</text>
+
+  <!-- 3. Skills -->
+  <rect x="580" y="20"  width="250" height="70" rx="10" fill="#1e1e2e" stroke="#f9e2af" stroke-width="1.5"/>
+  <text x="705" y="48" text-anchor="middle" fill="#f9e2af" font-size="14" font-weight="bold">3. Skills 结晶知识</text>
+  <text x="705" y="70" text-anchor="middle" fill="#a6adc8" font-size="11">CLAUDE.md · SKILL.md · 项目规范</text>
+
+  <!-- 4. Connectors -->
+  <rect x="20"  y="120" width="250" height="70" rx="10" fill="#1e1e2e" stroke="#a6e3a1" stroke-width="1.5"/>
+  <text x="145" y="148" text-anchor="middle" fill="#a6e3a1" font-size="14" font-weight="bold">4. Connectors 连接器</text>
+  <text x="145" y="170" text-anchor="middle" fill="#a6adc8" font-size="11">MCP 协议 → GitHub / Linear / Slack</text>
+
+  <!-- 5. Sub-agents -->
+  <rect x="300" y="120" width="250" height="70" rx="10" fill="#1e1e2e" stroke="#89b4fa" stroke-width="1.5"/>
+  <text x="425" y="148" text-anchor="middle" fill="#89b4fa" font-size="14" font-weight="bold">5. Sub-agents 子代理</text>
+  <text x="425" y="170" text-anchor="middle" fill="#a6adc8" font-size="11">Maker ⇄ Checker · 做的人和查的人分离</text>
+
+  <!-- 6. Memory -->
+  <rect x="580" y="120" width="250" height="70" rx="10" fill="#1e1e2e" stroke="#cba6f7" stroke-width="1.5"/>
+  <text x="705" y="148" text-anchor="middle" fill="#cba6f7" font-size="14" font-weight="bold">6. Memory/State 记忆状态</text>
+  <text x="705" y="170" text-anchor="middle" fill="#a6adc8" font-size="11">PROGRESS.md · 看板 · "Agent 会忘，仓库不会"</text>
+
+  <!-- 底部箭头连接 -->
+  <line x1="145" y1="90"  x2="145" y2="118" stroke="#45475a" stroke-width="1"/>
+  <line x1="425" y1="90"  x2="425" y2="118" stroke="#45475a" stroke-width="1"/>
+  <line x1="705" y1="90"  x2="705" y2="118" stroke="#45475a" stroke-width="1"/>
+
+  <text x="430" y="230" text-anchor="middle" fill="#6c7086" font-size="12">六个组件协同 = 一个完整的、可自我进化的循环系统</text>
+  <text x="430" y="255" text-anchor="middle" fill="#6c7086" font-size="11">Agents forget, repos don't. —— Agent 会遗忘，但代码仓库不会。</text>
+</svg>
+
+<!-- ============================================================ -->
+<h2 id="cheatsheet">命令速查表</h2>
+<!-- ============================================================ -->
+
+<table>
+<thead><tr><th>命令</th><th>功能</th><th>最低版本</th></tr></thead>
+<tbody>
+<tr><td><code>/goal [condition]</code></td><td>持续运行直到条件满足</td><td>v2.1.139+</td></tr>
+<tr><td><code>/goal</code>（裸）</td><td>查看当前目标 + Token 用量</td><td>v2.1.139+</td></tr>
+<tr><td><code>/goal clear</code></td><td>移除活跃目标</td><td>v2.1.139+</td></tr>
+<tr><td><code>/loop [interval] [prompt]</code></td><td>定时重复执行 Prompt</td><td>v2.1.72+</td></tr>
+<tr><td><code>/loop [prompt]</code>（无间隔）</td><td>动态间隔循环</td><td>v2.1.72+</td></tr>
+<tr><td><code>/schedule [cron] [prompt]</code></td><td>云端持久化定时任务</td><td>—</td></tr>
+<tr><td><code>/usage</code></td><td>按 skills/subagents/MCP 拆分的用量分析</td><td>—</td></tr>
+<tr><td><code>/workflows</code></td><td>按 Agent 拆分的 Token 用量</td><td>v2.1.154+</td></tr>
+<tr><td><code>/code-review</code></td><td>使用第二个 Agent 进行代码审查</td><td>—</td></tr>
+<tr><td>Esc 键</td><td>在下一次迭代前停止 /loop</td><td>—</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="refs">参考资源</h2>
+<!-- ============================================================ -->
+
+<table>
+<thead><tr><th>类型</th><th>资源</th><th>链接</th></tr></thead>
+<tbody>
+<tr><td>📖 原文</td><td>Getting started with loops</td><td><a href="https://claude.com/blog/getting-started-with-loops" target="_blank">claude.com/blog</a></td></tr>
+<tr><td>📖 文档</td><td>Run prompts on a schedule</td><td><a href="https://code.claude.com/docs/en/scheduled-tasks" target="_blank">code.claude.com/docs</a></td></tr>
+<tr><td>📖 文档</td><td>/goal command reference</td><td><a href="https://code.claude.com/docs/en/goal" target="_blank">code.claude.com/docs</a></td></tr>
+<tr><td>📖 文档</td><td>How Claude Code works</td><td><a href="https://code.claude.com/docs/en/how-claude-code-works" target="_blank">code.claude.com/docs</a></td></tr>
+<tr><td>📖 文档</td><td>Extend Claude with skills</td><td><a href="https://code.claude.com/docs/en/custom-skills" target="_blank">code.claude.com/docs</a></td></tr>
+<tr><td>🔌 插件</td><td>Ralph Loop — Claude Plugin</td><td><a href="https://claude.com/plugins/ralph-loop" target="_blank">claude.com/plugins</a></td></tr>
+<tr><td>📝 中文解读</td><td>Loop Engineering 三种循环分析</td><td><a href="https://cloud.tencent.cn/developer/article/2691900" target="_blank">腾讯云开发者</a></td></tr>
+<tr><td>📝 中文解读</td><td>/loop 实操教程</td><td><a href="https://zhuanlan.zhihu.com/p/2053608620399633068" target="_blank">知乎</a></td></tr>
+<tr><td>📝 中文解读</td><td>Loop Engineering 实战</td><td><a href="https://developer.aliyun.com/article/1744228" target="_blank">阿里云开发者</a></td></tr>
+<tr><td>📝 深度分析</td><td>Loop Engineering: Claude Code Command</td><td><a href="https://becomingahacker.org/loop-the-claude-code-command-that-is-changing-the-conversation-about-software-engineering-46a16eb4be30" target="_blank">Becoming a Hacker</a></td></tr>
+</tbody>
+</table>
+
+<hr style="border-color:var(--surface); margin:48px 0 20px;">
+<p style="text-align:center; color:var(--muted); font-size:0.82em;">
+  报告生成于 2026-07-01 · 基于 <a href="https://claude.com/blog/getting-started-with-loops" style="color:var(--teal);">claude.com/blog/getting-started-with-loops</a> 原文及公开资料整理<br>
+  Claude Code /loop、/goal、/schedule 等功能的行为以官方最新文档为准
+</p>
+
+</main>
+
+<script>
+(function() {
+  var links = document.querySelectorAll('#toc a');
+  var sections = [];
+  links.forEach(function(a) {
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) sections.push({ el: el, a: a });
+  });
+  window.addEventListener('scroll', function() {
+    var cur = sections[0];
+    sections.forEach(function(s) {
+      if (s.el.offsetTop <= window.scrollY + 120) cur = s;
+    });
+    links.forEach(function(a) { a.classList.remove('active'); });
+    if (cur) cur.a.classList.add('active');
+  });
+})();
+</script>
+
+</body>
+</html>
