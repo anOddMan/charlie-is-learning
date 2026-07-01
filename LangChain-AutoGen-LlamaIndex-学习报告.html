@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LangChain / AutoGen / LlamaIndex 框架对比学习报告</title>
+<style>
+/* ========== Catppuccin 配色 ========== */
+:root {
+  --bg: #1e1e2e;
+  --bg2: #181825;
+  --bg3: #11111b;
+  --surface: #313244;
+  --overlay: #45475a;
+  --text: #cdd6f4;
+  --subtext: #a6adc8;
+  --muted: #6c7086;
+  --keyword: #cba6f7;
+  --string: #a6e3a1;
+  --func: #89b4fa;
+  --builtin: #fab387;
+  --red: #f38ba8;
+  --green: #a6e3a1;
+  --yellow: #f9e2af;
+  --blue: #89b4fa;
+  --pink: #f5c2e7;
+  --teal: #94e2d5;
+  --rosewater: #f5e0dc;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg3);
+  color: var(--text);
+  line-height: 1.8;
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ========== 侧边栏 TOC ========== */
+#sidebar {
+  width: 280px;
+  min-width: 280px;
+  background: var(--bg2);
+  border-right: 1px solid var(--overlay);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 24px 20px;
+  z-index: 10;
+}
+
+#sidebar h2 {
+  color: var(--keyword);
+  font-size: 1.05rem;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--surface);
+}
+
+#sidebar nav a {
+  display: block;
+  color: var(--subtext);
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  transition: all 0.2s;
+  border-left: 2px solid transparent;
+}
+
+#sidebar nav a:hover, #sidebar nav a.active {
+  color: var(--text);
+  background: var(--surface);
+  border-left-color: var(--keyword);
+}
+
+#sidebar nav a.sub { padding-left: 26px; font-size: 0.82rem; }
+
+/* ========== 移动端汉堡菜单 ========== */
+#menu-toggle {
+  display: none;
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 100;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--overlay);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+#overlay { display: none; }
+
+/* ========== 主内容区 ========== */
+#main {
+  flex: 1;
+  max-width: 960px;
+  padding: 40px 48px;
+  overflow-x: hidden;
+}
+
+/* 头部 */
+.header {
+  background: linear-gradient(135deg, var(--bg) 0%, var(--surface) 100%);
+  border-radius: 16px;
+  padding: 32px 36px;
+  margin-bottom: 32px;
+  border: 1px solid var(--overlay);
+}
+
+.header .meta {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+
+.header .meta span { display: flex; align-items: center; gap: 4px; }
+
+.header h1 {
+  font-size: 1.8rem;
+  color: var(--keyword);
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.header .summary {
+  color: var(--subtext);
+  font-size: 0.92rem;
+  background: var(--bg3);
+  border-radius: 10px;
+  padding: 14px 18px;
+  border-left: 3px solid var(--blue);
+}
+
+/* 章节 */
+section {
+  background: var(--bg);
+  border-radius: 14px;
+  padding: 28px 32px;
+  margin-bottom: 24px;
+  border: 1px solid var(--surface);
+}
+
+section h2 {
+  color: var(--blue);
+  font-size: 1.35rem;
+  margin-bottom: 18px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--surface);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+section h3 {
+  color: var(--keyword);
+  font-size: 1.1rem;
+  margin: 22px 0 10px;
+}
+
+section h4 {
+  color: var(--teal);
+  font-size: 1rem;
+  margin: 16px 0 8px;
+}
+
+p { margin-bottom: 12px; color: var(--subtext); }
+
+/* 信息卡片 */
+.card-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.card {
+  background: var(--bg2);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid var(--overlay);
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.card:hover { transform: translateY(-2px); border-color: var(--keyword); }
+
+.card h4 { margin: 0 0 8px; color: var(--func); }
+
+.card p { font-size: 0.9rem; margin: 0; }
+
+/* 表格 */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 0.9rem;
+}
+
+thead th {
+  background: var(--surface);
+  color: var(--keyword);
+  padding: 12px 14px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid var(--overlay);
+}
+
+tbody td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--surface);
+  color: var(--subtext);
+}
+
+tbody tr:hover td { background: rgba(203, 166, 247, 0.04); }
+
+/* 标签 */
+.tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.tag-green { background: rgba(166, 227, 161, 0.15); color: var(--green); }
+.tag-blue { background: rgba(137, 180, 250, 0.15); color: var(--blue); }
+.tag-purple { background: rgba(203, 166, 247, 0.15); color: var(--keyword); }
+.tag-yellow { background: rgba(249, 226, 175, 0.15); color: var(--yellow); }
+.tag-red { background: rgba(243, 139, 168, 0.15); color: var(--red); }
+
+/* 提示框 */
+.callout {
+  padding: 14px 18px;
+  border-radius: 10px;
+  margin: 16px 0;
+  font-size: 0.9rem;
+}
+
+.callout-info { background: rgba(137, 180, 250, 0.08); border-left: 3px solid var(--blue); }
+.callout-warn { background: rgba(249, 226, 175, 0.08); border-left: 3px solid var(--yellow); }
+.callout-tip { background: rgba(166, 227, 161, 0.08); border-left: 3px solid var(--green); }
+.callout-danger { background: rgba(243, 139, 168, 0.08); border-left: 3px solid var(--red); }
+
+.callout p { margin: 0; }
+
+/* SVG 图表 */
+.diagram-container {
+  background: var(--bg2);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  margin: 16px 0;
+  overflow-x: auto;
+}
+
+/* 代码块 */
+.code-block {
+  background: var(--bg2);
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 16px 0;
+  border: 1px solid var(--surface);
+}
+
+.code-header {
+  background: rgba(255,255,255,0.04);
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.code-header .lang-tag {
+  background: var(--keyword);
+  color: var(--bg3);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.72rem;
+}
+
+.code-body {
+  padding: 16px;
+  overflow-x: auto;
+}
+
+.code-body pre {
+  margin: 0;
+  font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
+  font-size: 0.85rem;
+  line-height: 1.7;
+}
+
+/* 时间线 */
+.timeline {
+  position: relative;
+  padding-left: 28px;
+  margin: 16px 0;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: var(--surface);
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -21px;
+  top: 6px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--keyword);
+  border: 2px solid var(--bg);
+}
+
+.timeline-item h4 { color: var(--func); margin: 0 0 4px; font-size: 0.95rem; }
+.timeline-item p { font-size: 0.88rem; margin: 0; }
+
+/* 对比分数条 */
+.bar-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+.bar-label { width: 100px; text-align: right; font-size: 0.82rem; color: var(--subtext); flex-shrink: 0; }
+.bar-track { flex: 1; height: 8px; background: var(--surface); border-radius: 4px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 4px; transition: width 1s; }
+
+/* 步骤编号 */
+.step-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin: 16px 0;
+}
+
+.step-card {
+  background: var(--bg2);
+  border-radius: 12px;
+  padding: 18px;
+  border: 1px solid var(--overlay);
+  text-align: center;
+}
+
+.step-card .num {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--keyword);
+  color: var(--bg3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 10px;
+}
+
+.step-card h4 { font-size: 0.9rem; margin: 0; color: var(--text); }
+
+/* 页脚 */
+footer {
+  text-align: center;
+  padding: 32px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+footer a { color: var(--blue); text-decoration: none; }
+
+/* 响应式 */
+@media (max-width: 768px) {
+  #sidebar {
+    position: fixed;
+    left: -280px;
+    transition: left 0.3s;
+    z-index: 99;
+  }
+  #sidebar.open { left: 0; }
+  #overlay.show { display: block; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 98; }
+  #menu-toggle { display: block; }
+  #main { padding: 20px 16px; }
+  .card-row { grid-template-columns: 1fr; }
+  .step-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- 侧边栏 TOC -->
+<aside id="sidebar">
+  <h2>📑 目录导航</h2>
+  <nav>
+    <a href="#overview">一、框架全景概览</a>
+    <a href="#langchain" class="sub">　• LangChain 生态</a>
+    <a href="#llamaindex" class="sub">　• LlamaIndex 聚焦</a>
+    <a href="#autogen" class="sub">　• AutoGen 协作</a>
+    <a href="#compare">二、三方深度对比</a>
+    <a href="#roadmap">三、推荐学习路线</a>
+    <a href="#projects">四、实战项目建议</a>
+    <a href="#resources">五、参考资源汇总</a>
+    <a href="#verdict">六、总结与选型建议</a>
+  </nav>
+</aside>
+
+<!-- 移动端遮罩 -->
+<div id="overlay" onclick="toggleSidebar()"></div>
+<button id="menu-toggle" onclick="toggleSidebar()">☰ 目录</button>
+
+<!-- ========== 主内容 ========== -->
+<main id="main">
+
+<!-- 头部 -->
+<div class="header">
+  <div class="meta">
+    <span>📅 2026-07-01</span>
+    <span>⏱ 阅读约 18 分钟</span>
+    <span>🏷 学习报告</span>
+    <span>📊 含对比表 & SVG 图</span>
+  </div>
+  <h1>🦜 LangChain / AutoGen / LlamaIndex<br>框架对比学习报告</h1>
+  <div class="summary">
+    <strong>全文总结：</strong>LangChain 是 LLM 应用开发的事实标准，生态最广但学习曲线较陡；
+    LlamaIndex 在 RAG / 数据检索场景一骑绝尘，是文档密集型应用的首选；
+    AutoGen 以"多智能体对话协作"为核心范式，已并入 Microsoft Agent Framework。
+    建议以 <strong>LangChain → LangGraph → 配合 LlamaIndex（RAG 增强）</strong> 为主线，
+    辅以 AutoGen 理解多智能体协作思想，按"基础→RAG→Agent→生产部署"四阶段学习。
+  </div>
+</div>
+
+<!-- ========== 第一章：全景概览 ========== -->
+<section id="overview">
+  <h2>📊 一、三大框架全景概览</h2>
+
+  <p>在 2025–2026 年的 AI Agent 开发生态中，<strong>LangChain</strong>、<strong>LlamaIndex</strong> 和 <strong>AutoGen</strong>
+  形成了三足鼎立的格局。三者的定位、核心抽象和最佳场景差异显著，理解这些差异是高效学习的第一步。</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 780 340" width="100%" style="max-width:780px">
+      <defs>
+        <radialGradient id="gLC" cx="50%" cy="40%" r="60%">
+          <stop offset="0%" stop-color="#cba6f7" stop-opacity="0.3"/>
+          <stop offset="100%" stop-color="#cba6f7" stop-opacity="0.05"/>
+        </radialGradient>
+        <radialGradient id="gLI" cx="50%" cy="40%" r="60%">
+          <stop offset="0%" stop-color="#89b4fa" stop-opacity="0.3"/>
+          <stop offset="100%" stop-color="#89b4fa" stop-opacity="0.05"/>
+        </radialGradient>
+        <radialGradient id="gAG" cx="50%" cy="40%" r="60%">
+          <stop offset="0%" stop-color="#a6e3a1" stop-opacity="0.3"/>
+          <stop offset="100%" stop-color="#a6e3a1" stop-opacity="0.05"/>
+        </radialGradient>
+      </defs>
+
+      <!-- LangChain -->
+      <circle cx="150" cy="140" r="110" fill="url(#gLC)" stroke="#cba6f7" stroke-width="1.5" stroke-dasharray="6,3"/>
+      <text x="150" y="120" text-anchor="middle" fill="#cba6f7" font-size="16" font-weight="700">🦜 LangChain</text>
+      <text x="150" y="140" text-anchor="middle" fill="#cdd6f4" font-size="11">通用 LLM 应用框架</text>
+      <text x="150" y="158" text-anchor="middle" fill="#a6adc8" font-size="10">600+ 集成 · 链条编排</text>
+      <text x="150" y="174" text-anchor="middle" fill="#a6adc8" font-size="10">Agent · RAG · 生产部署</text>
+      <text x="150" y="195" text-anchor="middle" fill="#f9e2af" font-size="11" font-weight="600">🌍 生态最广</text>
+
+      <!-- LlamaIndex -->
+      <circle cx="390" cy="140" r="110" fill="url(#gLI)" stroke="#89b4fa" stroke-width="1.5" stroke-dasharray="6,3"/>
+      <text x="390" y="120" text-anchor="middle" fill="#89b4fa" font-size="16" font-weight="700">🦙 LlamaIndex</text>
+      <text x="390" y="140" text-anchor="middle" fill="#cdd6f4" font-size="11">数据驱动 RAG 框架</text>
+      <text x="390" y="158" text-anchor="middle" fill="#a6adc8" font-size="10">文档解析 · 索引构建</text>
+      <text x="390" y="174" text-anchor="middle" fill="#a6adc8" font-size="10">检索增强 · 查询路由</text>
+      <text x="390" y="195" text-anchor="middle" fill="#f9e2af" font-size="11" font-weight="600">📄 RAG 最强</text>
+
+      <!-- AutoGen -->
+      <circle cx="630" cy="140" r="110" fill="url(#gAG)" stroke="#a6e3a1" stroke-width="1.5" stroke-dasharray="6,3"/>
+      <text x="630" y="120" text-anchor="middle" fill="#a6e3a1" font-size="16" font-weight="700">🤖 AutoGen</text>
+      <text x="630" y="140" text-anchor="middle" fill="#cdd6f4" font-size="11">多智能体协作框架</text>
+      <text x="630" y="158" text-anchor="middle" fill="#a6adc8" font-size="10">对话驱动 · 角色分工</text>
+      <text x="630" y="174" text-anchor="middle" fill="#a6adc8" font-size="10">代码执行 · 人工介入</text>
+      <text x="630" y="195" text-anchor="middle" fill="#f9e2af" font-size="11" font-weight="600">🤝 协作最强</text>
+
+      <!-- 重叠标注 -->
+      <text x="270" y="280" text-anchor="middle" fill="#6c7086" font-size="10">共同能力：LLM 调用 · 工具使用 · 提示模板</text>
+      <text x="510" y="298" text-anchor="middle" fill="#6c7086" font-size="10">趋势：三者在 Agent 编排层逐渐趋同</text>
+    </svg>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>维度</th><th>LangChain</th><th>LlamaIndex</th><th>AutoGen</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>GitHub Stars</strong></td>
+        <td>~134K ⭐</td>
+        <td>~45K ⭐</td>
+        <td>~13K ⭐</td>
+      </tr>
+      <tr><td><strong>核心定位</strong></td><td>通用 LLM 应用框架</td><td>数据 / RAG 框架</td><td>多智能体协作框架</td></tr>
+      <tr><td><strong>抽象层级</strong></td><td>中高</td><td>中</td><td>中高</td></tr>
+      <tr><td><strong>学习曲线</strong></td><td>较陡（概念多）</td><td>中等</td><td>中等</td></tr>
+      <tr><td><strong>许可证</strong></td><td>MIT</td><td>MIT</td><td>MIT</td></tr>
+      <tr><td><strong>最佳场景</strong></td><td>复杂工作流、状态管理</td><td>文档密集型 RAG</td><td>多角色对话协作</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ========== LangChain 深度分析 ========== -->
+<section id="langchain">
+  <h2>🦜 二、LangChain 深度分析</h2>
+
+  <p>LangChain 由 Harrison Chase 于 2022 年创建，是 LLM 应用开发领域<strong>最成熟、生态最广</strong>的框架。
+  2025–2026 年已演进至 <strong>v1.x</strong>，核心 API 统一为 <code>create_agent()</code>，底层的编排引擎完全基于
+  <strong>LangGraph</strong>（有向图状态机）。</p>
+
+  <h3>🏗️ 核心架构（LangChain 全家桶）</h3>
+
+  <div class="card-row">
+    <div class="card">
+      <h4>🔗 langchain-core</h4>
+      <p>基础抽象层：LCEL（LangChain 表达式语言）、Runnable 协议、消息类型、工具定义。所有上层包共享这一层。</p>
+    </div>
+    <div class="card">
+      <h4>🧠 langchain-openai / anthropic</h4>
+      <p>模型提供商包。支持 OpenAI、Anthropic、Google、AWS Bedrock、Ollama 等 20+ 模型，一行代码切换。</p>
+    </div>
+    <div class="card">
+      <h4>📊 LangGraph</h4>
+      <p>状态图编排引擎。节点的有向图 + 条件边 + 检查点持久化，支持循环、分支、人工介入、时间旅行调试。</p>
+    </div>
+    <div class="card">
+      <h4>🔭 LangSmith</h4>
+      <p>可观测性平台。全链路追踪、A/B 测试评估、成本监控、Agent 舰队管理。可跨框架使用。</p>
+    </div>
+  </div>
+
+  <h3>🔑 六大核心概念</h3>
+
+  <div class="step-grid">
+    <div class="step-card"><div class="num">1</div><h4>Prompt Templates</h4></div>
+    <div class="step-card"><div class="num">2</div><h4>LCEL 链式组合</h4></div>
+    <div class="step-card"><div class="num">3</div><h4>Tools & Function Calling</h4></div>
+    <div class="step-card"><div class="num">4</div><h4>Memory 对话记忆</h4></div>
+    <div class="step-card"><div class="num">5</div><h4>RAG 检索增强生成</h4></div>
+    <div class="step-card"><div class="num">6</div><h4>Agent 智能体</h4></div>
+  </div>
+
+  <h3>💻 代码示例</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="lang-tag">PYTHON</span><span>agent_basic.py — v1.x 统一 API</span></div>
+    <div class="code-body"><pre>
+<span style="color:#6c7086"># LangChain v1.x — 一条链搞定 RAG + Agent</span>
+<span style="color:#cba6f7">from</span> <span style="color:#cdd6f4">langchain</span> <span style="color:#cba6f7">import</span> <span style="color:#cdd6f4">create_agent</span>
+<span style="color:#cba6f7">from</span> <span style="color:#cdd6f4">langchain.tools</span> <span style="color:#cba6f7">import</span> <span style="color:#cdd6f4">tool</span>
+
+<span style="color:#f9e2af">@tool</span>
+<span style="color:#cba6f7">def</span> <span style="color:#89b4fa">search_knowledge_base</span>(<span style="color:#fab387">query</span>: <span style="color:#fab387">str</span>) <span style="color:#cba6f7">-></span> <span style="color:#fab387">str</span>:
+    <span style="color:#a6e3a1">"""搜索公司内部知识库。输入自然语言查询。"""</span>
+    <span style="color:#cba6f7">return</span> <span style="color:#89b4fa">retrieve_from_vector_db</span>(<span style="color:#fab387">query</span>)
+
+<span style="color:#fab387">agent</span> = <span style="color:#89b4fa">create_agent</span>(
+    <span style="color:#fab387">model</span>=<span style="color:#a6e3a1">"claude-fable-5"</span>,          <span style="color:#6c7086"># 可任意切换模型</span>
+    <span style="color:#fab387">tools</span>=[<span style="color:#fab387">search_knowledge_base</span>, <span style="color:#fab387">web_search</span>],
+    <span style="color:#fab387">system_prompt</span>=<span style="color:#a6e3a1">"你是企业内部助手，优先查知识库再联网搜索。"</span>,
+    <span style="color:#fab387">middleware</span>=[<span style="color:#fab387">ModelFallbackMiddleware</span>()],  <span style="color:#6c7086"># 新特性：中间件</span>
+)
+
+<span style="color:#fab387">result</span> = <span style="color:#fab387">agent</span>.<span style="color:#89b4fa">invoke</span>(<span style="color:#a6e3a1">"公司Q3的营收目标是多少？"</span>)</pre></div>
+  </div>
+
+  <h3>✅ 优劣势小结</h3>
+  <table>
+    <thead><tr><th>优势</th><th>劣势</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>✅ 600+ 集成，生态最完善</td>
+        <td>❌ 抽象层厚重，调试困难</td>
+      </tr>
+      <tr>
+        <td>✅ LangGraph 精确状态控制</td>
+        <td>❌ 版本迭代快，曾多次 Breaking Change</td>
+      </tr>
+      <tr>
+        <td>✅ LangSmith 企业级可观测性</td>
+        <td>❌ ~280 个传递依赖，安装包体积大</td>
+      </tr>
+      <tr>
+        <td>✅ 社区活跃，学习资源最丰富</td>
+        <td>❌ 简单场景有过度设计之嫌</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ========== LlamaIndex 深度分析 ========== -->
+<section id="llamaindex">
+  <h2>🦙 三、LlamaIndex 深度分析</h2>
+
+  <p>LlamaIndex（原 GPT Index）由 Jerry Liu 创建，最初专注于<strong>数据连接与检索</strong>。
+  经过 v0.10 重大重构后，已进化为具备 Agent 能力的数据驱动框架——在 RAG 场景下，其精致度和性能往往优于 LangChain。</p>
+
+  <h3>🏗️ 核心架构</h3>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 220" width="100%" style="max-width:720px">
+      <!-- 流水线 -->
+      <rect x="20" y="70" width="110" height="50" rx="10" fill="#313244" stroke="#89b4fa" stroke-width="1.5"/>
+      <text x="75" y="99" text-anchor="middle" fill="#89b4fa" font-size="12" font-weight="600">📥 数据加载</text>
+
+      <text x="145" y="98" fill="#6c7086" font-size="18">→</text>
+
+      <rect x="165" y="70" width="110" height="50" rx="10" fill="#313244" stroke="#89b4fa" stroke-width="1.5"/>
+      <text x="220" y="99" text-anchor="middle" fill="#89b4fa" font-size="12" font-weight="600">✂️ 文本分割</text>
+
+      <text x="290" y="98" fill="#6c7086" font-size="18">→</text>
+
+      <rect x="310" y="70" width="110" height="50" rx="10" fill="#313244" stroke="#89b4fa" stroke-width="1.5"/>
+      <text x="365" y="99" text-anchor="middle" fill="#89b4fa" font-size="12" font-weight="600">🔢 嵌入向量化</text>
+
+      <text x="435" y="98" fill="#6c7086" font-size="18">→</text>
+
+      <rect x="455" y="70" width="110" height="50" rx="10" fill="#313244" stroke="#89b4fa" stroke-width="1.5"/>
+      <text x="510" y="99" text-anchor="middle" fill="#89b4fa" font-size="12" font-weight="600">📇 索引构建</text>
+
+      <text x="580" y="98" fill="#6c7086" font-size="18">→</text>
+
+      <rect x="595" y="70" width="110" height="50" rx="10" fill="#313244" stroke="#a6e3a1" stroke-width="1.5"/>
+      <text x="650" y="99" text-anchor="middle" fill="#a6e3a1" font-size="12" font-weight="600">🔍 查询检索</text>
+
+      <!-- 索引类型 -->
+      <text x="360" y="170" text-anchor="middle" fill="#6c7086" font-size="11">
+        支持索引类型：Vector Store | Tree Index | Keyword Table | Knowledge Graph | Summary Index
+      </text>
+    </svg>
+  </div>
+
+  <h3>🔑 关键特性</h3>
+  <div class="card-row">
+    <div class="card">
+      <h4>📄 LlamaParse</h4>
+      <p>专业文档解析器，PDF/PPTX/Word 复杂排版解析能力业界领先，支持表格、图片提取。</p>
+    </div>
+    <div class="card">
+      <h4>🧩 LlamaHub</h4>
+      <p>数据加载器市场，300+ 连接器覆盖数据库、SaaS 工具、文件格式。</p>
+    </div>
+    <div class="card">
+      <h4>🔀 查询路由</h4>
+      <p>RouterQueryEngine 智能将查询路由到最合适的索引（向量库/SQL/知识图谱）。</p>
+    </div>
+    <div class="card">
+      <h4>📊 Workflow 引擎</h4>
+      <p>事件驱动的 Agent 设计，@step 装饰器语法简洁直观。</p>
+    </div>
+  </div>
+
+  <h3>💻 代码示例</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="lang-tag">PYTHON</span><span>rag_llamaindex.py — 典型 RAG 流水线</span></div>
+    <div class="code-body"><pre>
+<span style="color:#cba6f7">from</span> <span style="color:#cdd6f4">llama_index.core</span> <span style="color:#cba6f7">import</span> <span style="color:#cdd6f4">SimpleDirectoryReader, VectorStoreIndex</span>
+<span style="color:#cba6f7">from</span> <span style="color:#cdd6f4">llama_index.core.node_parser</span> <span style="color:#cba6f7">import</span> <span style="color:#cdd6f4">SentenceSplitter</span>
+
+<span style="color:#6c7086"># 1. 加载文档（支持 PDF、Word、Markdown 等 20+ 格式）</span>
+<span style="color:#fab387">documents</span> = <span style="color:#89b4fa">SimpleDirectoryReader</span>(<span style="color:#a6e3a1">"./knowledge_base"</span>).<span style="color:#89b4fa">load_data</span>()
+
+<span style="color:#6c7086"># 2. 智能分块（保持语义完整性）</span>
+<span style="color:#fab387">parser</span> = <span style="color:#89b4fa">SentenceSplitter</span>(<span style="color:#fab387">chunk_size</span>=<span style="color:#fab387">1024</span>, <span style="color:#fab387">chunk_overlap</span>=<span style="color:#fab387">200</span>)
+<span style="color:#fab387">nodes</span> = <span style="color:#fab387">parser</span>.<span style="color:#89b4fa">get_nodes_from_documents</span>(<span style="color:#fab387">documents</span>)
+
+<span style="color:#6c7086"># 3. 构建向量索引</span>
+<span style="color:#fab387">index</span> = <span style="color:#89b4fa">VectorStoreIndex</span>(<span style="color:#fab387">nodes</span>)
+
+<span style="color:#6c7086"># 4. 查询（支持混合检索 + 重排序）</span>
+<span style="color:#fab387">query_engine</span> = <span style="color:#fab387">index</span>.<span style="color:#89b4fa">as_query_engine</span>(
+    <span style="color:#fab387">similarity_top_k</span>=<span style="color:#fab387">8</span>,
+    <span style="color:#fab387">node_postprocessors</span>=[<span style="color:#89b4fa">SentenceTransformerRerank</span>(<span style="color:#fab387">top_n</span>=<span style="color:#fab387">3</span>)],
+)
+<span style="color:#fab387">response</span> = <span style="color:#fab387">query_engine</span>.<span style="color:#89b4fa">query</span>(<span style="color:#a6e3a1">"2025年Q3的营收目标是多少？"</span>)</pre></div>
+  </div>
+
+  <div class="callout callout-tip">
+    <p><strong>💡 关键洞察：</strong>LlamaIndex 的 chunk_size 建议：散文 400–800 tokens，代码 80–160 tokens，
+      overlap 10–25%。推荐使用混合检索（BM25 + 向量）+ 交叉编码器重排序，Top-5 准确率可达 92%+。</p>
+  </div>
+</section>
+
+<!-- ========== AutoGen 深度分析 ========== -->
+<section id="autogen">
+  <h2>🤖 四、AutoGen 深度分析</h2>
+
+  <p>AutoGen 由微软研究院于 2023 年底发布，核心思想是将<strong>"对话"作为多智能体协作的基础机制</strong>。
+  不同角色的 Agent（规划者、编码者、评审者、执行者）通过自然语言对话来分解和执行任务。</p>
+
+  <div class="callout callout-warn">
+    <p><strong>⚠️ 重要变化（2025–2026）：</strong>2025 年 10 月，微软宣布 AutoGen 与 Semantic Kernel 合并为
+    <strong>Microsoft Agent Framework (MAF)</strong>。AutoGen 不再作为独立框架接收主要功能更新，
+    新项目建议使用 MAF。但 AutoGen 的多智能体协作思想已成为行业标准。</p>
+  </div>
+
+  <h3>🏗️ AutoGen v0.4 三层架构</h3>
+
+  <table>
+    <thead><tr><th>层级</th><th>包名</th><th>职责</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Core</strong></td><td><code>autogen-core</code></td><td>事件驱动原语：RoutedAgent、发布/订阅消息</td></tr>
+      <tr><td><strong>AgentChat</strong></td><td><code>autogen-agentchat</code></td><td>高级 API：AssistantAgent、UserProxyAgent、GroupChat</td></tr>
+      <tr><td><strong>Extensions</strong></td><td><code>autogen-ext</code></td><td>插件生态：OpenAI、MCP、gRPC 等</td></tr>
+    </tbody>
+  </table>
+
+  <h3>🔑 核心抽象</h3>
+
+  <div class="card-row">
+    <div class="card">
+      <h4>👤 ConversableAgent</h4>
+      <p>所有 Agent 的基类。具备发送/接收消息、生成回复、调用工具、执行代码的能力。</p>
+    </div>
+    <div class="card">
+      <h4>👥 GroupChat</h4>
+      <p>多 Agent 群聊容器。支持 Speaker Selection（轮流发言）、max_round 控制对话轮次。</p>
+    </div>
+    <div class="card">
+      <h4>💻 Code Executor</h4>
+      <p>Agent 生成代码后在沙箱中执行，观察输出并自主修复错误（Write-Run-Fix Loop）。</p>
+    </div>
+    <div class="card">
+      <h4>🛑 Human-in-the-Loop</h4>
+      <p>关键步骤暂停等待人工审批，支持人机混合协作。</p>
+    </div>
+  </div>
+
+  <h3>💻 代码示例</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="lang-tag">PYTHON</span><span>autogen_groupchat.py — 多 Agent 群聊协作</span></div>
+    <div class="code-body"><pre>
+<span style="color:#6c7086"># AutoGen 经典模式：规划者 → 研究者 → 编码者 → 评审者 → 执行者</span>
+<span style="color:#cba6f7">from</span> <span style="color:#cdd6f4">autogen</span> <span style="color:#cba6f7">import</span> <span style="color:#cdd6f4">AssistantAgent, UserProxyAgent, GroupChat, GroupChatManager</span>
+
+<span style="color:#fab387">planner</span>    = <span style="color:#89b4fa">AssistantAgent</span>(<span style="color:#fab387">name</span>=<span style="color:#a6e3a1">"planner"</span>,    <span style="color:#fab387">system_message</span>=<span style="color:#a6e3a1">"拆解任务为子步骤。"</span>)
+<span style="color:#fab387">coder</span>      = <span style="color:#89b4fa">AssistantAgent</span>(<span style="color:#fab387">name</span>=<span style="color:#a6e3a1">"coder"</span>,      <span style="color:#fab387">system_message</span>=<span style="color:#a6e3a1">"编写 Python 代码实现。"</span>)
+<span style="color:#fab387">reviewer</span>  = <span style="color:#89b4fa">AssistantAgent</span>(<span style="color:#fab387">name</span>=<span style="color:#a6e3a1">"reviewer"</span>,  <span style="color:#fab387">system_message</span>=<span style="color:#a6e3a1">"审查代码，找问题。"</span>)
+<span style="color:#fab387">executor</span>  = <span style="color:#89b4fa">UserProxyAgent</span>( <span style="color:#fab387">name</span>=<span style="color:#a6e3a1">"executor"</span>,  <span style="color:#fab387">code_execution_config</span>={<span style="color:#a6e3a1">"work_dir"</span>: <span style="color:#a6e3a1">"./workspace"</span>})
+
+<span style="color:#fab387">groupchat</span> = <span style="color:#89b4fa">GroupChat</span>(<span style="color:#fab387">agents</span>=[<span style="color:#fab387">planner</span>, <span style="color:#fab387">coder</span>, <span style="color:#fab387">reviewer</span>, <span style="color:#fab387">executor</span>], <span style="color:#fab387">max_round</span>=<span style="color:#fab387">12</span>)
+<span style="color:#fab387">manager</span>  = <span style="color:#89b4fa">GroupChatManager</span>(<span style="color:#fab387">groupchat</span>=<span style="color:#fab387">groupchat</span>)
+
+<span style="color:#fab387">executor</span>.<span style="color:#89b4fa">initiate_chat</span>(<span style="color:#fab387">manager</span>, <span style="color:#fab387">message</span>=<span style="color:#a6e3a1">"写一个从 Yahoo Finance 下载股票数据的 Python 类"</span>)</pre></div>
+  </div>
+
+  <div class="callout callout-danger">
+    <p><strong>⚡ 注意：</strong>多 Agent 对话会成倍放大 Token 消耗。5 个 Agent × 12 轮对话可能消耗数万 Token。
+    务必设置 max_round 上限，并考虑使用更便宜或本地模型来降低成本。</p>
+  </div>
+</section>
+
+<!-- ========== 五方深度对比 ========== -->
+<section id="compare">
+  <h2>⚖️ 五、三方深度对比</h2>
+
+  <h3>5.1 能力矩阵对比</h3>
+
+  <table>
+    <thead>
+      <tr><th>能力维度</th><th>LangChain</th><th>LlamaIndex</th><th>AutoGen</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>模型集成</td><td>⭐⭐⭐⭐⭐<br><small>20+ 提供商</small></td><td>⭐⭐⭐⭐<br><small>主要 LLM 全覆盖</small></td><td>⭐⭐⭐⭐<br><small>OpenAI 优先</small></td></tr>
+      <tr><td>RAG 能力</td><td>⭐⭐⭐⭐<br><small>基础完善</small></td><td>⭐⭐⭐⭐⭐<br><strong>业界最强</strong></td><td>⭐⭐<br><small>非核心场景</small></td></tr>
+      <tr><td>Agent 编排</td><td>⭐⭐⭐⭐⭐<br><strong>精确控制</strong></td><td>⭐⭐⭐<br><small>持续追赶中</small></td><td>⭐⭐⭐⭐<br><small>对话式编排</small></td></tr>
+      <tr><td>多 Agent 协作</td><td>⭐⭐⭐⭐<br><small>Supervisor 模式</small></td><td>⭐⭐⭐<br><small>基础支持</small></td><td>⭐⭐⭐⭐⭐<br><strong>原生支持</strong></td></tr>
+      <tr><td>代码执行</td><td>⭐⭐<br><small>需自行集成</small></td><td>⭐⭐<br><small>需自行集成</small></td><td>⭐⭐⭐⭐⭐<br><strong>沙箱执行+自修复</strong></td></tr>
+      <tr><td>文档解析</td><td>⭐⭐⭐<br><small>基础加载器</small></td><td>⭐⭐⭐⭐⭐<br><strong>LlamaParse</strong></td><td>⭐<br><small>不涉及</small></td></tr>
+      <tr><td>可观测性</td><td>⭐⭐⭐⭐⭐<br><strong>LangSmith</strong></td><td>⭐⭐⭐<br><small>基础追踪</small></td><td>⭐⭐<br><small>基础日志</small></td></tr>
+      <tr><td>学习资源</td><td>⭐⭐⭐⭐⭐<br><strong>最丰富</strong></td><td>⭐⭐⭐⭐<br><small>文档优秀</small></td><td>⭐⭐⭐<br><small>微软生态</small></td></tr>
+      <tr><td>生产部署</td><td>⭐⭐⭐⭐⭐<br><strong>LangServe+K8s</strong></td><td>⭐⭐⭐⭐<br><small>FastAPI 集成</small></td><td>⭐⭐⭐<br><small>Azure 优先</small></td></tr>
+    </tbody>
+  </table>
+
+  <h3>5.2 适合场景速查</h3>
+
+  <div class="card-row">
+    <div class="card" style="border-left: 3px solid #cba6f7;">
+      <h4 style="color:#cba6f7">选 LangChain 当……</h4>
+      <p>✅ 需要复杂工作流编排（分支、循环、条件路由）<br>
+      ✅ 要在多个模型提供商间灵活切换<br>
+      ✅ 需要生产级可观测性（LangSmith）<br>
+      ✅ 团队规模 4 人以上，有工程化要求<br>
+      ✅ 构建通用 LLM 应用（不限于 RAG）</p>
+    </div>
+    <div class="card" style="border-left: 3px solid #89b4fa;">
+      <h4 style="color:#89b4fa">选 LlamaIndex 当……</h4>
+      <p>✅ 核心场景是文档检索引擎（知识库、法律/合同分析）<br>
+      ✅ 需要处理大量非结构化数据（PDF、PPTX、网页）<br>
+      ✅ 对检索精度要求高（混合检索 + 重排序）<br>
+      ✅ 希望依赖更少、代码更简洁<br>
+      ✅ 团队专注 RAG 方向</p>
+    </div>
+    <div class="card" style="border-left: 3px solid #a6e3a1;">
+      <h4 style="color:#a6e3a1">选 AutoGen 当……</h4>
+      <p>✅ 需要多角色协作（设计评审、编写+审查+测试）<br>
+      ✅ 场景是代码生成+自动执行+修复<br>
+      ✅ 微软/Azure 技术栈<br>
+      ✅ 需要人工审批节点（Human-in-the-Loop）<br>
+      ✅ 快速原型验证多智能体方案</p>
+    </div>
+  </div>
+
+  <h3>5.3 技术趋势（2026 展望）</h3>
+
+  <div class="timeline">
+    <div class="timeline-item">
+      <h4>🔀 框架趋同</h4>
+      <p>三者都在向 Agent 编排能力靠拢。LangGraph 的图编排、LlamaIndex 的 Workflow、AutoGen 的 GroupChat
+      正在以不同方式解决同一问题——多步骤智能体协调。</p>
+    </div>
+    <div class="timeline-item">
+      <h4>🔗 组合使用成为主流</h4>
+      <p>生产团队常见的组合：<strong>LangGraph 做主编排 → LlamaIndex 做检索 → 底层直接调用 LLM API</strong>。
+      不再迷信单一框架解决所有问题。</p>
+    </div>
+    <div class="timeline-item">
+      <h4>📉 "无框架"趋势</h4>
+      <p>部分大厂开始用极简自定义循环（直接 tool-calling + LLM API）替代重框架，避免版本依赖和抽象开销。</p>
+    </div>
+    <div class="timeline-item">
+      <h4>🔄 AutoGen → MAF</h4>
+      <p>AutoGen 并入 Microsoft Agent Framework，.NET 生态企业用户将获得原生支持。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 推荐学习路线 ========== -->
+<section id="roadmap">
+  <h2>🗺️ 六、推荐学习路线</h2>
+
+  <p>综合以上分析，推荐的<strong>最佳学习策略</strong>是：以 <strong>LangChain/LangGraph 为主线</strong>，
+  切入 LlamaIndex 补充 RAG 能力，了解 AutoGen 的多智能体协作思想。
+  按以下四阶段、约 8–12 周、每天 2–3 小时推进：</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 760 380" width="100%" style="max-width:760px">
+      <!-- 阶段盒子 -->
+      <!-- P1 -->
+      <rect x="15" y="20" width="170" height="145" rx="12" fill="#1e1e2e" stroke="#a6e3a1" stroke-width="2"/>
+      <rect x="15" y="20" width="170" height="34" rx="12" fill="rgba(166,227,161,0.12)"/>
+      <text x="100" y="43" text-anchor="middle" fill="#a6e3a1" font-size="13" font-weight="700">🌱 Phase 1：基础</text>
+      <text x="100" y="70" text-anchor="middle" fill="#cdd6f4" font-size="11">1–2 周</text>
+      <text x="100" y="90" text-anchor="middle" fill="#a6adc8" font-size="10">• LLM 原理 & API 调用</text>
+      <text x="100" y="106" text-anchor="middle" fill="#a6adc8" font-size="10">• Prompt Engineering</text>
+      <text x="100" y="122" text-anchor="middle" fill="#a6adc8" font-size="10">• Tool Calling 基础</text>
+      <text x="100" y="138" text-anchor="middle" fill="#a6adc8" font-size="10">• Transformer 理解</text>
+
+      <text x="195" y="95" fill="#6c7086" font-size="20">→</text>
+
+      <!-- P2 -->
+      <rect x="215" y="20" width="170" height="145" rx="12" fill="#1e1e2e" stroke="#89b4fa" stroke-width="2"/>
+      <rect x="215" y="20" width="170" height="34" rx="12" fill="rgba(137,180,250,0.12)"/>
+      <text x="300" y="43" text-anchor="middle" fill="#89b4fa" font-size="13" font-weight="700">🛠️ Phase 2：框架</text>
+      <text x="300" y="70" text-anchor="middle" fill="#cdd6f4" font-size="11">3–4 周</text>
+      <text x="300" y="90" text-anchor="middle" fill="#a6adc8" font-size="10">• LangChain 核心概念</text>
+      <text x="300" y="106" text-anchor="middle" fill="#a6adc8" font-size="10">• LCEL 链式组合</text>
+      <text x="300" y="122" text-anchor="middle" fill="#a6adc8" font-size="10">• Memory & 对话管理</text>
+      <text x="300" y="138" text-anchor="middle" fill="#a6adc8" font-size="10">• 简单 Agent 实现</text>
+
+      <text x="395" y="95" fill="#6c7086" font-size="20">→</text>
+
+      <!-- P3 -->
+      <rect x="415" y="20" width="170" height="145" rx="12" fill="#1e1e2e" stroke="#cba6f7" stroke-width="2"/>
+      <rect x="415" y="20" width="170" height="34" rx="12" fill="rgba(203,166,247,0.12)"/>
+      <text x="500" y="43" text-anchor="middle" fill="#cba6f7" font-size="13" font-weight="700">⚡ Phase 3：进阶</text>
+      <text x="500" y="70" text-anchor="middle" fill="#cdd6f4" font-size="11">2–3 周</text>
+      <text x="500" y="90" text-anchor="middle" fill="#a6adc8" font-size="10">• RAG 全流程实战</text>
+      <text x="500" y="106" text-anchor="middle" fill="#a6adc8" font-size="10">• LangGraph 状态图</text>
+      <text x="500" y="122" text-anchor="middle" fill="#a6adc8" font-size="10">• LlamaIndex 检索</text>
+      <text x="500" y="138" text-anchor="middle" fill="#a6adc8" font-size="10">• 多 Agent 协作入门</text>
+
+      <text x="595" y="95" fill="#6c7086" font-size="20">→</text>
+
+      <!-- P4 -->
+      <rect x="615" y="20" width="130" height="145" rx="12" fill="#1e1e2e" stroke="#f38ba8" stroke-width="2"/>
+      <rect x="615" y="20" width="130" height="34" rx="12" fill="rgba(243,139,168,0.12)"/>
+      <text x="680" y="43" text-anchor="middle" fill="#f38ba8" font-size="13" font-weight="700">🚀 Phase 4</text>
+      <text x="680" y="70" text-anchor="middle" fill="#cdd6f4" font-size="11">2–4 周</text>
+      <text x="680" y="90" text-anchor="middle" fill="#a6adc8" font-size="10">• LangSmith 观测</text>
+      <text x="680" y="106" text-anchor="middle" fill="#a6adc8" font-size="10">• 高级 RAG 技术</text>
+      <text x="680" y="122" text-anchor="middle" fill="#a6adc8" font-size="10">• 生产化部署</text>
+      <text x="680" y="138" text-anchor="middle" fill="#a6adc8" font-size="10">• 端到端项目</text>
+
+      <!-- 底部：推荐资源 -->
+      <rect x="15" y="190" width="730" height="175" rx="12" fill="#1e1e2e" stroke="#45475a" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="380" y="215" text-anchor="middle" fill="#cdd6f4" font-size="13" font-weight="600">📚 各阶段推荐学习资源</text>
+
+      <text x="40" y="242" fill="#a6adc8" font-size="11">P1</text>
+      <text x="65" y="242" fill="#cdd6f4" font-size="11">DeepLearning.AI「Agentic AI」(Andrew Ng) · 微软「AI Agents for Beginners」中文版</text>
+
+      <text x="40" y="264" fill="#a6adc8" font-size="11">P2</text>
+      <text x="65" y="264" fill="#cdd6f4" font-size="11">LangChain Academy 免费课程 · JetBrains LangChain Tutorial 2026 · 《Generative AI with LangChain》(Packt)</text>
+
+      <text x="40" y="286" fill="#a6adc8" font-size="11">P3</text>
+      <text x="65" y="286" fill="#cdd6f4" font-size="11">DeepLearning.AI「AI Agents in LangGraph」·「Multi AI Agent with crewAI」· UC Berkeley LLM Agents MOOC</text>
+
+      <text x="40" y="308" fill="#a6adc8" font-size="11">P4</text>
+      <text x="65" y="308" fill="#cdd6f4" font-size="11">LangSmith Cookbook · 《Mastering LangChain》(Apress) · 各框架 GitHub Examples</text>
+
+      <text x="40" y="338" fill="#a6adc8" font-size="11">全阶段</text>
+      <text x="65" y="338" fill="#cdd6f4" font-size="11">glyphrun/agentic-frameworks (GitHub 框架对比仓库) · AdilShamim8/GenAI-Roadmap</text>
+      <text x="65" y="354" fill="#cdd6f4" font-size="11">LangChain Forum · CSDN/知乎/百度开发者 AI Agent 专题</text>
+    </svg>
+  </div>
+
+  <h3>各阶段详细内容</h3>
+
+  <div class="timeline">
+
+    <div class="timeline-item">
+      <h4>🌱 Phase 1：基础筑基（第 1–2 周）</h4>
+      <p><strong>目标：</strong>脱离框架，理解 LLM 底层原理。<br>
+      <strong>内容：</strong>Transformer 架构 · Tokenization (BPE/SentencePiece) ·
+      Embedding 原理 · 直接调用 OpenAI/Anthropic API · 手写多轮对话 · Function Calling 机制 ·
+      Prompt Engineering（零样本/少样本/CoT）<br>
+      <strong>⚠️ 不要碰框架：</strong>先用原生 API 实现一遍，理解底层后再用框架才能事半功倍。</p>
+    </div>
+
+    <div class="timeline-item">
+      <h4>🛠️ Phase 2：LangChain 核心（第 3–6 周）</h4>
+      <p><strong>目标：</strong>掌握 LangChain 核心抽象与 LCEL。<br>
+      <strong>内容：</strong><br>
+      • PromptTemplate → ChatModel → OutputParser 流水线<br>
+      • LCEL：<code>chain = prompt | model | parser</code>，理解 Runnable 协议<br>
+      • Memory 管理：BufferMemory / SummaryMemory / LangGraph 检查点<br>
+      • Tools：@tool 装饰器 + bind_tools<br>
+      • Agent：create_agent() 一站式创建<br>
+      <strong>✅ 里程碑：</strong>能独立构建一个带记忆和工具的对话 Agent。</p>
+    </div>
+
+    <div class="timeline-item">
+      <h4>⚡ Phase 3：RAG + Agent 进阶（第 7–9 周）</h4>
+      <p><strong>目标：</strong>掌握 RAG 全流程 + LangGraph 状态机。<br>
+      <strong>内容：</strong><br>
+      • RAG 全链路：加载→分割(800-1200 tokens)→嵌入→向量库→检索→生成<br>
+      • LangGraph：StateGraph + Node + Conditional Edge + Checkpointer<br>
+      • 对比 LlamaIndex 的 RAG 实现，理解其索引和查询路由优势<br>
+      • 了解 AutoGen 的 GroupChat 多 Agent 协作模式<br>
+      • 可选：CrewAI 快速尝鲜（角色驱动多 Agent）<br>
+      <strong>✅ 里程碑：</strong>能用 LangGraph 构建含人工审批节点的多 Agent 工作流。</p>
+    </div>
+
+    <div class="timeline-item">
+      <h4>🚀 Phase 4：生产化与实战（第 10–12 周）</h4>
+      <p><strong>目标：</strong>将 Agent 从笔记本搬到生产环境。<br>
+      <strong>内容：</strong><br>
+      • LangSmith 全链路追踪与评估<br>
+      • 高级 RAG：混合检索、重排序、Self-RAG、多模态 RAG<br>
+      • 部署：LangServe / FastAPI / Docker / K8s<br>
+      • 生产最佳实践：限流、降级、语义缓存、Token 预算控制<br>
+      <strong>✅ 里程碑：</strong>完成一个可部署的端到端 AI 应用。</p>
+    </div>
+
+  </div>
+
+  <h3>🎯 学习建议（避坑指南）</h3>
+  <table>
+    <thead><tr><th>常见坑</th><th>避坑方案</th></tr></thead>
+    <tbody>
+      <tr><td>一上来就学框架，不理解底层</td><td>Phase 1 必须用原生 API 写一遍 ReAct 循环</td></tr>
+      <tr><td>版本混乱（v0.x vs v1.x）</td><td>固定版本号，新项目直接用 v1.x 统一 API</td></tr>
+      <tr><td>RAG 效果差</td><td>调 chunk_size (800-1200) + overlap (20%) + 混合检索 + 重排序</td></tr>
+      <tr><td>Agent 无限循环</td><td>始终设置 max_iterations / max_round 上限</td></tr>
+      <tr><td>三个框架都想学透</td><td><strong>深挖 LangChain 主线</strong>，LlamaIndex 和 AutoGen 做到"知道什么时候该用"即可</td></tr>
+      <tr><td>学了框架不会写代码</td><td>每个 Phase 完成至少 1 个实战项目，代码写进 GitHub</td></tr>
+      <tr><td>忽视可观测性</td><td>Day 1 就接入 LangSmith，调试效率提升 10x</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ========== 实战项目建议 ========== -->
+<section id="projects">
+  <h2>🧪 七、实战项目建议</h2>
+
+  <p>每个 Phase 配一个实战项目，代码提交到 GitHub，即可形成有说服力的作品集：</p>
+
+  <table>
+    <thead>
+      <tr><th>Phase</th><th>项目名称</th><th>技术栈</th><th>核心能力</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="tag tag-green">P1</span></td>
+        <td><strong>CLI 翻译助手</strong></td>
+        <td>原生 OpenAI/Anthropic API</td>
+        <td>多轮对话 · Streaming · Function Calling</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-blue">P2</span></td>
+        <td><strong>个人知识库问答</strong></td>
+        <td>LangChain + Chroma/FAISS</td>
+        <td>文档加载 · 向量化 · RAG · Memory</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-purple">P3</span></td>
+        <td><strong>研究助手 Agent</strong></td>
+        <td>LangGraph + LlamaIndex</td>
+        <td>多 Agent 协作 · LangGraph 状态图 · 高级 RAG</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-red">P4</span></td>
+        <td><strong>智能客服系统</strong></td>
+        <td>LangGraph + FastAPI + LangSmith</td>
+        <td>生产部署 · 可观测性 · 容错 · 性能优化</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ========== 资源汇总 ========== -->
+<section id="resources">
+  <h2>📖 八、参考资源汇总</h2>
+
+  <div class="card-row">
+    <div class="card">
+      <h4>🎓 免费课程</h4>
+      <p style="font-size:0.85rem; line-height:2">
+        🔗 <a href="https://academy.langchain.com/" style="color:#89b4fa">LangChain Academy</a> — 8 小时系统课<br>
+        🔗 <a href="https://www.deeplearning.ai/short-courses/ai-agents-in-langgraph/" style="color:#89b4fa">DeepLearning.AI - AI Agents in LangGraph</a><br>
+        🔗 <a href="https://www.deeplearning.ai/short-courses/multi-ai-agent-systems-with-crewai/" style="color:#89b4fa">Multi AI Agent with crewAI</a><br>
+        🔗 <a href="https://github.com/microsoft/ai-agents-for-beginners" style="color:#89b4fa">微软 AI Agents for Beginners (中文)</a><br>
+        🔗 <a href="https://llmagents-learning.org/sp25" style="color:#89b4fa">UC Berkeley LLM Agents MOOC</a>
+      </p>
+    </div>
+    <div class="card">
+      <h4>📘 推荐书籍</h4>
+      <p style="font-size:0.85rem; line-height:2">
+        📖 《Generative AI with LangChain》(Packt, 2nd Ed. 2025)<br>
+        📖 《Mastering LangChain》(Apress, 2025)<br>
+        📖 《LangChain与LangGraph实战》(机械工业, 2026)<br>
+        📖 《Multi Agent Development with AutoGen》(2025)
+      </p>
+    </div>
+    <div class="card">
+      <h4>🐙 GitHub 仓库</h4>
+      <p style="font-size:0.85rem; line-height:2">
+        🔗 <a href="https://github.com/langchain-ai/langgraph/tree/main/examples" style="color:#89b4fa">langgraph/examples</a> — 官方模式<br>
+        🔗 <a href="https://github.com/AdilShamim8/GenAI-Roadmap-with-Notes-and-Projects" style="color:#89b4fa">GenAI-Roadmap</a> — 学习路线<br>
+        🔗 <a href="https://github.com/glyphrun/agentic-frameworks" style="color:#89b4fa">agentic-frameworks</a> — 40+ 框架对比<br>
+        🔗 <a href="https://github.com/jkmaina/autogen_blueprint" style="color:#89b4fa">autogen_blueprint</a> — AutoGen 代码示例
+      </p>
+    </div>
+    <div class="card">
+      <h4>🛠️ 工具 & 平台</h4>
+      <p style="font-size:0.85rem; line-height:2">
+        🔗 <a href="https://docs.langchain.com/" style="color:#89b4fa">LangChain 官方文档</a><br>
+        🔗 <a href="https://docs.smith.langchain.com/" style="color:#89b4fa">LangSmith Cookbook</a><br>
+        🔗 <a href="https://docs.llamaindex.ai/" style="color:#89b4fa">LlamaIndex 文档</a><br>
+        🔗 <a href="https://learn.microsoft.com/agent-framework/" style="color:#89b4fa">Microsoft Agent Framework</a>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 总结与选型建议 ========== -->
+<section id="verdict">
+  <h2>🏁 九、总结与最终建议</h2>
+
+  <div class="callout callout-info">
+    <p><strong>一句话总结：</strong>2026 年学习 AI Agent 开发，<strong>以 LangChain + LangGraph 为主线（最通用、岗位需求最大），
+    辅以 LlamaIndex 强化 RAG 能力，通过 AutoGen 理解多智能体协作思想</strong>。不要试图同时精通三个框架——
+    深度掌握 LangChain 后，另两个框架的核心思想可在 1–2 周内快速上手。</p>
+  </div>
+
+  <h3>🎯 选型决策树</h3>
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 360" width="100%" style="max-width:720px">
+      <!-- 根节点 -->
+      <rect x="260" y="15" width="200" height="36" rx="18" fill="#cba6f7"/>
+      <text x="360" y="38" text-anchor="middle" fill="#1e1e2e" font-size="12" font-weight="700">你的核心需求是？</text>
+
+      <!-- 分支1: 文档RAG -->
+      <line x1="290" y1="51" x2="100" y2="95" stroke="#89b4fa" stroke-width="1.5"/>
+      <rect x="15" y="95" width="170" height="36" rx="8" fill="rgba(137,180,250,0.15)" stroke="#89b4fa" stroke-width="1"/>
+      <text x="100" y="117" text-anchor="middle" fill="#89b4fa" font-size="11" font-weight="600">文档检索 / RAG</text>
+
+      <!-- 分支2: 工作流 -->
+      <line x1="360" y1="51" x2="360" y2="95" stroke="#cba6f7" stroke-width="1.5"/>
+      <rect x="260" y="95" width="200" height="36" rx="8" fill="rgba(203,166,247,0.15)" stroke="#cba6f7" stroke-width="1"/>
+      <text x="360" y="117" text-anchor="middle" fill="#cba6f7" font-size="11" font-weight="600">复杂工作流 / 状态管理</text>
+
+      <!-- 分支3: 多Agent -->
+      <line x1="430" y1="51" x2="620" y2="95" stroke="#a6e3a1" stroke-width="1.5"/>
+      <rect x="535" y="95" width="170" height="36" rx="8" fill="rgba(166,227,161,0.15)" stroke="#a6e3a1" stroke-width="1"/>
+      <text x="620" y="117" text-anchor="middle" fill="#a6e3a1" font-size="11" font-weight="600">多角色对话协作</text>
+
+      <!-- 叶节点 -->
+      <line x1="100" y1="131" x2="100" y2="175" stroke="#89b4fa" stroke-width="1"/>
+      <rect x="15" y="175" width="170" height="55" rx="10" fill="#313244" stroke="#89b4fa" stroke-width="2"/>
+      <text x="100" y="198" text-anchor="middle" fill="#89b4fa" font-size="14" font-weight="700">🦙 LlamaIndex</text>
+      <text x="100" y="217" text-anchor="middle" fill="#a6adc8" font-size="10">+ LangChain 做编排</text>
+
+      <line x1="360" y1="131" x2="360" y2="175" stroke="#cba6f7" stroke-width="1"/>
+      <rect x="260" y="175" width="200" height="55" rx="10" fill="#313244" stroke="#cba6f7" stroke-width="2"/>
+      <text x="360" y="198" text-anchor="middle" fill="#cba6f7" font-size="14" font-weight="700">🦜 LangGraph</text>
+      <text x="360" y="217" text-anchor="middle" fill="#a6adc8" font-size="10">+ LlamaIndex 做 RAG</text>
+
+      <line x1="620" y1="131" x2="620" y2="175" stroke="#a6e3a1" stroke-width="1"/>
+      <rect x="535" y="175" width="170" height="55" rx="10" fill="#313244" stroke="#a6e3a1" stroke-width="2"/>
+      <text x="620" y="198" text-anchor="middle" fill="#a6e3a1" font-size="14" font-weight="700">🤖 AutoGen / MAF</text>
+      <text x="620" y="217" text-anchor="middle" fill="#a6adc8" font-size="10">+ Azure 生态</text>
+
+      <!-- 底部建议 -->
+      <rect x="100" y="265" width="520" height="80" rx="12" fill="rgba(249,226,175,0.06)" stroke="#f9e2af" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="360" y="292" text-anchor="middle" fill="#f9e2af" font-size="13" font-weight="600">💡 2026 年行业共识</text>
+      <text x="360" y="312" text-anchor="middle" fill="#cdd6f4" font-size="11">L1 主线：LangChain → LangGraph（60% 精力）&nbsp;&nbsp;|&nbsp;&nbsp; L2 增强：LlamaIndex RAG（25% 精力）</text>
+      <text x="360" y="332" text-anchor="middle" fill="#cdd6f4" font-size="11">L3 了解：AutoGen 多 Agent 思想（15% 精力）&nbsp;&nbsp;|&nbsp;&nbsp; 所有阶段均配合实战项目</text>
+    </svg>
+  </div>
+</section>
+
+<footer>
+  <p>📝 本报告基于 2026 年 7 月公开资料整理 · 部分链接可能随时间更新</p>
+  <p>报告生成：Claude Code (Opus 4.8) · 数据来源：官方文档、GitHub、DeepLearning.AI、Microsoft Learn、CSDN、知乎等</p>
+</footer>
+
+</main>
+
+<script>
+// 侧边栏切换
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+
+// TOC 高亮当前章节
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('#sidebar nav a');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      navLinks.forEach(a => a.classList.remove('active'));
+      const link = document.querySelector(`#sidebar nav a[href="#${e.target.id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+sections.forEach(s => observer.observe(s));
+
+// 移动端点击导航后关闭侧边栏
+navLinks.forEach(a => {
+  a.addEventListener('click', () => {
+    if (window.innerWidth <= 768) toggleSidebar();
+  });
+});
+</script>
+
+</body>
+</html>
