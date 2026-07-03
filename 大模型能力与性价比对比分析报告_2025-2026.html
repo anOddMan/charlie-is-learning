@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2025-2026 国内外主流大模型能力与性价比深度分析报告</title>
+<style>
+/* ===== Catppuccin 暗色主题 ===== */
+:root {
+  --bg: #1e1e2e;
+  --bg-alt: #181825;
+  --bg-card: #242438;
+  --fg: #cdd6f4;
+  --fg-muted: #a6adc8;
+  --fg-subtle: #6c7086;
+  --accent: #89b4fa;
+  --accent2: #cba6f7;
+  --green: #a6e3a1;
+  --peach: #fab387;
+  --red: #f38ba8;
+  --teal: #94e2d5;
+  --yellow: #f9e2af;
+  --border: rgba(205,214,244,0.08);
+  --radius: 12px;
+
+  --sidebar-w: 260px;
+  --header-h: 56px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; font-size:15px; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  line-height:1.7;
+  display:flex;
+  min-height:100vh;
+}
+
+/* ===== 侧边栏 ===== */
+#sidebar {
+  width:var(--sidebar-w);
+  min-width:var(--sidebar-w);
+  height:100vh;
+  position:sticky;
+  top:0;
+  background:var(--bg-alt);
+  border-right:1px solid var(--border);
+  overflow-y:auto;
+  padding:24px 16px;
+  z-index:100;
+  display:flex;
+  flex-direction:column;
+}
+#sidebar h2 {
+  font-size:1.1rem;
+  color:var(--accent);
+  margin-bottom:8px;
+  letter-spacing:0.5px;
+}
+#sidebar .subtitle {
+  font-size:0.78rem;
+  color:var(--fg-subtle);
+  margin-bottom:24px;
+}
+#sidebar nav { flex:1; }
+#sidebar nav a {
+  display:block;
+  padding:7px 12px;
+  color:var(--fg-muted);
+  text-decoration:none;
+  font-size:0.85rem;
+  border-radius:6px;
+  transition:all 0.15s;
+  margin-bottom:2px;
+}
+#sidebar nav a:hover,
+#sidebar nav a.active {
+  background:rgba(137,180,250,0.1);
+  color:var(--accent);
+}
+#sidebar nav .section-title {
+  font-size:0.7rem;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  color:var(--fg-subtle);
+  padding:16px 12px 4px;
+  border-top:1px solid var(--border);
+  margin-top:12px;
+}
+
+/* ===== 主内容区 ===== */
+#main {
+  flex:1;
+  max-width:1100px;
+  padding:32px 40px;
+  overflow-x:hidden;
+}
+
+/* ===== 页头 ===== */
+header {
+  text-align:center;
+  margin-bottom:40px;
+  padding-bottom:32px;
+  border-bottom:2px solid var(--border);
+}
+header h1 {
+  font-size:2rem;
+  color:var(--accent);
+  margin-bottom:8px;
+}
+header .meta {
+  color:var(--fg-subtle);
+  font-size:0.85rem;
+}
+header .summary {
+  max-width:720px;
+  margin:20px auto 0;
+  padding:20px 24px;
+  background:var(--bg-card);
+  border-radius:var(--radius);
+  border-left:3px solid var(--accent);
+  font-size:0.92rem;
+  color:var(--fg-muted);
+  text-align:left;
+  line-height:1.8;
+}
+.reading-time {
+  display:inline-block;
+  background:var(--bg-card);
+  color:var(--fg-muted);
+  font-size:0.78rem;
+  padding:4px 14px;
+  border-radius:99px;
+  margin-top:12px;
+  border:1px solid var(--border);
+}
+
+/* ===== 章节 ===== */
+section {
+  margin-bottom:48px;
+  scroll-margin-top:24px;
+}
+section h2 {
+  font-size:1.45rem;
+  color:var(--accent2);
+  margin-bottom:16px;
+  padding-bottom:8px;
+  border-bottom:1px solid var(--border);
+}
+section h3 {
+  font-size:1.15rem;
+  color:var(--accent);
+  margin:28px 0 14px;
+}
+section h4 {
+  font-size:1rem;
+  color:var(--peach);
+  margin:20px 0 10px;
+}
+
+p, li { color:var(--fg-muted); font-size:0.93rem; }
+p { margin-bottom:12px; }
+ul, ol { padding-left:24px; margin-bottom:16px; }
+li { margin-bottom:6px; }
+
+strong { color:var(--fg); }
+
+/* ===== 表格 ===== */
+.table-wrap {
+  overflow-x:auto;
+  margin:20px 0;
+  border-radius:var(--radius);
+  border:1px solid var(--border);
+}
+table {
+  width:100%;
+  border-collapse:collapse;
+  font-size:0.85rem;
+  min-width:600px;
+}
+thead { background:rgba(137,180,250,0.08); }
+th {
+  padding:10px 12px;
+  text-align:left;
+  color:var(--accent);
+  font-weight:600;
+  white-space:nowrap;
+  border-bottom:2px solid var(--border);
+}
+td {
+  padding:9px 12px;
+  color:var(--fg-muted);
+  border-bottom:1px solid var(--border);
+}
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:rgba(255,255,255,0.02); }
+.num { text-align:right; font-variant-numeric:tabular-nums; }
+.rank-1 { color:var(--yellow); font-weight:700; }
+.rank-2 { color:var(--fg); font-weight:600; }
+.rank-3 { color:var(--peach); font-weight:600; }
+.best { background:rgba(166,227,161,0.08); }
+.star { color:var(--yellow); }
+
+/* ===== 提示框 ===== */
+.callout {
+  margin:20px 0;
+  padding:16px 20px;
+  border-radius:var(--radius);
+  font-size:0.9rem;
+  border-left:3px solid;
+}
+.callout.info { background:rgba(137,180,250,0.06); border-color:var(--accent); }
+.callout.warn { background:rgba(249,226,175,0.06); border-color:var(--yellow); }
+.callout.tip  { background:rgba(166,227,161,0.06); border-color:var(--green); }
+.callout strong { display:block; margin-bottom:4px; }
+
+/* ===== 排序条 ===== */
+.rank-bar {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:6px 0;
+}
+.rank-bar .label { width:120px; font-size:0.82rem; color:var(--fg-muted); flex-shrink:0; }
+.rank-bar .track {
+  flex:1; height:22px; background:rgba(255,255,255,0.04);
+  border-radius:4px; overflow:hidden; position:relative;
+}
+.rank-bar .fill {
+  height:100%; border-radius:4px; transition:width 0.6s;
+}
+.rank-bar .val {
+  width:56px; font-size:0.8rem; text-align:right; font-weight:600;
+  color:var(--fg); flex-shrink:0;
+}
+
+/* ===== 标签 ===== */
+.tag {
+  display:inline-block;
+  padding:2px 10px;
+  border-radius:99px;
+  font-size:0.72rem;
+  font-weight:600;
+  letter-spacing:0.3px;
+}
+.tag.cn { background:rgba(250,179,135,0.15); color:var(--peach); }
+.tag.us { background:rgba(137,180,250,0.15); color:var(--accent); }
+.tag.best { background:rgba(166,227,161,0.15); color:var(--green); }
+.tag.warn { background:rgba(249,226,175,0.15); color:var(--yellow); }
+
+/* ===== 雷达图占位 ===== */
+.radar-placeholder {
+  display:flex; gap:40px; align-items:center; justify-content:center;
+  padding:32px; margin:20px 0; background:var(--bg-card); border-radius:var(--radius);
+  border:1px solid var(--border); flex-wrap:wrap;
+}
+.radar-placeholder .note {
+  font-size:0.82rem; color:var(--fg-subtle); max-width:280px;
+}
+
+/* ===== 响应式 ===== */
+@media (max-width:768px) {
+  body { flex-direction:column; }
+  #sidebar {
+    position:relative; width:100%; min-width:auto; height:auto;
+    max-height:40vh; border-right:none; border-bottom:1px solid var(--border);
+  }
+  #main { padding:20px 16px; }
+  header h1 { font-size:1.5rem; }
+  .radar-placeholder { flex-direction:column; gap:20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== 侧边栏导航 ==================== -->
+<aside id="sidebar">
+  <h2>📊 大模型分析报告</h2>
+  <p class="subtitle">2025-2026 能力与性价比深度对比</p>
+  <nav>
+    <a href="#overview">一、模型总览与梯队</a>
+    <a href="#coding">二、编程与软件工程</a>
+    <a href="#reasoning">三、数理逻辑推理</a>
+    <a href="#multimodal">四、多模态能力</a>
+    <a href="#agent">五、Agent 与工具调用</a>
+    <a href="#chinese">六、中文能力</a>
+    <a href="#longcontext">七、长文本与上下文</a>
+    <a href="#opensource">八、开源生态</a>
+    <a href="#cost">九、成本与性价比</a>
+    <a href="#enterprise">十、企业级部署</a>
+    <a href="#conclusion">十一、总结与选型建议</a>
+  </nav>
+</aside>
+
+<!-- ==================== 主内容区 ==================== -->
+<main id="main">
+
+<!-- 页头 -->
+<header>
+  <h1>2025-2026 国内外主流大模型<br>能力与性价比深度分析报告</h1>
+  <div class="meta">数据截至 2026 年 7 月 · 综合 SuperCLUE / SWE-bench / GPQA / Agent Arena / 信通院方升 等权威评测</div>
+  <span class="reading-time">⏱ 预计阅读时间：15 分钟</span>
+  <div class="summary">
+    <strong>📌 核心结论：</strong>海外三巨头（Claude / GPT / Gemini）在通用推理、编程、Agent 等核心维度仍居第一梯队；国产模型（DeepSeek / Qwen / GLM / Kimi / 豆包）快速追赶，在中文理解、性价比、开源生态方面已实现全面反超。在编程领域 Claude Opus 4.8 综合领先，在科学推理上 Gemini 3.1 Pro 登顶，DeepSeek V4 Flash 以极致性价比（仅为海外旗舰 1/30 价格）成为成本敏感场景首选。差距从 2024 年的 1-2 年缩短至 3-6 个月。
+  </div>
+</header>
+
+<!-- ===== 一、模型总览 ===== -->
+<section id="overview">
+<h2>一、模型总览与梯队划分</h2>
+
+<h3>1.1 参与对比的主流模型</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>厂商</th><th>旗舰模型</th><th>国家</th><th>类型</th><th>核心定位</th></tr></thead>
+<tbody>
+<tr><td>Anthropic</td><td>Claude Fable 5 / Opus 4.8 / Sonnet 5</td><td><span class="tag us">美国</span></td><td>闭源</td><td>编程/AI Agent 业界标杆</td></tr>
+<tr><td>OpenAI</td><td>GPT-5.5 / o4 / GPT-5.4 mini</td><td><span class="tag us">美国</span></td><td>闭源</td><td>通用推理/多模态均衡</td></tr>
+<tr><td>Google</td><td>Gemini 3.1 Pro / Flash</td><td><span class="tag us">美国</span></td><td>闭源</td><td>科学推理/原生多模态</td></tr>
+<tr><td>DeepSeek</td><td>DeepSeek V4 Pro / V4 Flash</td><td><span class="tag cn">中国</span></td><td>开源</td><td>极致性价比/代码能力</td></tr>
+<tr><td>阿里巴巴</td><td>Qwen3.7-Max / Qwen3.5-Omni</td><td><span class="tag cn">中国</span></td><td>开源</td><td>多语言/多模态/中文</td></tr>
+<tr><td>智谱AI</td><td>GLM-5.2</td><td><span class="tag cn">中国</span></td><td>开源</td><td>国产综合最强/Agent</td></tr>
+<tr><td>月之暗面</td><td>Kimi K2.6</td><td><span class="tag cn">中国</span></td><td>开源</td><td>长文本/代码</td></tr>
+<tr><td>字节跳动</td><td>豆包 Seed 2.0 Pro</td><td><span class="tag cn">中国</span></td><td>闭源</td><td>多模态/中文场景</td></tr>
+<tr><td>Meta</td><td>Llama 4 Maverick / Scout</td><td><span class="tag us">美国</span></td><td>开源</td><td>超长上下文(10M)</td></tr>
+<tr><td>Mistral</td><td>Mistral Large 3</td><td><span class="tag us">法国</span></td><td>开源</td><td>欧洲主权AI</td></tr>
+<tr><td>xAI</td><td>Grok 4.0</td><td><span class="tag us">美国</span></td><td>闭源</td><td>实时信息/社交集成</td></tr>
+<tr><td>百度</td><td>文心一言 5.0 / ERNIE X1</td><td><span class="tag cn">中国</span></td><td>闭源</td><td>中文生态/企业级</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>1.2 综合能力梯队（2026 年中）</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>梯队</th><th>分数区间</th><th>模型</th><th>定位</th></tr></thead>
+<tbody>
+<tr class="best"><td><strong>🥇 第一梯队</strong></td><td class="num">92-96</td><td>Claude Opus 4.8 · GPT-5.5 · Gemini 3.1 Pro</td><td>全球标杆，通用能力全面领先</td></tr>
+<tr><td><strong>🥈 第二梯队</strong></td><td class="num">87-92</td><td>Claude Sonnet 5 · GLM-5.2 · DeepSeek V4 Pro · Qwen3.7-Max · Kimi K2.6</td><td>商用主力，部分领域挑战第一梯队</td></tr>
+<tr><td><strong>🥉 第三梯队</strong></td><td class="num">80-87</td><td>豆包 Seed 2.0 · Llama 4 · Mistral Large 3 · Grok 4.0 · 文心一言 5.0</td><td>垂直场景优势，快速追赶</td></tr>
+<tr><td><strong>第四梯队</strong></td><td class="num">70-80</td><td>DeepSeek V4 Flash · GPT-5.4 mini · Qwen-Plus · Gemma 4</td><td>轻量级/高性价比选择</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout info">
+<strong>💡 关键趋势</strong>
+2025 → 2026 年，国产模型从"跟跑"到"并跑"，在开源赛道已全面领先海外。闭源赛道头部差距从 1-2 年缩短至 3-6 个月。
+</div>
+</section>
+
+<!-- ===== 二、编程 ===== -->
+<section id="coding">
+<h2>二、编程与软件工程能力</h2>
+
+<h3>2.1 能力排名</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>排名</th><th>模型</th><th>SWE-bench Verified</th><th>代码质量</th><th>前端审美</th><th>综合评级</th></tr></thead>
+<tbody>
+<tr class="best">
+  <td class="num"><span class="rank-1">🥇</span></td>
+  <td><strong>Claude Opus 4.8</strong></td>
+  <td class="num"><strong>~88%</strong></td>
+  <td>⭐⭐⭐⭐⭐</td>
+  <td>⭐⭐⭐⭐⭐</td>
+  <td><span class="tag best">S</span></td>
+</tr>
+<tr>
+  <td class="num"><span class="rank-2">🥈</span></td>
+  <td><strong>GPT-5.5 (xHigh)</strong></td>
+  <td class="num"><strong>88.7%</strong></td>
+  <td>⭐⭐⭐⭐</td>
+  <td>⭐⭐⭐</td>
+  <td><span class="tag best">S</span></td>
+</tr>
+<tr>
+  <td class="num"><span class="rank-3">🥉</span></td>
+  <td><strong>DeepSeek V4 Pro</strong></td>
+  <td class="num">80.6%</td>
+  <td>⭐⭐⭐⭐</td>
+  <td>⭐⭐⭐</td>
+  <td><span class="tag cn">A+</span></td>
+</tr>
+<tr><td class="num">4</td><td>Claude Sonnet 5</td><td class="num">~78%</td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐⭐⭐</td><td>A+</td></tr>
+<tr><td class="num">5</td><td>Qwen3.7-Max</td><td class="num">80.4%</td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐</td><td>A+</td></tr>
+<tr><td class="num">6</td><td>GLM-5.2</td><td class="num">~78%</td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐</td><td>A</td></tr>
+<tr><td class="num">7</td><td>Gemini 3.1 Pro</td><td class="num">62.3%</td><td>⭐⭐⭐</td><td>⭐⭐⭐</td><td>A</td></tr>
+<tr><td class="num">8</td><td>Kimi K2.6</td><td class="num">—</td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐⭐</td><td>A</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>2.2 编程各维度 Top 3 排名</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>排名</th><th>复杂工程能力</th><th>SWE-bench 得分</th><th>前端 / 审美</th><th>开源代码能力</th><th>编程性价比</th></tr></thead>
+<tbody>
+<tr class="best">
+  <td class="num"><span class="rank-1">🥇</span></td>
+  <td><strong>Claude Opus 4.8</strong></td>
+  <td><strong>GPT-5.5</strong> (88.7%)</td>
+  <td><strong>Claude Opus 4.8</strong></td>
+  <td><strong>DeepSeek V4 Pro</strong> (80.6%)</td>
+  <td><strong>DeepSeek V4 Flash</strong> ($0.28)</td>
+</tr>
+<tr>
+  <td class="num"><span class="rank-2">🥈</span></td>
+  <td><strong>GPT-5.5 (xHigh)</strong></td>
+  <td>Claude Opus 4.8 (~88%)</td>
+  <td>Claude Sonnet 5</td>
+  <td>Qwen3.7-Max (80.4%)</td>
+  <td>DeepSeek V4 Pro ($0.87)</td>
+</tr>
+<tr>
+  <td class="num"><span class="rank-3">🥉</span></td>
+  <td><strong>Claude Sonnet 5</strong></td>
+  <td>DeepSeek V4 Pro (80.6%)</td>
+  <td>Kimi K2.6 / GPT-5.5</td>
+  <td>GLM-5.2 (~78%)</td>
+  <td>Claude Sonnet 5 ($10)</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<h3>2.3 性价比排序（编程场景）</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>性价比排名</th><th>模型</th><th>编程能力</th><th>输出价格(每百万token)</th><th>性价比指数</th></tr></thead>
+<tbody>
+<tr class="best"><td class="num"><span class="rank-1">🥇</span></td><td><strong>DeepSeek V4 Flash</strong></td><td>B+</td><td class="num">$0.28</td><td class="num"><strong>⭐⭐⭐⭐⭐</strong></td></tr>
+<tr><td class="num"><span class="rank-2">🥈</span></td><td><strong>Claude Sonnet 5</strong></td><td>A+</td><td class="num">$10</td><td class="num">⭐⭐⭐⭐</td></tr>
+<tr><td class="num"><span class="rank-3">🥉</span></td><td><strong>GPT-5.4 mini</strong></td><td>B+</td><td class="num">$4.50</td><td class="num">⭐⭐⭐⭐</td></tr>
+<tr><td class="num">4</td><td>DeepSeek V4 Pro</td><td>A+</td><td class="num">$0.87</td><td class="num">⭐⭐⭐⭐⭐</td></tr>
+<tr><td class="num">5</td><td>Qwen-Plus</td><td>B</td><td class="num">$0.28</td><td class="num">⭐⭐⭐⭐</td></tr>
+<tr><td class="num">6</td><td>Claude Opus 4.8</td><td>S</td><td class="num">$25</td><td class="num">⭐⭐</td></tr>
+<tr><td class="num">7</td><td>GPT-5.5</td><td>S</td><td class="num">$30</td><td class="num">⭐⭐</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout tip">
+<strong>✅ 编程选型建议</strong>
+高性能需求 → Claude Opus 4.8；终端自动化 → GPT-5.5；高性价比 → DeepSeek V4 Pro（1/30 价格达 90% 能力）；开源私有化 → DeepSeek / Qwen。
+</div>
+</section>
+
+<!-- ===== 三、数理逻辑 ===== -->
+<section id="reasoning">
+<h2>三、数理逻辑推理能力</h2>
+
+<h3>3.1 核心基准测试排名</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>排名</th><th>模型</th><th>GPQA Diamond<br>(科学推理)</th><th>AIME 2026<br>(数学竞赛)</th><th>综合评级</th></tr></thead>
+<tbody>
+<tr class="best">
+  <td class="num"><span class="rank-1">🥇</span></td>
+  <td><strong>Gemini 3.1 Pro</strong></td>
+  <td class="num"><strong>94.3%</strong></td>
+  <td class="num"><strong>98.2%</strong></td>
+  <td><span class="tag best">S</span></td>
+</tr>
+<tr>
+  <td class="num"><span class="rank-2">🥈</span></td>
+  <td><strong>GPT-5.5</strong></td>
+  <td class="num">93.5%</td>
+  <td class="num"><strong>98.7%</strong></td>
+  <td><span class="tag best">S</span></td>
+</tr>
+<tr>
+  <td class="num"><span class="rank-3">🥉</span></td>
+  <td><strong>Claude Opus 4.8</strong></td>
+  <td class="num">91.3%</td>
+  <td class="num">95.6%</td>
+  <td><span class="tag best">S</span></td>
+</tr>
+<tr><td class="num">4</td><td>Qwen3.7-Max</td><td class="num">92.4%</td><td class="num">~95%</td><td>A+</td></tr>
+<tr><td class="num">5</td><td>GLM-5.2</td><td class="num">86.2%</td><td class="num">95.3%</td><td>A</td></tr>
+<tr><td class="num">6</td><td>DeepSeek V4 Pro</td><td class="num">82.4%</td><td class="num">95.1%</td><td>A</td></tr>
+<tr><td class="num">7</td><td>Qwen3.5-Plus</td><td class="num">90.4%</td><td class="num">~90%</td><td>A</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>3.2 能力与性价比排序</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th colspan="2">按能力排序</th><th colspan="2">按性价比排序</th></tr></thead>
+<tbody>
+<tr><td>🥇</td><td>Gemini 3.1 Pro</td><td>🥇</td><td>DeepSeek R1（输出 $2.15，推理极强）</td></tr>
+<tr><td>🥈</td><td>GPT-5.5</td><td>🥈</td><td>Qwen3.7-Max（输出 ~$2.5）</td></tr>
+<tr><td>🥉</td><td>Claude Opus 4.8</td><td>🥉</td><td>Qwen-Plus（输出 $0.28）</td></tr>
+<tr><td>4</td><td>Qwen3.7-Max</td><td>4</td><td>DeepSeek V4 Flash（输出 $0.28）</td></tr>
+<tr><td>5</td><td>GLM-5.2</td><td>5</td><td>Gemini 3.1 Flash（输出 $0.40）</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout info">
+<strong>💡 推理能力的特殊说明</strong>
+Gemini 3.1 Pro 在科学推理（GPQA）方面登顶，得益于 Google 在科学文献上的深厚积累。国产 DeepSeek R1 和 Qwen 系列在数学竞赛（AIME/MATH-500）已可并列全球第一。差距主要体现在前沿科学论文级别的复杂推理。
+</div>
+</section>
+
+<!-- ===== 四、多模态 ===== -->
+<section id="multimodal">
+<h2>四、多模态能力（图像/视频/音频）</h2>
+
+<h3>4.1 多模态理解排名（SuperCLUE-VLM 2026.02）</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>排名</th><th>模型</th><th>得分</th><th>视频理解</th><th>图像理解</th><th>OCR</th><th>中文多模态</th></tr></thead>
+<tbody>
+<tr class="best"><td class="num">🥇</td><td><strong>Gemini 3.1 Pro</strong></td><td class="num"><strong>84.87</strong></td><td>⭐⭐⭐⭐⭐</td><td>⭐⭐⭐⭐⭐</td><td>⭐⭐⭐</td><td>⭐⭐⭐</td></tr>
+<tr><td class="num">🥈</td><td><strong>豆包 Seed 2.0 Pro</strong></td><td class="num"><strong>81.20</strong></td><td>⭐⭐⭐</td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐⭐⭐</td></tr>
+<tr><td class="num">🥉</td><td><strong>Qwen3.5-Plus-Thinking</strong></td><td class="num">80.24</td><td>⭐⭐⭐⭐⭐</td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐⭐⭐</td></tr>
+<tr><td class="num">4</td><td>Kimi K2.5-Thinking</td><td class="num">79.95</td><td>⭐⭐⭐</td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐</td><td>⭐⭐⭐⭐</td></tr>
+<tr><td class="num">5</td><td>GPT-5.2</td><td class="num">73.31</td><td>⭐⭐⭐</td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐</td></tr>
+<tr><td class="num">6</td><td>Claude Opus 4.6</td><td class="num">72.99</td><td>⭐⭐⭐</td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐</td><td>⭐⭐</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>4.2 生成能力排名</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>领域</th><th>🥇 最佳</th><th>🥈 第二</th><th>🥉 第三</th><th>国产亮点</th></tr></thead>
+<tbody>
+<tr><td><strong>文生图</strong></td><td>Google Nano Banana Pro</td><td>阿里 Z-Image-Turbo</td><td>字节 Seedream 4.5</td><td>国产在色彩、中国文化表达领先</td></tr>
+<tr><td><strong>文生视频</strong></td><td>Runway Gen-4.5</td><td>快手可灵 2.6</td><td>OpenAI Sora 2</td><td>国产前五占三席</td></tr>
+<tr><td><strong>音视频理解</strong></td><td>Qwen3.5-Omni</td><td>Gemini 3.1 Pro</td><td>—</td><td>Qwen 215 项 SOTA</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>4.3 多模态各维度 Top 3 排名</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>排名</th><th>多模态理解</th><th>视频理解</th><th>中文多模态</th><th>文生图性价比</th></tr></thead>
+<tbody>
+<tr class="best">
+  <td class="num"><span class="rank-1">🥇</span></td>
+  <td><strong>Gemini 3.1 Pro</strong> (84.87)</td>
+  <td><strong>Qwen3.5-Omni</strong></td>
+  <td><strong>豆包 Seed 2.0 Pro</strong></td>
+  <td><strong>阿里 Z-Image-Turbo</strong></td>
+</tr>
+<tr>
+  <td class="num"><span class="rank-2">🥈</span></td>
+  <td>豆包 Seed 2.0 Pro (81.20)</td>
+  <td>Gemini 3.1 Pro</td>
+  <td>Qwen3.5-Plus-Thinking</td>
+  <td>字节 Seedream 4.5</td>
+</tr>
+<tr>
+  <td class="num"><span class="rank-3">🥉</span></td>
+  <td>Qwen3.5-Plus-Thinking (80.24)</td>
+  <td>Kimi K2.5 / GPT-5.2</td>
+  <td>Kimi K2.5-Thinking</td>
+  <td>腾讯 HunyuanImage 3.0</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout warn">
+<strong>⚠️ 多模态领域的关键转折</strong>
+2025Q4-2026H1，国产多模态模型首次在 SuperCLUE-VLM 榜单上系统性超越 GPT 和 Claude。GPT-5.2（73.31分）和 Claude Opus 4.6（72.99分）均不敌多款国产模型。但 Gemini 3.1 Pro 仍以绝对优势守住第一。
+</div>
+</section>
+
+<!-- ===== 五、Agent ===== -->
+<section id="agent">
+<h2>五、Agent 与工具调用能力</h2>
+
+<h3>5.1 Agent Arena 排名（2026.06.29）</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>排名</th><th>模型</th><th>净改进率</th><th>工具调用</th><th>多步稳定性</th><th>可控性</th></tr></thead>
+<tbody>
+<tr class="best"><td class="num"><span class="rank-1">🥇</span></td><td><strong>Claude Fable 5 (High)</strong></td><td class="num"><strong>13.34%</strong></td><td>⭐⭐⭐⭐⭐</td><td>⭐⭐⭐⭐⭐</td><td>⭐⭐⭐⭐⭐</td></tr>
+<tr><td class="num"><span class="rank-2">🥈</span></td><td><strong>Claude Opus 4.8 (Thinking)</strong></td><td class="num"><strong>9.37%</strong></td><td>⭐⭐⭐⭐⭐</td><td>⭐⭐⭐⭐⭐</td><td>⭐⭐⭐⭐⭐</td></tr>
+<tr><td class="num"><span class="rank-3">🥉</span></td><td><strong>GPT-5.5 (xHigh)</strong></td><td class="num"><strong>8.21%</strong></td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐⭐</td></tr>
+<tr><td class="num">7</td><td>GLM-5.2 (Max)</td><td class="num">6.93%</td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐⭐</td></tr>
+<tr><td class="num">17</td><td>DeepSeek V4 Flash</td><td class="num">~1.57%</td><td>⭐⭐⭐</td><td>⭐⭐⭐</td><td>⭐⭐⭐</td></tr>
+<tr><td class="num">20</td><td>DeepSeek V4 Pro</td><td class="num">~2.67%</td><td>⭐⭐⭐</td><td>⭐⭐⭐</td><td>⭐⭐⭐</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>5.2 专项能力冠军</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>维度</th><th>冠军模型</th><th>得分/指标</th></tr></thead>
+<tbody>
+<tr><td>任务确认成功率</td><td><strong>Claude Fable 5 (High)</strong></td><td class="num">16.12%</td></tr>
+<tr><td>可控性 (Steerability)</td><td><strong>Claude Opus 4.8 (Thinking)</strong></td><td class="num">10.34%</td></tr>
+<tr><td>Bash 错误恢复</td><td><strong>GPT-5.5 (xHigh)</strong></td><td class="num">14.50%</td></tr>
+<tr><td>工具幻觉率最低</td><td><strong>GLM-5.2 (Max)</strong></td><td class="num">仅 1.31%</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>5.3 能力与性价比排序</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th colspan="2">按能力排序</th><th colspan="2">按性价比排序</th></tr></thead>
+<tbody>
+<tr><td>🥇</td><td>Claude Fable 5 (High)</td><td>🥇</td><td>GPT-5.4 mini（子 Agent 节点）</td></tr>
+<tr><td>🥈</td><td>Claude Opus 4.8</td><td>🥈</td><td>Claude Sonnet 5（$10 输出）</td></tr>
+<tr><td>🥉</td><td>GPT-5.5 (xHigh)</td><td>🥉</td><td>Gemini 3.1 Flash（$0.40 输出）</td></tr>
+<tr><td>4</td><td>GLM-5.2</td><td>4</td><td>DeepSeek V4 Flash（$0.28 输出）</td></tr>
+<tr><td>5</td><td>Claude Sonnet 5</td><td>5</td><td>GLM-5.2</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout info">
+<strong>💡 Agent 能力的战略意义</strong>
+Agent 已成为大模型商业化的核心赛道。Claude Code 2026 年 ARR 达 300 亿美元，超越 OpenAI。Anthropic 凭借 Agent 三梯队（Fable 5 → Opus 4.8 → Sonnet 5）实现全面压制。国产 GLM-5.2 在工具幻觉率上全球最低，具备生产环境可靠性。
+</div>
+</section>
+
+<!-- ===== 六、中文能力 ===== -->
+<section id="chinese">
+<h2>六、中文理解与生成能力</h2>
+
+<h3>6.1 SuperCLUE 中文综合排名（2025.09 / 2026.05）</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>排名</th><th>模型</th><th>SuperCLUE 总分</th><th>中文理解</th><th>中文生成</th><th>文化适配</th></tr></thead>
+<tbody>
+<tr class="best"><td class="num">🥇</td><td><strong>GPT-5 (high)</strong></td><td class="num"><strong>69.37</strong></td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐</td></tr>
+<tr><td class="num">🥈</td><td><strong>DeepSeek-V3.2-Thinking</strong></td><td class="num"><strong>62.62</strong></td><td>⭐⭐⭐⭐⭐</td><td>⭐⭐⭐⭐⭐</td><td>⭐⭐⭐⭐⭐</td></tr>
+<tr><td class="num">🥉</td><td><strong>豆包 Seed 1.6-Thinking</strong></td><td class="num">60.96</td><td>⭐⭐⭐⭐⭐</td><td>⭐⭐⭐⭐⭐</td><td>⭐⭐⭐⭐⭐</td></tr>
+<tr><td class="num">4</td><td>ERNIE-X1.1 (文心)</td><td class="num">60.33</td><td>⭐⭐⭐⭐⭐</td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐⭐⭐</td></tr>
+<tr><td class="num">5</td><td>Qwen3-Max</td><td class="num">59.68</td><td>⭐⭐⭐⭐⭐</td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐⭐⭐</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout warn">
+<strong>⚠️ "中文税"现象</strong>
+Claude 和 GPT 的 tokenizer 对中文不友好，相同内容中文比英文多消耗 11%-64% token。国产模型（Qwen、DeepSeek）的中文 token 效率反而优于英文，这意味着海外模型的中文实际使用成本比标价高 30-60%。
+</div>
+
+<h3>6.2 中文场景 Top 3 排名</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>排名</th><th>中文理解精度</th><th>古文 / 诗词</th><th>政务公文</th><th>性价比</th></tr></thead>
+<tbody>
+<tr class="best">
+  <td class="num"><span class="rank-1">🥇</span></td>
+  <td><strong>DeepSeek-V3.2-Thinking</strong></td>
+  <td><strong>文心一言 5.0</strong></td>
+  <td><strong>文心一言 5.0</strong></td>
+  <td><strong>Qwen-Plus</strong> ($0.28)</td>
+</tr>
+<tr>
+  <td class="num"><span class="rank-2">🥈</span></td>
+  <td>豆包 Seed 1.6-Thinking</td>
+  <td>GLM-5.2</td>
+  <td>华为盘古 Ultra</td>
+  <td>DeepSeek V4 Flash ($0.28)</td>
+</tr>
+<tr>
+  <td class="num"><span class="rank-3">🥉</span></td>
+  <td>ERNIE-X1.1 (文心)</td>
+  <td>DeepSeek-V3.2-Thinking</td>
+  <td>GLM-5.2</td>
+  <td>文心 ERNIE Speed (免费)</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout tip">
+<strong>✅ 中文场景选型建议</strong>
+对中文精度要求最高 → DeepSeek / 豆包；古文/传统文化 → 文心一言 / GLM；企业级合规 → 文心一言 / 华为盘古；高性价比中文 → Qwen-Plus（输出 ¥2/百万 token）；开源私有化 → Qwen / DeepSeek。
+</div>
+</section>
+
+<!-- ===== 七、长文本 ===== -->
+<section id="longcontext">
+<h2>七、长文本与上下文处理</h2>
+
+<h3>7.1 上下文窗口对比</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>模型</th><th>最大上下文</th><th>最大输出</th><th>大海捞针</th><th>长文档理解</th></tr></thead>
+<tbody>
+<tr class="best"><td><strong>Llama 4 Scout</strong></td><td class="num"><strong>10M tokens</strong></td><td>—</td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐</td></tr>
+<tr><td><strong>Claude Opus 4.8</strong></td><td class="num">1M tokens</td><td>32K</td><td>⭐⭐⭐⭐⭐</td><td>⭐⭐⭐⭐⭐</td></tr>
+<tr><td><strong>GPT-5.5</strong></td><td class="num">1M tokens</td><td>128K</td><td>⭐⭐⭐⭐⭐</td><td>⭐⭐⭐⭐⭐</td></tr>
+<tr><td><strong>Gemini 3.1 Pro</strong></td><td class="num">1M tokens</td><td>—</td><td>⭐⭐⭐⭐⭐</td><td>⭐⭐⭐⭐</td></tr>
+<tr><td><strong>Kimi K2.6</strong></td><td class="num">1M tokens</td><td>—</td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐⭐⭐</td></tr>
+<tr><td><strong>DeepSeek V4 Pro</strong></td><td class="num">1M tokens</td><td><strong>384K</strong></td><td>⭐⭐⭐⭐</td><td>⭐⭐⭐⭐</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>7.2 长文本处理 Top 3 排名</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>排名</th><th>长文档精度</th><th>中文长文本</th><th>最大输出长度</th><th>性价比</th></tr></thead>
+<tbody>
+<tr class="best">
+  <td class="num"><span class="rank-1">🥇</span></td>
+  <td><strong>Claude Opus 4.8</strong></td>
+  <td><strong>Kimi K2.6</strong></td>
+  <td><strong>DeepSeek V4 Pro</strong> (384K)</td>
+  <td><strong>DeepSeek V4 Flash</strong> ($0.28)</td>
+</tr>
+<tr>
+  <td class="num"><span class="rank-2">🥈</span></td>
+  <td>GPT-5.5</td>
+  <td>DeepSeek-V3.2</td>
+  <td>GPT-5.5 (128K)</td>
+  <td>Kimi K2.6</td>
+</tr>
+<tr>
+  <td class="num"><span class="rank-3">🥉</span></td>
+  <td>Gemini 3.1 Pro</td>
+  <td>豆包 Seed 2.0 Pro</td>
+  <td>Claude Opus 4.8 (32K)</td>
+  <td>Gemini 3.1 Flash ($0.40)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- ===== 八、开源生态 ===== -->
+<section id="opensource">
+<h2>八、开源模型生态</h2>
+
+<h3>8.1 开源模型综合排名（2026 年中）</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>排名</th><th>模型</th><th>架构</th><th>活跃参数</th><th>许可证</th><th>SWE-bench</th><th>GPQA</th></tr></thead>
+<tbody>
+<tr class="best"><td class="num">🥇</td><td><strong>DeepSeek V4 Pro</strong></td><td>1.6T MoE</td><td class="num">49B</td><td>MIT</td><td class="num"><strong>80.6%</strong></td><td class="num">~80%</td></tr>
+<tr><td class="num">🥈</td><td><strong>GLM-5.2</strong></td><td>~750B MoE</td><td class="num">40B</td><td>MIT</td><td class="num">~78%</td><td class="num">86.2%</td></tr>
+<tr><td class="num">🥉</td><td><strong>Qwen 3.5-397B</strong></td><td>397B MoE</td><td class="num">17B</td><td>Apache 2.0</td><td class="num">~75%</td><td class="num"><strong>88.4%</strong></td></tr>
+<tr><td class="num">4</td><td>Kimi K2.6</td><td>1T MoE</td><td class="num">32B</td><td>修改MIT</td><td class="num">—</td><td class="num">—</td></tr>
+<tr><td class="num">5</td><td>MiMo-V2.5-Pro (小米)</td><td>1T MoE</td><td class="num">42B</td><td>Apache 2.0</td><td class="num">78.9%</td><td class="num">—</td></tr>
+<tr><td class="num">6</td><td>Llama 4 Maverick</td><td>400B MoE</td><td class="num">17B</td><td>Llama Community</td><td class="num">~70%</td><td class="num">—</td></tr>
+<tr><td class="num">7</td><td>DeepSeek V4 Flash</td><td>284B MoE</td><td class="num">13B</td><td>MIT</td><td class="num">—</td><td class="num">—</td></tr>
+<tr><td class="num">8</td><td>Mistral Large 3</td><td>128B Dense</td><td class="num">128B</td><td>Apache 2.0</td><td class="num">—</td><td class="num">~70%</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>8.2 开源 vs 闭源核心差距</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>维度</th><th>开源最佳</th><th>闭源最佳</th><th>差距</th></tr></thead>
+<tbody>
+<tr><td>编程 (SWE-bench)</td><td>DeepSeek V4 Pro: <strong>80.6%</strong></td><td>GPT-5.5: <strong>88.7%</strong></td><td>~8%</td></tr>
+<tr><td>科学推理 (GPQA)</td><td>Qwen 3.5: <strong>88.4%</strong></td><td>Gemini 3.1 Pro: <strong>94.3%</strong></td><td>~6%</td></tr>
+<tr><td>Agent</td><td>GLM-5.2: <strong>6.93%</strong></td><td>Claude Fable 5: <strong>13.34%</strong></td><td>~2x</td></tr>
+<tr><td>中文</td><td>DeepSeek: <strong>62.62</strong></td><td>GPT-5: <strong>69.37</strong></td><td>~10%</td></tr>
+<tr><td>多语言</td><td>Qwen 3.5: <strong>201 语言</strong></td><td>—</td><td>开源领先</td></tr>
+<tr><td>价格</td><td>DeepSeek Flash: <strong>$0.28</strong></td><td>Claude Opus: <strong>$25</strong></td><td>~90x</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout tip">
+<strong>✅ 开源选型建议</strong>
+综合最强开源 → DeepSeek V4 Pro / GLM-5.2；科学/数学 → Qwen 3.5-397B；超长上下文 → Llama 4 Scout (10M)；欧洲合规 → Mistral Large 3；端侧部署 → Qwen 3.6-35B-A3B（仅 3B 活跃参数）。
+</div>
+</section>
+
+<!-- ===== 九、成本 ===== -->
+<section id="cost">
+<h2>九、成本与性价比分析</h2>
+
+<h3>9.1 主流模型 API 定价总览（每百万 token，美元）</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>模型</th><th>输入价格</th><th>输出价格</th><th>上下文窗口</th><th>相对 GPT-4o</th></tr></thead>
+<tbody>
+<tr><td colspan="5"><strong>🔴 高价旗舰（输出 $15+）</strong></td></tr>
+<tr><td>Claude Fable 5</td><td class="num">$10</td><td class="num">$50</td><td class="num">1M</td><td class="num">5.0x</td></tr>
+<tr><td>Claude Opus 4.8</td><td class="num">$5</td><td class="num">$25</td><td class="num">1M</td><td class="num">2.5x</td></tr>
+<tr><td>GPT-5.5</td><td class="num">$5</td><td class="num">$30</td><td class="num">1M</td><td class="num">3.0x</td></tr>
+<tr><td>GPT-4o</td><td class="num">$2.50</td><td class="num">$10</td><td class="num">128K</td><td class="num">1.0x (基准)</td></tr>
+<tr><td colspan="5"><strong>🟡 中端主力（输出 $2-$15）</strong></td></tr>
+<tr><td>Claude Sonnet 5</td><td class="num">$2</td><td class="num">$10</td><td class="num">1M</td><td class="num">1.0x</td></tr>
+<tr><td>Gemini 3.1 Pro</td><td class="num">$1.25</td><td class="num">$10</td><td class="num">1M</td><td class="num">1.0x</td></tr>
+<tr><td>DeepSeek V4 Pro</td><td class="num">$0.44</td><td class="num">$0.87</td><td class="num">1M</td><td class="num"><strong>0.09x ✅</strong></td></tr>
+<tr><td colspan="5"><strong>🟢 高性价比（输出 &lt;$2）</strong></td></tr>
+<tr><td>GPT-5.4 mini</td><td class="num">$0.75</td><td class="num">$4.50</td><td class="num">256K</td><td class="num">0.45x</td></tr>
+<tr><td>Gemini 3.1 Flash</td><td class="num">$0.30</td><td class="num">$2.50</td><td class="num">1M</td><td class="num">0.25x</td></tr>
+<tr class="best"><td>DeepSeek V4 Flash</td><td class="num"><strong>$0.14</strong></td><td class="num"><strong>$0.28</strong></td><td class="num">1M</td><td class="num"><strong>0.03x ✅✅</strong></td></tr>
+<tr><td>Qwen-Plus</td><td class="num">$0.11</td><td class="num">$0.28</td><td class="num">128K</td><td class="num"><strong>0.03x ✅✅</strong></td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>9.2 实际场景年费对比（人民币）</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>应用场景</th><th>GPT-4o</th><th>Qwen3-Max</th><th>DeepSeek V4 Flash</th><th>Qwen-Plus</th></tr></thead>
+<tbody>
+<tr><td>AI 客服（日均 3 万次）</td><td class="num">¥38,880</td><td class="num">¥12,960</td><td class="num">¥4,320</td><td class="num"><strong>¥1,296 ✅</strong></td></tr>
+<tr><td>AI 写作（日均 1 万次）</td><td class="num">¥49,680</td><td class="num">¥16,560</td><td class="num">¥5,520</td><td class="num"><strong>¥1,488 ✅</strong></td></tr>
+<tr><td>轻量分类（日均 10 万次）</td><td class="num">¥32,400</td><td class="num">¥10,800</td><td class="num">¥3,600</td><td class="num"><strong>¥1,080 ✅</strong></td></tr>
+<tr><td>代码助手（日均 5 千次）</td><td class="num">¥24,840</td><td class="num">¥8,280</td><td class="num"><strong>¥2,760 ✅</strong></td><td class="num">¥4,464</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>9.3 性价比综合排名</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>排名</th><th>模型</th><th>能力等级</th><th>输出价格</th><th>性价比评分</th><th>适用场景</th></tr></thead>
+<tbody>
+<tr class="best"><td class="num">🥇</td><td><strong>DeepSeek V4 Flash</strong></td><td>B+</td><td class="num">$0.28</td><td class="num">⭐⭐⭐⭐⭐</td><td>批量处理、分类、简单问答</td></tr>
+<tr><td class="num">🥈</td><td><strong>Qwen-Plus</strong></td><td>B</td><td class="num">$0.28</td><td class="num">⭐⭐⭐⭐⭐</td><td>中文内容、轻量任务</td></tr>
+<tr><td class="num">🥉</td><td><strong>DeepSeek V4 Pro</strong></td><td>A+</td><td class="num">$0.87</td><td class="num">⭐⭐⭐⭐⭐</td><td>编程、推理、中文处理</td></tr>
+<tr><td class="num">4</td><td>Gemini 3.1 Flash</td><td>B+</td><td class="num">$2.50</td><td class="num">⭐⭐⭐⭐</td><td>多模态、长上下文</td></tr>
+<tr><td class="num">5</td><td>Claude Sonnet 5</td><td>A+</td><td class="num">$10</td><td class="num">⭐⭐⭐⭐</td><td>编程、Agent 主力</td></tr>
+<tr><td class="num">6</td><td>GPT-5.4 mini</td><td>B+</td><td class="num">$4.50</td><td class="num">⭐⭐⭐</td><td>通用子任务</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="callout tip">
+<strong>✅ 降本核心策略</strong>
+并非所有任务都需要最强模型。采用"分层用模"策略——将任务按复杂度分级，简单任务用轻量模型（如 Qwen-Plus），复杂任务用旗舰模型（如 Claude Opus），可节省 70-90% 成本。
+</div>
+</section>
+
+<!-- ===== 十、企业级部署 ===== -->
+<section id="enterprise">
+<h2>十、企业级部署与安全合规</h2>
+
+<h3>10.1 私有化部署 vs SaaS 能力对比</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>模型厂商</th><th>私有化支持</th><th>开源可用</th><th>信创适配</th><th>数据安全</th><th>合规认证</th></tr></thead>
+<tbody>
+<tr class="best"><td><strong>国产：DeepSeek / Qwen / GLM / 文心 / 盘古</strong></td><td>✅ 完善</td><td>✅ 多款</td><td>✅ 适配</td><td>⭐⭐⭐⭐⭐</td><td>等保/密评</td></tr>
+<tr><td><strong>海外：Claude / GPT / Gemini</strong></td><td>⚠️ 有限</td><td>❌</td><td>❌</td><td>⭐⭐⭐</td><td>SOC2/ISO</td></tr>
+<tr><td><strong>欧洲：Mistral Large 3</strong></td><td>✅</td><td>✅ Apache 2.0</td><td>❌</td><td>⭐⭐⭐⭐</td><td>GDPR 合规</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>10.2 行业适用性</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>行业</th><th>核心需求</th><th>推荐方案</th><th>原因</th></tr></thead>
+<tbody>
+<tr><td><strong>金融</strong></td><td>数据不出域、审计追溯</td><td>GLM-5.2 / 文心（私有化）</td><td>信创适配、合规认证齐全</td></tr>
+<tr><td><strong>政务</strong></td><td>等保三级、内容安全</td><td>华为盘古 / 文心一言</td><td>国产全链路、审批流程</td></tr>
+<tr><td><strong>医疗</strong></td><td>患者隐私、HIPAA</td><td>DeepSeek / Qwen（私有化）</td><td>开源可控、可审计</td></tr>
+<tr><td><strong>互联网</strong></td><td>高并发、快速迭代</td><td>Claude / GPT (SaaS) + Qwen (私有化)</td><td>混合部署，扬长避短</td></tr>
+<tr><td><strong>跨国企业</strong></td><td>GDPR、数据出境</td><td>Mistral Large 3 + 国产混合</td><td>分区域合规</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>10.3 安全合规 Top 3 排名</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>排名</th><th>数据主权保障</th><th>合规认证齐全</th><th>全球合规</th><th>部署灵活性</th></tr></thead>
+<tbody>
+<tr class="best">
+  <td class="num"><span class="rank-1">🥇</span></td>
+  <td><strong>国产开源系</strong>（DeepSeek / Qwen / GLM）</td>
+  <td><strong>文心一言 / 华为盘古</strong></td>
+  <td><strong>Claude / GPT</strong>（SOC2 + ISO）</td>
+  <td><strong>Qwen 系列</strong>（Apache 2.0 全开源）</td>
+</tr>
+<tr>
+  <td class="num"><span class="rank-2">🥈</span></td>
+  <td>文心一言（私有化版）</td>
+  <td>GLM-5.2（信创适配）</td>
+  <td>Mistral Large 3（GDPR 原生）</td>
+  <td>DeepSeek 系列（MIT 许可）</td>
+</tr>
+<tr>
+  <td class="num"><span class="rank-3">🥉</span></td>
+  <td>华为盘古 Ultra</td>
+  <td>DeepSeek V4 Pro</td>
+  <td>Gemini 3.1 Pro（GCP 合规）</td>
+  <td>GLM-5.2（MIT 许可 + 昇腾适配）</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- ===== 十一、总结 ===== -->
+<section id="conclusion">
+<h2>十一、总结与选型速查</h2>
+
+<h3>11.1 各维度最佳模型速查表</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>细分领域</th><th>🏆 能力最佳</th><th>💰 性价比最佳</th></tr></thead>
+<tbody>
+<tr><td>编程/软件工程</td><td>Claude Opus 4.8</td><td>DeepSeek V4 Pro ($0.87)</td></tr>
+<tr><td>Agent / 工具调用</td><td>Claude Fable 5</td><td>Claude Sonnet 5 ($10)</td></tr>
+<tr><td>科学推理</td><td>Gemini 3.1 Pro</td><td>Qwen3.7-Max (~$2.5)</td></tr>
+<tr><td>数学竞赛</td><td>GPT-5.5 (98.7%)</td><td>DeepSeek R1 ($2.15)</td></tr>
+<tr><td>多模态理解</td><td>Gemini 3.1 Pro</td><td>Qwen3.5-Omni (开源)</td></tr>
+<tr><td>文生图</td><td>Google Nano Banana Pro</td><td>阿里 Z-Image-Turbo</td></tr>
+<tr><td>文生视频</td><td>Runway Gen-4.5</td><td>快手可灵 2.6</td></tr>
+<tr><td>中文理解</td><td>DeepSeek-V3.2-Thinking</td><td>Qwen-Plus ($0.28)</td></tr>
+<tr><td>长文本处理</td><td>Claude Opus 4.8</td><td>Kimi K2.6 / DeepSeek</td></tr>
+<tr><td>多语言</td><td>Qwen 3.5 (201 语言)</td><td>Qwen (开源免费)</td></tr>
+<tr><td>开源综合</td><td>DeepSeek V4 Pro</td><td>DeepSeek V4 Flash ($0.28)</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>11.2 按场景的终极选型建议</h3>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>你是...</th><th>推荐方案</th><th>理由</th></tr></thead>
+<tbody>
+<tr><td>🧑‍💻 <strong>个人开发者</strong></td><td>Claude Sonnet 5 (编程) + DeepSeek V4 Flash (日常)</td><td>编程能力 S 级 + 日常约等于免费</td></tr>
+<tr><td>🏢 <strong>创业公司</strong></td><td>DeepSeek V4 Pro (主力) + Qwen-Plus (批量)</td><td>百万 token 不到 7 元人民币，能力达旗舰 90%</td></tr>
+<tr><td>🏦 <strong>金融机构</strong></td><td>GLM-5.2 / 文心一言（私有化部署）</td><td>数据不出域，信创合规，工具幻觉率最低</td></tr>
+<tr><td>🏭 <strong>大型企业</strong></td><td>混合部署：Claude Opus 4.8 (SaaS 核心) + Qwen (私有化批处理)</td><td>核心任务用最强，批处理用国产降本</td></tr>
+<tr><td>🌍 <strong>跨国企业</strong></td><td>Claude/GPT (欧美) + DeepSeek/Qwen (亚太)</td><td>分区域合规，多语言覆盖</td></tr>
+<tr><td>🔬 <strong>科研机构</strong></td><td>Gemini 3.1 Pro (科学推理) + DeepSeek R1 (数学)</td><td>GPQA + AIME 双冠覆盖</td></tr>
+<tr><td>🎨 <strong>内容创作者</strong></td><td>豆包 Seed 2.0 (中文多模态) + 阿里 Z-Image (配图)</td><td>中文视觉理解领先，文生图成本低</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>11.3 核心趋势与展望</h3>
+
+<div class="callout info">
+<strong>📊 六大关键趋势</strong>
+<ol style="margin-top:8px;">
+  <li><strong>开源闭源差距急剧缩小</strong>：从 2024 年的 1-2 年到 2026 年的 3-6 个月，开源 DeepSeek V4 Pro 的 SWE-bench 已逼近闭源旗舰。</li>
+  <li><strong>国产模型全面崛起</strong>：DeepSeek、Qwen、GLM、Kimi、豆包在编程、数学、多模态、Agent 等领域已从"追赶"转为"并跑"。</li>
+  <li><strong>MoE 架构一统天下</strong>：几乎所有 2026 年旗舰模型均采用混合专家架构，推理效率大幅提升。</li>
+  <li><strong>Agent 成为核心战场</strong>：Anthropic 凭借 Agent 三梯队实现商业化领先，Claude Code ARR 达 300 亿美元。</li>
+  <li><strong>极致性价比民主化</strong>：DeepSeek V4 Flash 和 Qwen-Plus 将百万 token 成本压至 $0.28，AI 应用门槛空前降低。</li>
+  <li><strong>安全合规进入量化时代</strong>：中国 GB/T 45654-2025 正式实施，企业级 AI 部署进入合规新阶段。</li>
+</ol>
+</div>
+
+<div style="text-align:center; margin-top:48px; padding:24px; color:var(--fg-subtle); font-size:0.82rem; border-top:1px solid var(--border);">
+  <p>本报告数据来源：SuperCLUE、SWE-bench Verified、GPQA Diamond、Agent Arena、信通院方升评测、Artificial Analysis、太平洋科技横评 等</p>
+  <p>报告生成日期：2026 年 7 月 3 日 · 仅供决策参考，实际效果可能因场景差异而异</p>
+  <p style="margin-top:8px;color:var(--accent);">🤖 本报告由 Claude (Opus 4.8) 汇总分析生成</p>
+</div>
+</section>
+
+</main>
+</body>
+</html>
